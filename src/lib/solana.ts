@@ -1,8 +1,7 @@
 import bs58 from 'bs58';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { randomBytes } from 'crypto';
-import { DefaultSolanaWalletAdapter } from '@orderly.network/default-solana-adapter';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { AbiCoder, solidityPackedKeccak256, keccak256, getBytes } from 'ethers';
 import { Network } from '../types.js';
 
 const SOLANA_CHAIN_IDS: Record<Network, number> = {
@@ -73,30 +72,10 @@ export function isValidSolanaAddress(address: string): boolean {
   }
 }
 
-function createWalletAdapter(wallet: SolanaWallet, network: Network): DefaultSolanaWalletAdapter {
-  const adapter = new DefaultSolanaWalletAdapter();
-  const chainId = SOLANA_CHAIN_IDS[network];
-
-  adapter.active({
-    address: wallet.address,
-    chain: {
-      id: chainId,
-    },
-    provider: {
-      signMessage: async (message: Uint8Array): Promise<Uint8Array> => {
-        return ed25519.sign(message, wallet.privateKeyBytes);
-      },
-      signTransaction: async () => {
-        throw new Error('signTransaction not supported in CLI');
-      },
-      sendTransaction: async () => {
-        throw new Error('sendTransaction not supported in CLI');
-      },
-      network: network === 'mainnet' ? WalletAdapterNetwork.Mainnet : WalletAdapterNetwork.Devnet,
-    },
-  });
-
-  return adapter;
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 export async function signRegistration(
@@ -108,17 +87,37 @@ export async function signRegistration(
     network: Network;
   }
 ): Promise<{ message: Record<string, unknown>; signature: string }> {
-  const adapter = createWalletAdapter(wallet, params.network);
+  const chainId = SOLANA_CHAIN_IDS[params.network];
 
-  const result = await adapter.generateRegisterAccountMessage({
+  const message = {
     brokerId: params.brokerId,
-    registrationNonce: Number(params.registrationNonce),
+    chainId,
     timestamp: params.timestamp,
-  });
+    registrationNonce: params.registrationNonce,
+  };
+
+  const brokerIdHash = solidityPackedKeccak256(['string'], [message.brokerId]);
+
+  const abicoder = AbiCoder.defaultAbiCoder();
+  const encodedData = abicoder.encode(
+    ['bytes32', 'uint256', 'uint256', 'uint256'],
+    [brokerIdHash, message.chainId, message.timestamp, message.registrationNonce]
+  );
+
+  const msgToSign = keccak256(getBytes(encodedData));
+  const msgToSignHex = msgToSign.slice(2);
+
+  const msgToSignTextEncoded: Uint8Array = new TextEncoder().encode(msgToSignHex);
+
+  const signatureBytes = ed25519.sign(msgToSignTextEncoded, wallet.privateKeyBytes);
+  const signature = `0x${  bytesToHex(signatureBytes)}`;
 
   return {
-    message: result.message as Record<string, unknown>,
-    signature: result.signatured,
+    message: {
+      ...message,
+      chainType: 'SOL',
+    },
+    signature,
   };
 }
 
@@ -133,21 +132,46 @@ export async function signAddKey(
     network: Network;
   }
 ): Promise<{ message: Record<string, unknown>; signature: string }> {
-  const adapter = createWalletAdapter(wallet, params.network);
+  const chainId = SOLANA_CHAIN_IDS[params.network];
 
-  const expirationTimestamp = params.timestamp + 1000 * 60 * 60 * 24 * params.expiration;
-
-  const result = await adapter.generateAddOrderlyKeyMessage({
+  const message = {
     brokerId: params.brokerId,
-    publicKey: params.publicKey,
+    chainType: 'SOL',
+    orderlyKey: params.publicKey,
     scope: params.scope,
+    chainId,
     timestamp: params.timestamp,
-    expiration: expirationTimestamp,
-  });
+    expiration: params.expiration,
+  };
+
+  const brokerIdHash = solidityPackedKeccak256(['string'], [message.brokerId]);
+  const orderlyKeyHash = solidityPackedKeccak256(['string'], [message.orderlyKey]);
+  const scopeHash = solidityPackedKeccak256(['string'], [message.scope]);
+
+  const abicoder = AbiCoder.defaultAbiCoder();
+  const encodedData = abicoder.encode(
+    ['bytes32', 'bytes32', 'bytes32', 'uint256', 'uint256', 'uint256'],
+    [
+      brokerIdHash,
+      orderlyKeyHash,
+      scopeHash,
+      message.chainId,
+      message.timestamp,
+      message.expiration,
+    ]
+  );
+
+  const msgToSign = keccak256(getBytes(encodedData));
+  const msgToSignHex = msgToSign.slice(2);
+
+  const msgToSignTextEncoded: Uint8Array = new TextEncoder().encode(msgToSignHex);
+
+  const signatureBytes = ed25519.sign(msgToSignTextEncoded, wallet.privateKeyBytes);
+  const signature = `0x${  bytesToHex(signatureBytes)}`;
 
   return {
-    message: result.message as Record<string, unknown>,
-    signature: result.signatured,
+    message,
+    signature,
   };
 }
 

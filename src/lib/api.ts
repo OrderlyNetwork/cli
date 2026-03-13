@@ -225,7 +225,7 @@ export class OrderlyClient {
       throw new Error('Faucet is only available on testnet. Use --network testnet.');
     }
 
-    const isSolana = userAddress.length > 50;
+    const isSolana = !userAddress.startsWith('0x');
     const faucetBaseUrl = isSolana
       ? 'https://testnet-operator-sol.orderly.org'
       : 'https://testnet-operator-evm.orderly.org';

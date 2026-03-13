@@ -1,4 +1,5 @@
 export type Network = 'mainnet' | 'testnet';
+export type WalletType = 'EVM' | 'SOL';
 
 export interface KeyPair {
   accountId: string;
@@ -11,6 +12,44 @@ export interface StoredKey {
   accountId: string;
   publicKey: string;
   network: Network;
+}
+
+export interface WalletKeyPair {
+  address: string;
+  privateKey: string;
+  walletType: WalletType;
+  network: Network;
+}
+
+export interface StoredWalletKey {
+  address: string;
+  walletType: WalletType;
+  network: Network;
+}
+
+export interface EIP712Domain {
+  name: string;
+  version: string;
+  chainId: number;
+  verifyingContract: string;
+}
+
+export interface RegistrationMessage {
+  brokerId: string;
+  chainId: number;
+  timestamp: number;
+  registrationNonce: string;
+  chainType?: WalletType;
+}
+
+export interface AddKeyMessage {
+  brokerId: string;
+  chainId: number;
+  orderlyKey: string;
+  scope: string;
+  timestamp: number;
+  expiration: number;
+  chainType?: WalletType;
 }
 
 export interface OrderlyConfig {

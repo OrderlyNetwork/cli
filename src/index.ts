@@ -7,8 +7,16 @@ import { place, cancel, listOrders } from './commands/order.js';
 import { listPositions, closePosition } from './commands/positions.js';
 import { getPrice, getOrderbook } from './commands/market.js';
 import { faucetUsdc } from './commands/faucet.js';
+import {
+  walletImport,
+  walletList,
+  walletShow,
+  walletLogout,
+  walletRegister,
+  walletAddKey,
+} from './commands/wallet.js';
 import { getDefaultNetwork } from './lib/config.js';
-import { Network } from './types.js';
+import { Network, WalletType } from './types.js';
 
 const cli = cac('orderly');
 
@@ -125,6 +133,49 @@ cli
   .action((address, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void faucetUsdc(address, options.brokerId, options.chainId, network);
+  });
+
+cli
+  .command('wallet-import', 'Import an EVM or Solana wallet private key')
+  .option('--type <type>', 'Wallet type (EVM or SOL)')
+  .option('--address <address>', 'Wallet address (optional, will be derived from private key)')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void walletImport(options.type as WalletType, options.address, undefined, network);
+  });
+
+cli.command('wallet-list', 'List all stored wallet keys').action((options) => {
+  const network = options.network as Network | undefined;
+  void walletList(network);
+});
+
+cli.command('wallet-show [address]', 'Show wallet info').action((address, options) => {
+  const network = (options.network as Network) || getDefaultNetwork();
+  void walletShow(address, network);
+});
+
+cli.command('wallet-logout [address]', 'Remove stored wallet').action((address, options) => {
+  const network = (options.network as Network) || getDefaultNetwork();
+  void walletLogout(address, network);
+});
+
+cli
+  .command('wallet-register', 'Register an Orderly account with your wallet')
+  .option('--broker-id <id>', 'Broker ID')
+  .option('--address <address>', 'Wallet address (optional, will prompt if not provided)')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void walletRegister(options.brokerId, options.address, network);
+  });
+
+cli
+  .command('wallet-add-key', 'Add an Orderly API key for trading')
+  .option('--broker-id <id>', 'Broker ID')
+  .option('--address <address>', 'Wallet address (optional, will prompt if not provided)')
+  .option('--scope <scope>', 'Key scopes (comma-separated: read,trading,asset)')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void walletAddKey(options.brokerId, options.address, options.scope, network);
   });
 
 try {

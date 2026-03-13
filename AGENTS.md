@@ -39,7 +39,10 @@ Keys are network-scoped: `accountId:network` (e.g., `12345:mainnet`, `12345:test
 1. **Layer 1 (Wallet)**: EIP-712 (EVM) or Ed25519 (Solana) - for account registration
 2. **Layer 2 (API)**: Ed25519 keypair for trading operations
 
-This CLI manages **Layer 2** - the Ed25519 API keys.
+This CLI now manages **both layers**:
+
+- **Layer 1**: Wallet private keys stored in OS keychain for account registration
+- **Layer 2**: Ed25519 API keys for trading operations
 
 ### Request Signing
 
@@ -61,7 +64,8 @@ src/
 ├── index.ts              # CLI entry point (cac setup)
 ├── types.ts              # TypeScript interfaces
 ├── commands/
-│   ├── auth.ts           # Key management
+│   ├── auth.ts           # API key management (Layer 2)
+│   ├── wallet.ts         # Wallet management (Layer 1)
 │   ├── account.ts        # Account info & balance
 │   ├── order.ts          # Place/cancel/list orders
 │   ├── positions.ts      # List/close positions
@@ -70,6 +74,8 @@ src/
 └── lib/
     ├── keychain.ts       # OS keychain (keytar)
     ├── crypto.ts         # Ed25519 key gen & signing
+    ├── evm.ts            # EIP-712 signing for EVM wallets
+    ├── solana.ts         # Ed25519 signing for Solana wallets
     ├── config.ts         # ~/.orderly-cli/config.json
     └── api.ts            # REST client with auto-signing
 ```
@@ -148,6 +154,28 @@ orderly market-price <symbol> [--network <network>]
 orderly market-orderbook <symbol> [--network <network>]
 ```
 
+### Wallet Commands
+
+```bash
+# Import wallet private key (EVM or Solana)
+orderly wallet-import [--type EVM|SOL] [--address <address>]
+
+# List stored wallets
+orderly wallet-list [--network <network>]
+
+# Show wallet info
+orderly wallet-show [address] [--network <network>]
+
+# Remove wallet from keychain
+orderly wallet-logout [address] [--network <network>]
+
+# Register Orderly account with wallet
+orderly wallet-register [--broker-id <id>] [--address <address>] [--network <network>]
+
+# Add Orderly API key for trading
+orderly wallet-add-key [--broker-id <id>] [--address <address>] [--scope <scope>] [--network <network>]
+```
+
 ### Testnet Faucet
 
 ```bash
@@ -217,6 +245,25 @@ OS keychain integration using `keytar`:
 - `listKeys()` - List all stored keys (public keys only)
 - `hasKey(accountId, network)` - Check if key exists
 
+### `src/lib/evm.ts`
+
+EIP-712 signing for EVM wallets:
+
+- `createWalletFromPrivateKey(privateKey)` - Create wallet from private key
+- `signRegistration(wallet, message)` - Sign account registration
+- `signAddKey(wallet, message)` - Sign add API key
+- `isValidEVMAddress(address)` - Validate EVM address
+- `isValidPrivateKey(key)` - Validate private key format
+
+### `src/lib/solana.ts`
+
+Ed25519 signing for Solana wallets:
+
+- `createSolanaWalletFromPrivateKey(privateKey)` - Create wallet from private key
+- `signRegistration(wallet, message)` - Sign account registration
+- `signAddKey(wallet, message)` - Sign add API key
+- `isValidSolanaAddress(address)` - Validate Solana address
+
 ### `src/lib/crypto.ts`
 
 Ed25519 cryptography using `@noble/curves`:
@@ -264,6 +311,8 @@ Config file management:
 | `cac`           | CLI framework (lightweight)    |
 | `keytar`        | OS keychain access             |
 | `@noble/curves` | Ed25519 cryptography (pure JS) |
+| `ethers`        | EIP-712 signing for EVM        |
+| `bs58`          | Base58 encoding (Solana)       |
 | `axios`         | HTTP client                    |
 | `kleur`         | Terminal colors                |
 | `ora`           | Spinners                       |

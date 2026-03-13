@@ -1,10 +1,22 @@
 import * as keytar from 'keytar';
-import { StoredKey, KeyPair, Network } from '../types.js';
+import {
+  StoredKey,
+  KeyPair,
+  Network,
+  WalletKeyPair,
+  StoredWalletKey,
+  WalletType,
+} from '../types.js';
 
 const SERVICE_NAME = 'orderly-cli';
+const SERVICE_NAME_WALLET = 'orderly-cli-wallet';
 
 function makeKey(accountId: string, network: Network): string {
   return `${accountId}:${network}`;
+}
+
+function makeWalletKey(address: string, network: Network): string {
+  return `${address}:${network}`;
 }
 
 export async function storeKey(
@@ -40,4 +52,56 @@ export async function listKeys(): Promise<StoredKey[]> {
 export async function hasKey(accountId: string, network: Network): Promise<boolean> {
   const key = await getKey(accountId, network);
   return key !== null;
+}
+
+export async function storeWalletKey(
+  address: string,
+  network: Network,
+  walletKeyPair: WalletKeyPair
+): Promise<void> {
+  await keytar.setPassword(
+    SERVICE_NAME_WALLET,
+    makeWalletKey(address, network),
+    JSON.stringify(walletKeyPair)
+  );
+}
+
+export async function getWalletKey(
+  address: string,
+  network: Network
+): Promise<WalletKeyPair | null> {
+  const data = await keytar.getPassword(SERVICE_NAME_WALLET, makeWalletKey(address, network));
+  if (!data) return null;
+  return JSON.parse(data) as WalletKeyPair;
+}
+
+export async function deleteWalletKey(address: string, network: Network): Promise<boolean> {
+  return keytar.deletePassword(SERVICE_NAME_WALLET, makeWalletKey(address, network));
+}
+
+export async function listWalletKeys(): Promise<StoredWalletKey[]> {
+  const credentials = await keytar.findCredentials(SERVICE_NAME_WALLET);
+  return credentials.map((cred) => {
+    const walletKey = JSON.parse(cred.password) as WalletKeyPair;
+    return {
+      address: walletKey.address,
+      walletType: walletKey.walletType,
+      network: walletKey.network,
+    };
+  });
+}
+
+export async function hasWalletKey(address: string, network: Network): Promise<boolean> {
+  const key = await getWalletKey(address, network);
+  return key !== null;
+}
+
+export async function getWalletKeyByType(
+  walletType: WalletType,
+  network: Network
+): Promise<WalletKeyPair | null> {
+  const keys = await listWalletKeys();
+  const match = keys.find((k) => k.walletType === walletType && k.network === network);
+  if (!match) return null;
+  return getWalletKey(match.address, network);
 }

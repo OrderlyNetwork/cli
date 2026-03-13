@@ -152,4 +152,60 @@ export class OrderlyClient {
 
     return response.data;
   }
+
+  async getAccount(
+    address: string,
+    brokerId: string,
+    chainType?: string
+  ): Promise<{ success: boolean; data?: { account_id: string } }> {
+    let path = `/v1/get_account?address=${address}&broker_id=${brokerId}`;
+    if (chainType) {
+      path += `&chain_type=${chainType}`;
+    }
+    return this.get(path, false);
+  }
+
+  async getRegistrationNonce(): Promise<{ success: boolean; data: string }> {
+    return this.get('/v1/registration_nonce', false);
+  }
+
+  async registerAccount(
+    message: Record<string, unknown>,
+    signature: string,
+    userAddress: string,
+    chainType?: string
+  ): Promise<{ success: boolean; data?: { account_id: string } }> {
+    const body: Record<string, unknown> = {
+      message,
+      signature,
+      userAddress,
+    };
+    if (chainType) {
+      body.chainType = chainType;
+    }
+    return this.post('/v1/register_account', body, false);
+  }
+
+  async addOrderlyKey(
+    message: Record<string, unknown>,
+    signature: string,
+    userAddress: string,
+    chainType?: string
+  ): Promise<{ success: boolean; data?: { orderly_key: string } }> {
+    const body: Record<string, unknown> = {
+      message,
+      signature,
+      userAddress,
+    };
+    if (chainType) {
+      body.chainType = chainType;
+    }
+    return this.post('/v1/orderly_key', body, false);
+  }
+
+  async getSupportedChains(
+    brokerId: string
+  ): Promise<{ success: boolean; data?: { chains: Array<{ chain_id: number }> } }> {
+    return this.get(`/v1/public/chain_info?broker_id=${brokerId}`, false);
+  }
 }

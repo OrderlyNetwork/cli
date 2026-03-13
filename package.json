@@ -36,7 +36,9 @@
   "dependencies": {
     "@noble/curves": "^2.0.1",
     "axios": "^1.13.6",
+    "bs58": "^6.0.0",
     "cac": "6.7.14",
+    "ethers": "^6.16.0",
     "keytar": "^7.9.0",
     "kleur": "^4.1.5",
     "ora": "^9.3.0",

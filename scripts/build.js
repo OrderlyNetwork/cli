@@ -57,7 +57,18 @@ const nodeBuiltins = [
   'trace_events',
 ];
 
-const externalDeps = ['axios', 'cac', 'kleur', 'keytar', 'ora', 'prompts', 'zod', '@noble/curves'];
+const externalDeps = [
+  'axios',
+  'cac',
+  'kleur',
+  'keytar',
+  'ora',
+  'prompts',
+  'zod',
+  '@noble/curves',
+  'ethers',
+  'bs58',
+];
 
 const buildConfig = {
   entryPoints: [path.join(projectRoot, 'src', 'index.ts')],

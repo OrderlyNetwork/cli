@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { cac } from 'cac';
+import kleur from 'kleur';
 import { init, importKey, list, logout, show } from './commands/auth.js';
 import { info, balance } from './commands/account.js';
 import { place, cancel, listOrders } from './commands/order.js';
@@ -126,4 +127,23 @@ cli
     void faucetUsdc(address, options.brokerId, options.chainId, network);
   });
 
-cli.parse();
+try {
+  cli.parse();
+} catch (error) {
+  if (error instanceof Error && error.name === 'CACError') {
+    const message = error.message;
+    const match = message.match(/missing required args for command `(.+)`/);
+    if (match) {
+      const commandName = match[1];
+      console.error(kleur.red(`Error: ${message}`));
+      console.error();
+      console.error(kleur.yellow('Usage examples:'));
+      console.error(kleur.cyan(`  orderly ${commandName}`));
+      console.error();
+      console.error(kleur.dim('Run the following for more help:'));
+      console.error(kleur.cyan(`  orderly ${commandName} --help`));
+      process.exit(1);
+    }
+  }
+  throw error;
+}

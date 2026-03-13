@@ -1,13 +1,16 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { randomBytes } from 'crypto';
-import { KeyPair } from '../types.js';
 
-export function generateKeyPair(): KeyPair {
+export interface GeneratedKeyPair {
+  publicKey: string;
+  privateKey: string;
+}
+
+export function generateKeyPair(): GeneratedKeyPair {
   const privateKey = randomBytes(32);
   const publicKey = ed25519.getPublicKey(privateKey);
 
   return {
-    accountId: '',
     publicKey: Buffer.from(publicKey).toString('base64'),
     privateKey: Buffer.from(privateKey).toString('base64'),
   };

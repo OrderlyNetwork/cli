@@ -3,27 +3,28 @@ import ora from 'ora';
 import { OrderlyClient } from '../lib/api.js';
 import { getKey } from '../lib/keychain.js';
 import { getDefaultAccount } from '../lib/config.js';
+import { Network } from '../types.js';
 
 const spinner = ora();
 
-export async function info(accountId?: string): Promise<void> {
+export async function info(accountId: string | undefined, network: Network): Promise<void> {
   const accId = accountId ?? getDefaultAccount();
 
   if (!accId) {
     console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly auth init` first.'));
+    console.log(kleur.dim('Use `orderly auth-init` first.'));
     return;
   }
 
   spinner.start('Loading key...');
-  const keyPair = await getKey(accId);
+  const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    spinner.fail(kleur.red(`No key found for account ${accId}`));
+    spinner.fail(kleur.red(`No key found for account ${accId} on ${network}`));
     return;
   }
   spinner.succeed('Key loaded');
 
-  const client = new OrderlyClient();
+  const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
   spinner.start('Fetching account info...');
@@ -41,24 +42,24 @@ export async function info(accountId?: string): Promise<void> {
   }
 }
 
-export async function balance(accountId?: string): Promise<void> {
+export async function balance(accountId: string | undefined, network: Network): Promise<void> {
   const accId = accountId ?? getDefaultAccount();
 
   if (!accId) {
     console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly auth init` first.'));
+    console.log(kleur.dim('Use `orderly auth-init` first.'));
     return;
   }
 
   spinner.start('Loading key...');
-  const keyPair = await getKey(accId);
+  const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    spinner.fail(kleur.red(`No key found for account ${accId}`));
+    spinner.fail(kleur.red(`No key found for account ${accId} on ${network}`));
     return;
   }
   spinner.succeed('Key loaded');
 
-  const client = new OrderlyClient();
+  const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
   spinner.start('Fetching balances...');

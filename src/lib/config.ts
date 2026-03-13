@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { OrderlyConfig, DEFAULT_CONFIG } from '../types.js';
+import { OrderlyConfig, DEFAULT_CONFIG, Network, NETWORK_URLS } from '../types.js';
 
 const CONFIG_DIR = '.orderly-cli';
 const CONFIG_FILE = 'config.json';
@@ -30,6 +30,24 @@ export function saveConfig(config: OrderlyConfig): void {
   }
   const configPath = getConfigPath();
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+}
+
+export function getApiBaseUrl(network: Network): string {
+  return NETWORK_URLS[network].api;
+}
+
+export function getWsBaseUrl(network: Network): string {
+  return NETWORK_URLS[network].ws;
+}
+
+export function getDefaultNetwork(): Network {
+  return loadConfig().defaultNetwork ?? 'mainnet';
+}
+
+export function setDefaultNetwork(network: Network): void {
+  const config = loadConfig();
+  config.defaultNetwork = network;
+  saveConfig(config);
 }
 
 export function setDefaultAccount(accountId: string): void {

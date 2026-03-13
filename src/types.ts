@@ -1,17 +1,20 @@
+export type Network = 'mainnet' | 'testnet';
+
 export interface KeyPair {
   accountId: string;
   publicKey: string;
   privateKey: string;
+  network: Network;
 }
 
 export interface StoredKey {
   accountId: string;
   publicKey: string;
+  network: Network;
 }
 
 export interface OrderlyConfig {
-  apiBaseUrl: string;
-  wsBaseUrl: string;
+  defaultNetwork?: Network;
   defaultAccountId?: string;
 }
 
@@ -57,7 +60,17 @@ export interface ApiConfig {
   baseUrl: string;
 }
 
+export const NETWORK_URLS: Record<Network, { api: string; ws: string }> = {
+  mainnet: {
+    api: 'https://api.orderly.org',
+    ws: 'wss://ws-api.orderly.org',
+  },
+  testnet: {
+    api: 'https://testnet-api.orderly.org',
+    ws: 'wss://testnet-ws-api.orderly.org',
+  },
+};
+
 export const DEFAULT_CONFIG: OrderlyConfig = {
-  apiBaseUrl: 'https://api.orderly.org',
-  wsBaseUrl: 'wss://ws-api.orderly.org',
+  defaultNetwork: 'mainnet',
 };

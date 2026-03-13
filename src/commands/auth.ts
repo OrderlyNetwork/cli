@@ -3,18 +3,23 @@ import ora from 'ora';
 import prompts from 'prompts';
 import { generateKeyPair, publicKeyFromPrivateKey } from '../lib/crypto.js';
 import { storeKey, getKey, deleteKey, listKeys, hasKey } from '../lib/keychain.js';
-import { setDefaultAccount, getDefaultAccount } from '../lib/config.js';
-import { KeyPair } from '../types.js';
+import {
+  setDefaultAccount,
+  getDefaultAccount,
+  setDefaultNetwork,
+  getDefaultNetwork,
+} from '../lib/config.js';
+import { KeyPair, Network } from '../types.js';
 
 const spinner = ora();
 
-export async function init(): Promise<void> {
-  console.log(kleur.cyan('\n🔐 Orderly CLI - Initialize Authentication\n'));
+export async function init(network: Network): Promise<void> {
+  console.log(kleur.cyan(`\n🔐 Orderly CLI - Initialize Authentication (${network})\n`));
 
-  const keyPair = generateKeyPair();
+  const generated = generateKeyPair();
 
   console.log(kleur.dim('Generated Ed25519 keypair:'));
-  console.log(kleur.dim(`  Public Key: ${keyPair.publicKey}`));
+  console.log(kleur.dim(`  Public Key: ${generated.publicKey}`));
   console.log();
 
   const response = await prompts({
@@ -32,9 +37,9 @@ export async function init(): Promise<void> {
   const accountId = response.accountId.trim();
 
   spinner.start('Checking for existing key...');
-  const existing = await hasKey(accountId);
+  const existing = await hasKey(accountId, network);
   if (existing) {
-    spinner.warn(kleur.yellow(`Key already exists for account ${accountId}`));
+    spinner.warn(kleur.yellow(`Key already exists for account ${accountId} on ${network}`));
     const overwrite = await prompts({
       type: 'confirm',
       name: 'value',
@@ -48,11 +53,16 @@ export async function init(): Promise<void> {
   }
   spinner.stop();
 
-  keyPair.accountId = accountId;
+  const keyPair: KeyPair = {
+    accountId,
+    publicKey: generated.publicKey,
+    privateKey: generated.privateKey,
+    network,
+  };
 
   spinner.start('Storing key in OS keychain...');
   try {
-    await storeKey(accountId, keyPair);
+    await storeKey(accountId, network, keyPair);
     spinner.succeed(kleur.green('Key stored securely in OS keychain'));
   } catch (error) {
     spinner.fail(kleur.red('Failed to store key'));
@@ -61,21 +71,26 @@ export async function init(): Promise<void> {
   }
 
   setDefaultAccount(accountId);
-  console.log(kleur.dim(`Set ${accountId} as default account`));
+  setDefaultNetwork(network);
+  console.log(kleur.dim(`Set ${accountId} as default account for ${network}`));
 
   console.log();
   console.log(kleur.green('✅ Initialization complete!'));
   console.log();
   console.log(kleur.cyan('Next steps:'));
   console.log(kleur.dim('  1. Register this public key with your Orderly account'));
-  console.log(kleur.dim('  2. Use `orderly account info` to verify authentication'));
+  console.log(kleur.dim('  2. Use `orderly account-info` to verify authentication'));
   console.log();
   console.log(kleur.yellow('Your public key (for registration):'));
   console.log(kleur.white(keyPair.publicKey));
 }
 
-export async function importKey(privateKey?: string, accountId?: string): Promise<void> {
-  console.log(kleur.cyan('\n🔑 Import Existing Key\n'));
+export async function importKey(
+  privateKey: string | undefined,
+  accountId: string | undefined,
+  network: Network
+): Promise<void> {
+  console.log(kleur.cyan(`\n🔑 Import Existing Key (${network})\n`));
 
   let key: string = privateKey ?? '';
   let accId: string = accountId ?? '';
@@ -113,11 +128,12 @@ export async function importKey(privateKey?: string, accountId?: string): Promis
     accountId: accId,
     publicKey,
     privateKey: key,
+    network,
   };
 
   spinner.start('Storing key in OS keychain...');
   try {
-    await storeKey(accId, keyPair);
+    await storeKey(accId, network, keyPair);
     spinner.succeed(kleur.green('Key imported and stored securely'));
   } catch (error) {
     spinner.fail(kleur.red('Failed to store key'));
@@ -126,34 +142,38 @@ export async function importKey(privateKey?: string, accountId?: string): Promis
   }
 
   setDefaultAccount(accId);
+  setDefaultNetwork(network);
   console.log();
   console.log(kleur.green('✅ Key imported successfully!'));
   console.log(kleur.dim(`Public key: ${publicKey}`));
 }
 
-export async function list(): Promise<void> {
+export async function list(network: Network | undefined): Promise<void> {
   console.log(kleur.cyan('\n📋 Stored Keys\n'));
 
   spinner.start('Loading keys from keychain...');
   const keys = await listKeys();
   spinner.stop();
 
-  if (keys.length === 0) {
-    console.log(kleur.yellow('No keys stored. Run `orderly auth init` to get started.'));
+  const filteredKeys = network ? keys.filter((k) => k.network === network) : keys;
+
+  if (filteredKeys.length === 0) {
+    console.log(kleur.yellow('No keys stored. Run `orderly auth-init` to get started.'));
     return;
   }
 
   const defaultAccountId = getDefaultAccount();
+  const defaultNetwork = getDefaultNetwork();
 
-  for (const key of keys) {
-    const isDefault = key.accountId === defaultAccountId;
+  for (const key of filteredKeys) {
+    const isDefault = key.accountId === defaultAccountId && key.network === defaultNetwork;
     const prefix = isDefault ? kleur.green('✓ (default)') : ' ';
-    console.log(`${prefix} ${kleur.cyan(key.accountId)}`);
+    console.log(`${prefix} ${kleur.cyan(key.accountId)} ${kleur.dim(`[${key.network}]`)}`);
     console.log(kleur.dim(`    Public Key: ${key.publicKey}`));
   }
 }
 
-export async function logout(accountId?: string): Promise<void> {
+export async function logout(accountId: string | undefined, network: Network): Promise<void> {
   console.log(kleur.cyan('\n🚪 Logout\n'));
 
   let accId = accountId;
@@ -161,10 +181,11 @@ export async function logout(accountId?: string): Promise<void> {
   if (!accId) {
     spinner.start('Loading keys...');
     const keys = await listKeys();
+    const filteredKeys = keys.filter((k) => k.network === network);
     spinner.stop();
 
-    if (keys.length === 0) {
-      console.log(kleur.yellow('No keys stored.'));
+    if (filteredKeys.length === 0) {
+      console.log(kleur.yellow(`No keys stored for ${network}.`));
       return;
     }
 
@@ -172,7 +193,10 @@ export async function logout(accountId?: string): Promise<void> {
       type: 'select',
       name: 'accountId',
       message: 'Select account to logout',
-      choices: keys.map((k) => ({ title: k.accountId, value: k.accountId })),
+      choices: filteredKeys.map((k) => ({
+        title: `${k.accountId} [${k.network}]`,
+        value: k.accountId,
+      })),
     });
 
     if (!response.accountId) {
@@ -190,7 +214,7 @@ export async function logout(accountId?: string): Promise<void> {
   const confirm = await prompts({
     type: 'confirm',
     name: 'value',
-    message: `Remove key for account ${accId}?`,
+    message: `Remove key for account ${accId} on ${network}?`,
     initial: false,
   });
 
@@ -199,18 +223,13 @@ export async function logout(accountId?: string): Promise<void> {
     return;
   }
 
-  if (!accId) {
-    console.log(kleur.red('No account selected.'));
-    return;
-  }
-
   spinner.start('Removing key from keychain...');
   try {
-    const deleted = await deleteKey(accId);
+    const deleted = await deleteKey(accId, network);
     if (deleted) {
-      spinner.succeed(kleur.green(`Key removed for ${accId}`));
+      spinner.succeed(kleur.green(`Key removed for ${accId} on ${network}`));
     } else {
-      spinner.warn(kleur.yellow(`No key found for ${accId}`));
+      spinner.warn(kleur.yellow(`No key found for ${accId} on ${network}`));
     }
   } catch (error) {
     spinner.fail(kleur.red('Failed to remove key'));
@@ -218,26 +237,27 @@ export async function logout(accountId?: string): Promise<void> {
   }
 }
 
-export async function show(accountId?: string): Promise<void> {
+export async function show(accountId: string | undefined, network: Network): Promise<void> {
   const accId = accountId ?? getDefaultAccount();
 
   if (!accId) {
     console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly auth init` or specify an account ID.'));
+    console.log(kleur.dim('Use `orderly auth-init` or specify an account ID.'));
     return;
   }
 
   spinner.start('Loading key...');
-  const key = await getKey(accId);
+  const key = await getKey(accId, network);
   spinner.stop();
 
   if (!key) {
-    console.log(kleur.red(`No key found for account ${accId}`));
+    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
     return;
   }
 
   console.log(kleur.cyan('\n🔑 Account Key\n'));
   console.log(`Account ID: ${kleur.white(key.accountId)}`);
-  console.log(`Public Key:  ${kleur.white(key.publicKey)}`);
+  console.log(`Network:    ${kleur.white(key.network)}`);
+  console.log(`Public Key: ${kleur.white(key.publicKey)}`);
   console.log(kleur.dim('\n(Private key is stored securely and cannot be displayed)'));
 }

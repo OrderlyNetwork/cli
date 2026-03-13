@@ -32,6 +32,8 @@ Keys are stored in the OS keychain (never in files):
 | Windows | Credential Manager      |
 | Linux   | libsecret/gnome-keyring |
 
+Keys are network-scoped: `accountId:network` (e.g., `12345:mainnet`, `12345:testnet`)
+
 ### Authentication Flow
 
 1. **Layer 1 (Wallet)**: EIP-712 (EVM) or Ed25519 (Solana) - for account registration
@@ -63,7 +65,8 @@ src/
 │   ├── account.ts        # Account info & balance
 │   ├── order.ts          # Place/cancel/list orders
 │   ├── positions.ts      # List/close positions
-│   └── market.ts         # Public market data
+│   ├── market.ts         # Public market data
+│   └── faucet.ts         # Testnet faucet
 └── lib/
     ├── keychain.ts       # OS keychain (keytar)
     ├── crypto.ts         # Ed25519 key gen & signing
@@ -73,70 +76,87 @@ src/
 
 ## CLI Commands
 
+### Global Options
+
+```bash
+--network <mainnet|testnet>   # Network to use (default: mainnet)
+```
+
 ### Authentication
 
 ```bash
 # Generate new Ed25519 keypair, store in OS keychain
-orderly auth init
+orderly auth-init [--network <network>]
 
 # Import existing key
-orderly auth import <base64-private-key> --account <account-id>
+orderly auth-import <base64-private-key> --account <account-id> [--network <network>]
 
 # List stored keys (public keys only)
-orderly auth list
+orderly auth-list [--network <network>]
 
 # Show public key for account
-orderly auth show [account-id]
+orderly auth-show [account-id] [--network <network>]
 
 # Remove key from keychain
-orderly auth logout [account-id]
+orderly auth-logout [account-id] [--network <network>]
 ```
 
 ### Account
 
 ```bash
 # Get account info (requires auth)
-orderly account info [account-id]
+orderly account-info [account-id] [--network <network>]
 
 # Get balances (requires auth)
-orderly account balance [account-id]
+orderly account-balance [account-id] [--network <network>]
 ```
 
 ### Orders
 
 ```bash
 # Place order
-orderly order place <symbol> <side> <type> <quantity> [--price <price>]
+orderly order-place <symbol> <side> <type> <quantity> [--price <price>] [--account <id>] [--network <network>]
 
 # Examples:
-orderly order place PERP_ETH_USDC BUY LIMIT 0.01 --price 3500
-orderly order place PERP_BTC_USDC SELL MARKET 0.001
+orderly order-place PERP_ETH_USDC BUY LIMIT 0.01 --price 3500
+orderly order-place PERP_BTC_USDC SELL MARKET 0.001
 
 # Cancel order
-orderly order cancel <order-id>
+orderly order-cancel <order-id> [--account <id>] [--network <network>]
 
 # List orders
-orderly order list [--symbol <symbol>]
+orderly order-list [--symbol <symbol>] [--account <id>] [--network <network>]
 ```
 
 ### Positions
 
 ```bash
 # List open positions
-orderly positions list
+orderly positions-list [--account <id>] [--network <network>]
 
 # Close position
-orderly positions close <symbol>
+orderly positions-close <symbol> [--account <id>] [--network <network>]
 ```
 
 ### Market Data (Public - No Auth)
 
 ```bash
 # Get current price
-orderly market price <symbol>
+orderly market-price <symbol> [--network <network>]
 
 # Get orderbook
-orderly market orderbook <symbol>
+orderly market-orderbook <symbol> [--network <network>]
+```
+
+### Testnet Faucet
+
+```bash
+# Get test USDC (testnet only)
+orderly faucet-usdc <address> --broker-id <id> [--chain-id <id>] [--network testnet]
+
+# Examples:
+orderly faucet-usdc 0x1234... --broker-id mybroker --chain-id 421614 --network testnet  # EVM
+orderly faucet-usdc Zions51qQNUgWNyp4JegUFoMUpgFx43jBUsYmHtDPdr --broker-id mybroker --network testnet  # Solana
 ```
 
 ## Configuration
@@ -145,8 +165,7 @@ Config stored at `~/.orderly-cli/config.json`:
 
 ```json
 {
-  "apiBaseUrl": "https://api.orderly.org",
-  "wsBaseUrl": "wss://ws-api.orderly.org",
+  "defaultNetwork": "mainnet",
   "defaultAccountId": "12345"
 }
 ```
@@ -166,7 +185,7 @@ yarn dev                # Watch mode
 
 ```bash
 yarn start --help       # Run CLI
-node dist/index.js auth init
+node dist/index.js auth-init
 ```
 
 ### Code Quality
@@ -192,11 +211,11 @@ yarn test:run           # Run once
 
 OS keychain integration using `keytar`:
 
-- `storeKey(accountId, keyPair)` - Store keypair in keychain
-- `getKey(accountId)` - Retrieve keypair
-- `deleteKey(accountId)` - Remove keypair
+- `storeKey(accountId, network, keyPair)` - Store keypair in keychain
+- `getKey(accountId, network)` - Retrieve keypair
+- `deleteKey(accountId, network)` - Remove keypair
 - `listKeys()` - List all stored keys (public keys only)
-- `hasKey(accountId)` - Check if key exists
+- `hasKey(accountId, network)` - Check if key exists
 
 ### `src/lib/crypto.ts`
 
@@ -212,12 +231,15 @@ Ed25519 cryptography using `@noble/curves`:
 REST client with automatic request signing:
 
 ```typescript
-const client = new OrderlyClient();
+const client = new OrderlyClient(network);  // 'mainnet' or 'testnet'
 client.setKeyPair(keyPair);  // Load from keychain
 
 // All requests automatically signed
 await client.getAccountInfo();
 await client.placeOrder({ symbol, side, ... });
+
+// Testnet faucet
+await client.faucetUsdc(address, brokerId, chainId);
 ```
 
 ### `src/lib/config.ts`
@@ -228,6 +250,10 @@ Config file management:
 - `saveConfig(config)` - Save config
 - `setDefaultAccount(accountId)` - Set default account
 - `getDefaultAccount()` - Get default account
+- `setDefaultNetwork(network)` - Set default network
+- `getDefaultNetwork()` - Get default network
+- `getApiBaseUrl(network)` - Get API URL for network
+- `getWsBaseUrl(network)` - Get WebSocket URL for network
 
 ## Dependencies
 
@@ -256,10 +282,19 @@ Config file management:
 
 ## Orderly API Reference
 
-### Base URL
+### Base URLs
 
-- **Mainnet**: `https://api.orderly.org`
-- **Testnet**: `https://testnet-api.orderly.org`
+| Network | API Base URL                      | WebSocket URL                      |
+| ------- | --------------------------------- | ---------------------------------- |
+| mainnet | `https://api.orderly.org`         | `wss://ws-api.orderly.org`         |
+| testnet | `https://testnet-api.orderly.org` | `wss://testnet-ws-api.orderly.org` |
+
+### Faucet URLs (Testnet Only)
+
+| Chain  | URL                                                       |
+| ------ | --------------------------------------------------------- |
+| EVM    | `https://testnet-operator-evm.orderly.org/v1/faucet/usdc` |
+| Solana | `https://testnet-operator-sol.orderly.org/v1/faucet/usdc` |
 
 ### Key Endpoints
 
@@ -274,6 +309,7 @@ Config file management:
 | `POST /v1/positions/close`     | Yes  | Close position |
 | `GET /v1/orderbook/:symbol`    | No   | Orderbook      |
 | `GET /v1/public/kline/:symbol` | No   | Klines         |
+| `POST /v1/faucet/usdc`         | No   | Testnet faucet |
 
 ### Signature Format
 
@@ -342,7 +378,7 @@ AI agents can safely use this CLI without exposing private keys:
 
 ```bash
 # AI calls this
-orderly account info
+orderly account-info
 
 # CLI:
 # 1. Reads key from OS keychain (secure)

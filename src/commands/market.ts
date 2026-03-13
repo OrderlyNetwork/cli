@@ -1,13 +1,14 @@
 import kleur from 'kleur';
 import ora from 'ora';
 import { OrderlyClient } from '../lib/api.js';
+import { Network } from '../types.js';
 
 const spinner = ora();
 
-export async function getPrice(symbol: string): Promise<void> {
-  spinner.start(`Fetching price for ${symbol}...`);
+export async function getPrice(symbol: string, network: Network): Promise<void> {
+  spinner.start(`Fetching price for ${symbol} on ${network}...`);
   try {
-    const client = new OrderlyClient();
+    const client = new OrderlyClient(network);
     const result = await client.getMarketPrice(symbol.toUpperCase());
     spinner.succeed(kleur.green('Price retrieved'));
     console.log();
@@ -20,10 +21,10 @@ export async function getPrice(symbol: string): Promise<void> {
   }
 }
 
-export async function getOrderbook(symbol: string): Promise<void> {
-  spinner.start(`Fetching orderbook for ${symbol}...`);
+export async function getOrderbook(symbol: string, network: Network): Promise<void> {
+  spinner.start(`Fetching orderbook for ${symbol} on ${network}...`);
   try {
-    const client = new OrderlyClient();
+    const client = new OrderlyClient(network);
     const result = await client.getOrderbook(symbol.toUpperCase());
     spinner.succeed(kleur.green('Orderbook retrieved'));
     console.log();

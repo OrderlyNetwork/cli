@@ -1,20 +1,25 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { sign } from './crypto.js';
-import { KeyPair, OrderlyConfig } from '../types.js';
-import { loadConfig } from './config.js';
+import { KeyPair, Network } from '../types.js';
+import { getApiBaseUrl, getDefaultNetwork } from './config.js';
 
 export class OrderlyClient {
   private client: AxiosInstance;
   private keyPair: KeyPair | null = null;
+  private network: Network;
 
-  constructor(config?: Partial<OrderlyConfig>) {
-    const fullConfig = { ...loadConfig(), ...config };
+  constructor(network?: Network) {
+    this.network = network ?? getDefaultNetwork();
     this.client = axios.create({
-      baseURL: fullConfig.apiBaseUrl,
+      baseURL: getApiBaseUrl(this.network),
       headers: {
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  getNetwork(): Network {
+    return this.network;
   }
 
   setKeyPair(keyPair: KeyPair): void {
@@ -118,5 +123,33 @@ export class OrderlyClient {
 
   async getOrderbook(symbol: string): Promise<unknown> {
     return this.get(`/v1/orderbook/${symbol}`, false);
+  }
+
+  async faucetUsdc(userAddress: string, brokerId: string, chainId?: string): Promise<unknown> {
+    if (this.network !== 'testnet') {
+      throw new Error('Faucet is only available on testnet. Use --network testnet.');
+    }
+
+    const isSolana = userAddress.length > 50;
+    const faucetBaseUrl = isSolana
+      ? 'https://testnet-operator-sol.orderly.org'
+      : 'https://testnet-operator-evm.orderly.org';
+
+    const body: Record<string, string> = {
+      user_address: userAddress,
+      broker_id: brokerId,
+    };
+
+    if (chainId && !isSolana) {
+      body.chain_id = chainId;
+    }
+
+    const response = await axios.post(`${faucetBaseUrl}/v1/faucet/usdc`, body, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return response.data;
   }
 }

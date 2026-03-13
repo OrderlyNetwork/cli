@@ -30,7 +30,7 @@ export function sign(message: string, privateKeyBase64: string): string {
   const privateKey = privateKeyFromBase64(privateKeyBase64);
   const messageBytes = new TextEncoder().encode(message);
   const signature = ed25519.sign(messageBytes, privateKey);
-  return Buffer.from(signature).toString('base64');
+  return Buffer.from(signature).toString('base64url');
 }
 
 export function verify(message: string, signatureBase64: string, publicKeyBase64: string): boolean {

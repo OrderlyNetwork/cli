@@ -37,13 +37,13 @@ export class OrderlyClient {
     }
 
     const ts = timestamp ?? Date.now();
-    const message = `${method.toUpperCase()}${path}${body ? body : ''}${ts}`;
+    const message = `${ts}${method.toUpperCase()}${path}${body ? body : ''}`;
     const signature = sign(message, this.keyPair.privateKey);
 
     return {
       'orderly-timestamp': ts.toString(),
       'orderly-account-id': this.keyPair.accountId,
-      'orderly-key': this.keyPair.publicKey,
+      'orderly-key': `ed25519:${this.keyPair.publicKey}`,
       'orderly-signature': signature,
     };
   }

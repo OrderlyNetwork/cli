@@ -18,6 +18,48 @@ import {
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
 
+function findRawAddress(optionName: string): string | undefined {
+  for (let i = 0; i < process.argv.length - 1; i++) {
+    if (process.argv[i] === `--${optionName}` && process.argv[i + 1].startsWith('0x')) {
+      return process.argv[i + 1];
+    }
+    const eqMatch = process.argv[i].match(new RegExp(`^--${optionName}=(0x[a-fA-F0-9]+)$`));
+    if (eqMatch) {
+      return eqMatch[1];
+    }
+  }
+  return undefined;
+}
+
+function normalizeAddress(address: unknown, optionName = 'address'): string | undefined {
+  if (address === undefined || address === null) {
+    const raw = findRawAddress(optionName);
+    if (raw) return raw;
+    return undefined;
+  }
+  const str = String(address);
+  if (typeof address === 'number' || str.includes('e+') || str.includes('e-')) {
+    const raw = findRawAddress(optionName);
+    if (raw) return raw;
+    console.error(kleur.red('Error: Hex addresses must be quoted to prevent parsing as numbers.'));
+    console.error(kleur.dim('Example: --address "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"'));
+    process.exit(1);
+  }
+  return str;
+}
+
+function requireAddress(address: unknown): string {
+  const str = String(address);
+  if (typeof address === 'number' || str.includes('e+') || str.includes('e-')) {
+    const raw = findRawAddress('address');
+    if (raw) return raw;
+    console.error(kleur.red('Error: Hex addresses must be quoted to prevent parsing as numbers.'));
+    console.error(kleur.dim('Example: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"'));
+    process.exit(1);
+  }
+  return str;
+}
+
 const cli = cac('orderly');
 
 cli.version('0.1.0').help();
@@ -132,7 +174,7 @@ cli
   .option('--chain-id <id>', 'Chain ID for EVM (not needed for Solana)')
   .action((address, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void faucetUsdc(address, options.brokerId, options.chainId, network);
+    void faucetUsdc(requireAddress(address), options.brokerId, options.chainId, network);
   });
 
 cli
@@ -141,7 +183,12 @@ cli
   .option('--address <address>', 'Wallet address (optional, will be derived from private key)')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void walletImport(options.type as WalletType, options.address, undefined, network);
+    void walletImport(
+      options.type as WalletType,
+      normalizeAddress(options.address),
+      undefined,
+      network
+    );
   });
 
 cli.command('wallet-list', 'List all stored wallet keys').action((options) => {
@@ -151,12 +198,12 @@ cli.command('wallet-list', 'List all stored wallet keys').action((options) => {
 
 cli.command('wallet-show [address]', 'Show wallet info').action((address, options) => {
   const network = (options.network as Network) || getDefaultNetwork();
-  void walletShow(address, network);
+  void walletShow(normalizeAddress(address), network);
 });
 
 cli.command('wallet-logout [address]', 'Remove stored wallet').action((address, options) => {
   const network = (options.network as Network) || getDefaultNetwork();
-  void walletLogout(address, network);
+  void walletLogout(normalizeAddress(address), network);
 });
 
 cli
@@ -165,7 +212,7 @@ cli
   .option('--address <address>', 'Wallet address (optional, will prompt if not provided)')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void walletRegister(options.brokerId, options.address, network);
+    void walletRegister(options.brokerId, normalizeAddress(options.address), network);
   });
 
 cli
@@ -175,7 +222,7 @@ cli
   .option('--scope <scope>', 'Key scopes (comma-separated: read,trading,asset)')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void walletAddKey(options.brokerId, options.address, options.scope, network);
+    void walletAddKey(options.brokerId, normalizeAddress(options.address), options.scope, network);
   });
 
 try {

@@ -1,5 +1,6 @@
 import kleur from 'kleur';
 import axios from 'axios';
+import { existsSync, readFileSync } from 'fs';
 import { OrderlyClient } from '../lib/api.js';
 import { getKey } from '../lib/keychain.js';
 import { getDefaultAccount } from '../lib/config.js';
@@ -232,6 +233,112 @@ export async function listOrders(
 
   try {
     const result = await client.getOrders(symbol);
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
+      console.error(kleur.red(error.message));
+    }
+  }
+}
+
+export async function batchPlace(
+  ordersInput: string,
+  accountId: string | undefined,
+  network: Network
+): Promise<void> {
+  const accId = accountId ?? getDefaultAccount();
+
+  if (!accId) {
+    console.log(kleur.red('No account specified and no default account set.'));
+    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
+    return;
+  }
+
+  let orders: Array<{
+    symbol: string;
+    order_type: string;
+    side: string;
+    order_quantity: string;
+    order_price?: string;
+  }>;
+
+  if (existsSync(ordersInput)) {
+    const content = readFileSync(ordersInput, 'utf-8');
+    orders = JSON.parse(content);
+  } else {
+    orders = JSON.parse(ordersInput);
+  }
+
+  if (!Array.isArray(orders) || orders.length === 0) {
+    console.log(kleur.red('Orders must be a non-empty array.'));
+    return;
+  }
+
+  if (orders.length > 10) {
+    console.log(kleur.red('Maximum 10 orders allowed per batch.'));
+    return;
+  }
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
+    return;
+  }
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  try {
+    const result = await client.placeBatchOrder(orders);
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
+      console.error(kleur.red(error.message));
+    }
+  }
+}
+
+export async function batchCancel(
+  orderIds: string[],
+  accountId: string | undefined,
+  network: Network
+): Promise<void> {
+  const accId = accountId ?? getDefaultAccount();
+
+  if (!accId) {
+    console.log(kleur.red('No account specified and no default account set.'));
+    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
+    return;
+  }
+
+  if (orderIds.length === 0) {
+    console.log(kleur.red('At least one order ID is required.'));
+    return;
+  }
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
+    return;
+  }
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  try {
+    const result = await client.cancelBatchOrders(orderIds);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {

@@ -1,7 +1,8 @@
 import bs58 from 'bs58';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { randomBytes } from 'crypto';
-import { ethers } from 'ethers';
+import { DefaultSolanaWalletAdapter } from '@orderly.network/default-solana-adapter';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { Network } from '../types.js';
 
 const SOLANA_CHAIN_IDS: Record<Network, number> = {
@@ -72,6 +73,32 @@ export function isValidSolanaAddress(address: string): boolean {
   }
 }
 
+function createWalletAdapter(wallet: SolanaWallet, network: Network): DefaultSolanaWalletAdapter {
+  const adapter = new DefaultSolanaWalletAdapter();
+  const chainId = SOLANA_CHAIN_IDS[network];
+
+  adapter.active({
+    address: wallet.address,
+    chain: {
+      id: chainId,
+    },
+    provider: {
+      signMessage: async (message: Uint8Array): Promise<Uint8Array> => {
+        return ed25519.sign(message, wallet.privateKeyBytes);
+      },
+      signTransaction: async () => {
+        throw new Error('signTransaction not supported in CLI');
+      },
+      sendTransaction: async () => {
+        throw new Error('sendTransaction not supported in CLI');
+      },
+      network: network === 'mainnet' ? WalletAdapterNetwork.Mainnet : WalletAdapterNetwork.Devnet,
+    },
+  });
+
+  return adapter;
+}
+
 export async function signRegistration(
   wallet: SolanaWallet,
   params: {
@@ -81,35 +108,17 @@ export async function signRegistration(
     network: Network;
   }
 ): Promise<{ message: Record<string, unknown>; signature: string }> {
-  const chainId = SOLANA_CHAIN_IDS[params.network];
+  const adapter = createWalletAdapter(wallet, params.network);
 
-  const message = {
+  const result = await adapter.generateRegisterAccountMessage({
     brokerId: params.brokerId,
-    chainId,
-    timestamp: params.timestamp,
     registrationNonce: Number(params.registrationNonce),
-  };
-
-  const brokerIdHash = ethers.solidityPackedKeccak256(['string'], [message.brokerId]);
-  const abicoder = ethers.AbiCoder.defaultAbiCoder();
-  const msgToSignBytes = ethers.getBytes(
-    abicoder.encode(
-      ['bytes32', 'uint256', 'uint256', 'uint256'],
-      [brokerIdHash, message.chainId, message.timestamp, message.registrationNonce]
-    )
-  );
-
-  const hashBytes = ethers.getBytes(ethers.keccak256(msgToSignBytes));
-
-  const signature = ed25519.sign(hashBytes, wallet.privateKeyBytes);
-  const signatureBase64url = Buffer.from(signature).toString('base64url');
+    timestamp: params.timestamp,
+  });
 
   return {
-    message: {
-      ...message,
-      chainType: 'SOL',
-    },
-    signature: signatureBase64url,
+    message: result.message as Record<string, unknown>,
+    signature: result.signatured,
   };
 }
 
@@ -124,46 +133,21 @@ export async function signAddKey(
     network: Network;
   }
 ): Promise<{ message: Record<string, unknown>; signature: string }> {
-  const chainId = SOLANA_CHAIN_IDS[params.network];
+  const adapter = createWalletAdapter(wallet, params.network);
 
   const expirationTimestamp = params.timestamp + 1000 * 60 * 60 * 24 * params.expiration;
 
-  const message = {
+  const result = await adapter.generateAddOrderlyKeyMessage({
     brokerId: params.brokerId,
-    chainType: 'SOL',
-    orderlyKey: params.publicKey,
+    publicKey: params.publicKey,
     scope: params.scope,
-    chainId,
     timestamp: params.timestamp,
     expiration: expirationTimestamp,
-  };
-
-  const brokerIdHash = ethers.solidityPackedKeccak256(['string'], [message.brokerId]);
-  const orderlyKeyHash = ethers.solidityPackedKeccak256(['string'], [message.orderlyKey]);
-  const scopeHash = ethers.solidityPackedKeccak256(['string'], [message.scope]);
-  const abicoder = ethers.AbiCoder.defaultAbiCoder();
-  const msgToSign = ethers.keccak256(
-    ethers.getBytes(
-      abicoder.encode(
-        ['bytes32', 'bytes32', 'bytes32', 'uint256', 'uint256', 'uint256'],
-        [
-          brokerIdHash,
-          orderlyKeyHash,
-          scopeHash,
-          message.chainId,
-          message.timestamp,
-          message.expiration,
-        ]
-      )
-    )
-  );
-
-  const signature = ed25519.sign(new TextEncoder().encode(msgToSign), wallet.privateKeyBytes);
-  const signatureBase64url = Buffer.from(signature).toString('base64url');
+  });
 
   return {
-    message,
-    signature: signatureBase64url,
+    message: result.message as Record<string, unknown>,
+    signature: result.signatured,
   };
 }
 

@@ -68,6 +68,7 @@ const externalDeps = [
   '@noble/curves',
   'ethers',
   'bs58',
+  '@orderly.network/default-solana-adapter',
 ];
 
 const buildConfig = {

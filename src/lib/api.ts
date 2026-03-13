@@ -50,12 +50,13 @@ export class OrderlyClient {
     const path = config.url ?? '';
     const body = config.data ? JSON.stringify(config.data) : undefined;
 
-    const headers: Record<string, string> = {
-      ...(config.headers as Record<string, string>),
-    };
+    const headers: Record<string, string> = {};
 
-    // Set Content-Type only for requests with body
-    if (body) {
+    // Set Content-Type based on method
+    // GET/DELETE use application/x-www-form-urlencoded, others use application/json
+    if (method === 'GET' || method === 'DELETE') {
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    } else {
       headers['Content-Type'] = 'application/json';
     }
 
@@ -64,10 +65,17 @@ export class OrderlyClient {
       Object.assign(headers, authHeaders);
     }
 
-    const response = await this.client.request<T>({
-      ...config,
+    const requestConfig: AxiosRequestConfig = {
+      method: config.method,
+      url: config.url,
       headers,
-    });
+    };
+
+    if (config.data !== undefined) {
+      requestConfig.data = config.data;
+    }
+
+    const response = await this.client.request<T>(requestConfig);
 
     return response.data;
   }
@@ -81,20 +89,7 @@ export class OrderlyClient {
   }
 
   async delete<T>(path: string, requiresAuth = true): Promise<T> {
-    return this.request<T>(
-      {
-        method: 'DELETE',
-        url: path,
-        transformRequest: [
-          (data, headers) => {
-            delete headers['Content-Type'];
-            delete headers['content-type'];
-            return data;
-          },
-        ],
-      },
-      requiresAuth
-    );
+    return this.request<T>({ method: 'DELETE', url: path }, requiresAuth);
   }
 
   async put<T>(path: string, data?: unknown, requiresAuth = true): Promise<T> {
@@ -153,6 +148,22 @@ export class OrderlyClient {
   async cancelAllOrders(symbol?: string): Promise<unknown> {
     const path = symbol ? `/v1/orders?symbol=${symbol}` : '/v1/orders';
     return this.delete(path);
+  }
+
+  async placeBatchOrder(
+    orders: Array<{
+      symbol: string;
+      order_type: string;
+      side: string;
+      order_quantity: string;
+      order_price?: string;
+    }>
+  ): Promise<unknown> {
+    return this.post('/v1/batch-order', { orders });
+  }
+
+  async cancelBatchOrders(orderIds: string[]): Promise<unknown> {
+    return this.delete(`/v1/batch-order?order_ids=${orderIds.join(',')}`);
   }
 
   async getPositions(): Promise<unknown> {
@@ -311,5 +322,62 @@ export class OrderlyClient {
     if (endT) params.append('end_t', endT.toString());
     const queryString = params.toString();
     return this.get(queryString ? `/v1/trades?${queryString}` : '/v1/trades');
+  }
+
+  async getPositionHistory(symbol?: string, startT?: number, endT?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    if (startT) params.append('start_t', startT.toString());
+    if (endT) params.append('end_t', endT.toString());
+    params.append('page', '1');
+    params.append('limit', '25');
+    const queryString = params.toString();
+    return this.get(`/v1/position_history?${queryString}`);
+  }
+
+  async placeAlgoOrder(order: {
+    symbol: string;
+    type: string;
+    algoType: string;
+    side: string;
+    quantity: string;
+    triggerPrice?: string;
+    price?: string;
+    callbackRate?: string;
+  }): Promise<unknown> {
+    const body: Record<string, unknown> = {
+      symbol: order.symbol,
+      type: order.type,
+      algo_type: order.algoType,
+      side: order.side,
+      quantity: order.quantity,
+    };
+    if (order.triggerPrice !== undefined) {
+      body.trigger_price = order.triggerPrice;
+    }
+    if (order.price !== undefined) {
+      body.price = order.price;
+    }
+    if (order.callbackRate !== undefined) {
+      body.callback_rate = order.callbackRate;
+    }
+    return this.post('/v1/algo/order', body);
+  }
+
+  async cancelAlgoOrder(orderId: string, symbol: string): Promise<unknown> {
+    return this.delete(`/v1/algo/order?order_id=${orderId}&symbol=${symbol}`);
+  }
+
+  async cancelAllAlgoOrders(symbol?: string, algoType?: string): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    if (algoType) params.append('algo_type', algoType);
+    const queryString = params.toString();
+    return this.delete(queryString ? `/v1/algo/orders?${queryString}` : '/v1/algo/orders');
+  }
+
+  async getAlgoOrders(symbol?: string): Promise<unknown> {
+    const path = symbol ? `/v1/algo/orders?symbol=${symbol}` : '/v1/algo/orders';
+    return this.get(path);
   }
 }

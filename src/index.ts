@@ -3,8 +3,16 @@ import { cac } from 'cac';
 import kleur from 'kleur';
 import { importKey, list, logout, show, exportKey } from './commands/auth.js';
 import { info, balance } from './commands/account.js';
-import { place, cancel, edit, cancelAll, listOrders } from './commands/order.js';
-import { listPositions, closePosition } from './commands/positions.js';
+import {
+  place,
+  cancel,
+  edit,
+  cancelAll,
+  listOrders,
+  batchPlace,
+  batchCancel,
+} from './commands/order.js';
+import { listPositions, closePosition, positionHistory } from './commands/positions.js';
 import { getPrice, getOrderbook, getSymbols } from './commands/market.js';
 import { faucetUsdc } from './commands/faucet.js';
 import {
@@ -26,6 +34,13 @@ import {
 } from './commands/assets.js';
 import { getOrSetLeverage } from './commands/leverage.js';
 import { listTrades } from './commands/trades.js';
+import {
+  placeAlgoOrder,
+  cancelAlgoOrder,
+  cancelAllAlgoOrders,
+  listAlgoOrders,
+} from './commands/algo.js';
+import { fundingHistory } from './commands/funding.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
 
@@ -103,6 +118,22 @@ function normalizeAccountId(accountId: unknown): string | undefined {
     process.exit(1);
   }
   return str;
+}
+
+function normalizeScope(scope: unknown): string | undefined {
+  if (scope === undefined || scope === null) {
+    for (let i = 0; i < process.argv.length - 1; i++) {
+      if (process.argv[i] === '--scope') {
+        return process.argv[i + 1];
+      }
+      const eqMatch = process.argv[i].match(/^--scope=(.+)$/);
+      if (eqMatch) {
+        return eqMatch[1];
+      }
+    }
+    return undefined;
+  }
+  return String(scope);
 }
 
 const QUICK_START = `
@@ -260,7 +291,12 @@ cli
   .example('orderly wallet-add-key --broker-id demo --scope read,trading')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void walletAddKey(options.brokerId, normalizeAddress(options.address), options.scope, network);
+    void walletAddKey(
+      options.brokerId,
+      normalizeAddress(options.address),
+      normalizeScope(options.scope),
+      network
+    );
   });
 
 // Auth commands - For users with existing API keys
@@ -405,6 +441,30 @@ cli
   });
 
 cli
+  .command('batch-order-place <orders>', 'Place multiple orders (max 10)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('# From JSON string:')
+  .example(
+    'orderly batch-order-place \'[{"symbol":"PERP_ETH_USDC","order_type":"LIMIT","side":"BUY","order_quantity":"0.01","order_price":"2000"}]\''
+  )
+  .example('# From file:')
+  .example('orderly batch-order-place orders.json')
+  .action((orders, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void batchPlace(orders, normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command('batch-order-cancel <order-ids...>', 'Cancel multiple orders by IDs')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly batch-order-cancel 123 456 789')
+  .action((orderIds, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const ids = Array.isArray(orderIds) ? orderIds : [orderIds];
+    void batchCancel(ids, normalizeAccountId(options.account), network);
+  });
+
+cli
   .command('positions-list', 'List open positions')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly positions-list')
@@ -422,6 +482,26 @@ cli
     void closePosition(symbol, normalizeAccountId(options.account), network);
   });
 
+cli
+  .command('positions-history', 'Get position history')
+  .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
+  .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly positions-history')
+  .example('orderly positions-history --symbol PERP_ETH_USDC')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const startT = options.startT ? parseInt(options.startT, 10) : undefined;
+    const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    void positionHistory(
+      options.symbol,
+      startT,
+      endT,
+      normalizeAccountId(options.account),
+      network
+    );
+  });
 cli
   .command('leverage <symbol> [value]', 'Get or set leverage for a symbol')
   .option('--account <id>', 'Account ID (uses default if not set)')
@@ -446,6 +526,90 @@ cli
     const startT = options.startT ? parseInt(options.startT, 10) : undefined;
     const endT = options.endT ? parseInt(options.endT, 10) : undefined;
     void listTrades(options.symbol, startT, endT, normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command(
+    'algo-order-place <symbol> <side> <algoType> <quantity>',
+    'Place an algo order (STOP, TP_SL, TRAILING_STOP, BRACKET)'
+  )
+  .option('--trigger-price <price>', 'Trigger price (required for STOP/TP_SL)')
+  .option(
+    '--callback-rate <rate>',
+    'Callback rate as decimal, e.g. 0.05 for 5% (required for TRAILING_STOP)'
+  )
+  .option('--order-price <price>', 'Order price (for limit orders)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly algo-order-place PERP_ETH_USDC SELL STOP 0.01 --trigger-price 2000')
+  .example('orderly algo-order-place PERP_ETH_USDC SELL TP_SL 0.01 --trigger-price 2500')
+  .example('orderly algo-order-place PERP_ETH_USDC SELL TRAILING_STOP 0.01 --callback-rate 0.05')
+  .action((symbol, side, algoType, quantity, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void placeAlgoOrder(
+      symbol,
+      side,
+      algoType,
+      quantity,
+      options.triggerPrice,
+      options.callbackRate,
+      options.orderPrice,
+      normalizeAccountId(options.account),
+      network
+    );
+  });
+
+cli
+  .command('algo-order-cancel <order-id>', 'Cancel an algo order')
+  .option('--symbol <symbol>', 'Symbol of the order (required)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly algo-order-cancel 123456 --symbol PERP_ETH_USDC')
+  .action((orderId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void cancelAlgoOrder(orderId, options.symbol, normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command('algo-order-cancel-all', 'Cancel all algo orders')
+  .option('--symbol <symbol>', 'Filter by symbol (optional)')
+  .option('--algo-type <type>', 'Filter by algo type: STOP, TP_SL, TRAILING_STOP, BRACKET')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly algo-order-cancel-all')
+  .example('orderly algo-order-cancel-all --symbol PERP_ETH_USDC')
+  .example('orderly algo-order-cancel-all --algo-type STOP')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void cancelAllAlgoOrders(
+      options.symbol,
+      options.algoType,
+      normalizeAccountId(options.account),
+      network
+    );
+  });
+
+cli
+  .command('algo-order-list', 'List algo orders')
+  .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly algo-order-list')
+  .example('orderly algo-order-list --symbol PERP_ETH_USDC')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void listAlgoOrders(options.symbol, normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command('funding-history', 'Get funding fee history')
+  .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--start-t <timestamp>', 'Start timestamp (ms)')
+  .option('--end-t <timestamp>', 'End timestamp (ms)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly funding-history')
+  .example('orderly funding-history --symbol PERP_ETH_USDC')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const startT = options.startT ? parseInt(options.startT, 10) : undefined;
+    const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    void fundingHistory(options.symbol, startT, endT, normalizeAccountId(options.account), network);
   });
 
 // Market data commands (public, no auth)

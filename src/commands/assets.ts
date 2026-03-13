@@ -291,7 +291,7 @@ export async function assetHistory(
   client.setKeyPair(keyPair);
 
   try {
-    let path = '/v1/asset_history?page=1&size=20';
+    let path = '/v1/asset/history?page=1&size=20';
     if (token) path += `&token=${token.toUpperCase()}`;
     if (side) path += `&side=${side.toUpperCase()}`;
 

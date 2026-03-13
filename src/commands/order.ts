@@ -1,5 +1,6 @@
 import kleur from 'kleur';
 import ora from 'ora';
+import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { getKey } from '../lib/keychain.js';
 import { getDefaultAccount } from '../lib/config.js';
@@ -77,7 +78,13 @@ export async function place(
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     spinner.fail(kleur.red('Failed to place order'));
-    if (error instanceof Error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
       console.error(kleur.red(error.message));
     }
   }
@@ -85,6 +92,7 @@ export async function place(
 
 export async function cancel(
   orderId: string,
+  symbol: string | undefined,
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
@@ -109,13 +117,19 @@ export async function cancel(
 
   spinner.start(`Cancelling order ${orderId}...`);
   try {
-    const result = await client.cancelOrder(orderId);
+    const result = await client.cancelOrder(orderId, symbol);
     spinner.succeed(kleur.green('Order cancelled successfully'));
     console.log();
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     spinner.fail(kleur.red('Failed to cancel order'));
-    if (error instanceof Error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
       console.error(kleur.red(error.message));
     }
   }
@@ -153,7 +167,13 @@ export async function listOrders(
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     spinner.fail(kleur.red('Failed to fetch orders'));
-    if (error instanceof Error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
       console.error(kleur.red(error.message));
     }
   }

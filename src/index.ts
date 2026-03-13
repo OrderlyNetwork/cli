@@ -123,10 +123,11 @@ cli
 
 cli
   .command('order-cancel <order-id>', 'Cancel an order')
+  .option('--symbol <symbol>', 'Symbol of the order (required)')
   .option('--account <id>', 'Account ID to use')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void cancel(orderId, options.account, network);
+    void cancel(orderId, options.symbol, options.account, network);
   });
 
 cli

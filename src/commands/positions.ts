@@ -1,5 +1,6 @@
 import kleur from 'kleur';
 import ora from 'ora';
+import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { getKey } from '../lib/keychain.js';
 import { getDefaultAccount } from '../lib/config.js';
@@ -38,7 +39,13 @@ export async function listPositions(
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     spinner.fail(kleur.red('Failed to fetch positions'));
-    if (error instanceof Error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
       console.error(kleur.red(error.message));
     }
   }
@@ -76,7 +83,13 @@ export async function closePosition(
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     spinner.fail(kleur.red('Failed to close position'));
-    if (error instanceof Error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
       console.error(kleur.red(error.message));
     }
   }

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { sign } from './crypto.js';
+import { sign, getPublicKeyBase58 } from './crypto.js';
 import { KeyPair, Network } from '../types.js';
 import { getApiBaseUrl, getDefaultNetwork } from './config.js';
 
@@ -12,9 +12,6 @@ export class OrderlyClient {
     this.network = network ?? getDefaultNetwork();
     this.client = axios.create({
       baseURL: getApiBaseUrl(this.network),
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
   }
 
@@ -43,7 +40,7 @@ export class OrderlyClient {
     return {
       'orderly-timestamp': ts.toString(),
       'orderly-account-id': this.keyPair.accountId,
-      'orderly-key': `ed25519:${this.keyPair.publicKey}`,
+      'orderly-key': `ed25519:${getPublicKeyBase58(this.keyPair.publicKey)}`,
       'orderly-signature': signature,
     };
   }
@@ -56,6 +53,11 @@ export class OrderlyClient {
     const headers: Record<string, string> = {
       ...(config.headers as Record<string, string>),
     };
+
+    // Set Content-Type only for requests with body
+    if (body) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (requiresAuth) {
       const authHeaders = this.getSignatureHeaders(method, path, body);
@@ -79,7 +81,20 @@ export class OrderlyClient {
   }
 
   async delete<T>(path: string, requiresAuth = true): Promise<T> {
-    return this.request<T>({ method: 'DELETE', url: path }, requiresAuth);
+    return this.request<T>(
+      {
+        method: 'DELETE',
+        url: path,
+        transformRequest: [
+          (data, headers) => {
+            delete headers['Content-Type'];
+            delete headers['content-type'];
+            return data;
+          },
+        ],
+      },
+      requiresAuth
+    );
   }
 
   async getAccountInfo(): Promise<unknown> {
@@ -106,8 +121,11 @@ export class OrderlyClient {
     return this.post('/v1/order', order);
   }
 
-  async cancelOrder(orderId: string): Promise<unknown> {
-    return this.delete(`/v1/order/${orderId}`);
+  async cancelOrder(orderId: string, symbol?: string): Promise<unknown> {
+    const path = symbol
+      ? `/v1/order?order_id=${orderId}&symbol=${symbol}`
+      : `/v1/order?order_id=${orderId}`;
+    return this.delete(path);
   }
 
   async getPositions(): Promise<unknown> {
@@ -196,7 +214,10 @@ export class OrderlyClient {
     return this.get(path, false);
   }
 
-  async getRegistrationNonce(): Promise<{ success: boolean; data: string }> {
+  async getRegistrationNonce(): Promise<{
+    success: boolean;
+    data: { registration_nonce: string };
+  }> {
     return this.get('/v1/registration_nonce', false);
   }
 

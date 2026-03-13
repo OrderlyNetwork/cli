@@ -1,5 +1,6 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { randomBytes } from 'crypto';
+import bs58 from 'bs58';
 
 export interface GeneratedKeyPair {
   publicKey: string;
@@ -38,4 +39,18 @@ export function verify(message: string, signatureBase64: string, publicKeyBase64
   const signature = Buffer.from(signatureBase64, 'base64');
   const messageBytes = new TextEncoder().encode(message);
   return ed25519.verify(signature, messageBytes, publicKey);
+}
+
+export function base64ToBase58(base64Key: string): string {
+  const bytes = Buffer.from(base64Key, 'base64');
+  return bs58.encode(bytes);
+}
+
+export function base58ToBase64(base58Key: string): string {
+  const bytes = bs58.decode(base58Key);
+  return Buffer.from(bytes).toString('base64');
+}
+
+export function getPublicKeyBase58(publicKeyBase64: string): string {
+  return base64ToBase58(publicKeyBase64);
 }

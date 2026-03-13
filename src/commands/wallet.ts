@@ -1,6 +1,7 @@
 import kleur from 'kleur';
 import ora from 'ora';
 import prompts from 'prompts';
+import axios from 'axios';
 import { WalletKeyPair, Network, WalletType } from '../types.js';
 import {
   storeWalletKey,
@@ -28,6 +29,7 @@ import {
 } from '../lib/solana.js';
 import { OrderlyClient } from '../lib/api.js';
 import { setDefaultAccount, setDefaultNetwork } from '../lib/config.js';
+import { getPublicKeyBase58 } from '../lib/crypto.js';
 
 const spinner = ora();
 
@@ -365,11 +367,11 @@ export async function walletRegister(
 
   spinner.start('Fetching registration nonce...');
   const nonceResponse = await client.getRegistrationNonce();
-  if (!nonceResponse.success) {
+  if (!nonceResponse.success || !nonceResponse.data?.registration_nonce) {
     spinner.fail(kleur.red('Failed to get registration nonce'));
     return;
   }
-  const nonce = nonceResponse.data;
+  const nonce = nonceResponse.data.registration_nonce;
   spinner.succeed(kleur.green('Got registration nonce'));
 
   const timestamp = Date.now();
@@ -419,10 +421,21 @@ export async function walletRegister(
       );
     } else {
       spinner.fail(kleur.red('Failed to register account'));
+      console.log(kleur.dim('Response:'), result);
     }
   } catch (error) {
     spinner.fail(kleur.red('Failed to register account'));
-    console.error(error);
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.log(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
+      console.log(kleur.red(error.message));
+    } else {
+      console.error(error);
+    }
   }
 }
 
@@ -573,7 +586,7 @@ export async function walletAddKey(
     return;
   }
 
-  const orderlyKey = `ed25519:${fullKeyPair.publicKey}`;
+  const orderlyKey = `ed25519:${getPublicKeyBase58(fullKeyPair.publicKey)}`;
 
   const timestamp = Date.now();
   const expiration = timestamp + 365 * 24 * 60 * 60 * 1000; // 1 year
@@ -649,9 +662,20 @@ export async function walletAddKey(
       console.log(kleur.cyan(`  orderly order-place PERP_ETH_USDC BUY MARKET 0.01`));
     } else {
       spinner.fail(kleur.red('Failed to add Orderly key'));
+      console.log(kleur.dim('Response:'), result);
     }
   } catch (error) {
     spinner.fail(kleur.red('Failed to add Orderly key'));
-    console.error(error);
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.log(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
+      console.log(kleur.red(error.message));
+    } else {
+      console.error(error);
+    }
   }
 }

@@ -1,12 +1,9 @@
 import kleur from 'kleur';
-import ora from 'ora';
 import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { getKey } from '../lib/keychain.js';
 import { getDefaultAccount } from '../lib/config.js';
 import { Network } from '../types.js';
-
-const spinner = ora();
 
 export async function place(
   symbol: string,
@@ -42,13 +39,11 @@ export async function place(
     return;
   }
 
-  spinner.start('Loading key...');
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    spinner.fail(kleur.red(`No key found for account ${accId} on ${network}`));
+    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
     return;
   }
-  spinner.succeed('Key loaded');
 
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
@@ -70,14 +65,10 @@ export async function place(
     orderPayload.order_price = price;
   }
 
-  spinner.start(`Placing ${validType} ${validSide} order for ${quantity} ${symbol}...`);
   try {
     const result = await client.placeOrder(orderPayload);
-    spinner.succeed(kleur.green('Order placed successfully'));
-    console.log();
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
-    spinner.fail(kleur.red('Failed to place order'));
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
         kleur.red(
@@ -104,25 +95,19 @@ export async function cancel(
     return;
   }
 
-  spinner.start('Loading key...');
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    spinner.fail(kleur.red(`No key found for account ${accId} on ${network}`));
+    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
     return;
   }
-  spinner.succeed('Key loaded');
 
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
-  spinner.start(`Cancelling order ${orderId}...`);
   try {
     const result = await client.cancelOrder(orderId, symbol);
-    spinner.succeed(kleur.green('Order cancelled successfully'));
-    console.log();
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
-    spinner.fail(kleur.red('Failed to cancel order'));
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
         kleur.red(
@@ -148,25 +133,19 @@ export async function listOrders(
     return;
   }
 
-  spinner.start('Loading key...');
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    spinner.fail(kleur.red(`No key found for account ${accId} on ${network}`));
+    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
     return;
   }
-  spinner.succeed('Key loaded');
 
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
-  spinner.start('Fetching orders...');
   try {
     const result = await client.getOrders(symbol);
-    spinner.succeed(kleur.green('Orders retrieved'));
-    console.log();
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
-    spinner.fail(kleur.red('Failed to fetch orders'));
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
         kleur.red(

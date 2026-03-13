@@ -1,4 +1,4 @@
-import { Wallet, TypedDataEncoder } from 'ethers';
+import { Wallet, TypedDataEncoder, HDNodeWallet } from 'ethers';
 import { EIP712Domain, RegistrationMessage, AddKeyMessage, Network } from '../types.js';
 
 const EIP712_DOMAIN: EIP712Domain = {
@@ -109,4 +109,19 @@ export function getRegistrationHash(message: RegistrationMessage): string {
 export function getAddKeyHash(message: AddKeyMessage): string {
   const domain = getDomain(message.chainId === 42161 ? 'mainnet' : 'testnet');
   return TypedDataEncoder.hash(domain, ADD_KEY_TYPES, message);
+}
+
+export interface GeneratedEVMWallet {
+  address: string;
+  privateKey: string;
+  mnemonic?: string;
+}
+
+export function generateEVMWallet(): GeneratedEVMWallet {
+  const wallet = HDNodeWallet.createRandom();
+  return {
+    address: wallet.address,
+    privateKey: wallet.privateKey,
+    mnemonic: wallet.mnemonic?.phrase,
+  };
 }

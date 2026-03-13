@@ -1,5 +1,6 @@
 import bs58 from 'bs58';
 import { ed25519 } from '@noble/curves/ed25519.js';
+import { randomBytes } from 'crypto';
 import { RegistrationMessage, AddKeyMessage, Network } from '../types.js';
 
 const SOLANA_CHAIN_IDS: Record<Network, number> = {
@@ -122,4 +123,21 @@ export async function signAddKey(wallet: SolanaWallet, message: AddKeyMessage): 
   const messageBytes = buildAddKeyMessage(message);
   const signature = await wallet.signMessage(messageBytes);
   return bs58.encode(signature);
+}
+
+export interface GeneratedSolanaWallet {
+  address: string;
+  privateKey: string;
+}
+
+export function generateSolanaWallet(): GeneratedSolanaWallet {
+  const privateKey = randomBytes(32);
+  const publicKey = ed25519.getPublicKey(privateKey);
+  const address = bs58.encode(publicKey);
+  const privateKeyBase58 = bs58.encode(privateKey);
+
+  return {
+    address,
+    privateKey: privateKeyBase58,
+  };
 }

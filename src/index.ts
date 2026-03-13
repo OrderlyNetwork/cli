@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { cac } from 'cac';
 import kleur from 'kleur';
-import { init, importKey, list, logout, show } from './commands/auth.js';
+import { importKey, list, logout, show, exportKey } from './commands/auth.js';
 import { info, balance } from './commands/account.js';
 import { place, cancel, listOrders } from './commands/order.js';
 import { listPositions, closePosition } from './commands/positions.js';
@@ -14,6 +14,7 @@ import {
   walletLogout,
   walletRegister,
   walletAddKey,
+  walletCreate,
 } from './commands/wallet.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
@@ -60,128 +61,135 @@ function requireAddress(address: unknown): string {
   return str;
 }
 
+function findRawAccountId(optionName: string): string | undefined {
+  for (let i = 0; i < process.argv.length - 1; i++) {
+    if (process.argv[i] === `--${optionName}` && process.argv[i + 1].startsWith('0x')) {
+      return process.argv[i + 1];
+    }
+    const eqMatch = process.argv[i].match(new RegExp(`^--${optionName}=(0x[a-fA-F0-9]+)$`));
+    if (eqMatch) {
+      return eqMatch[1];
+    }
+  }
+  return undefined;
+}
+
+function normalizeAccountId(accountId: unknown): string | undefined {
+  if (accountId === undefined || accountId === null) {
+    return findRawAccountId('account');
+  }
+  const str = String(accountId);
+  if (typeof accountId === 'number' || str.includes('e+') || str.includes('e-')) {
+    const raw = findRawAccountId('account');
+    if (raw) return raw;
+    console.error(
+      kleur.red('Error: Hex account IDs must be quoted to prevent parsing as numbers.')
+    );
+    console.error(
+      kleur.dim(
+        'Example: --account "0x1e6b18f967e262ea4ee8a1efab67c578bcc45cdcfd435c15b6913dcf14d0217e"'
+      )
+    );
+    process.exit(1);
+  }
+  return str;
+}
+
+const QUICK_START = `
+${kleur.cyan().bold('QUICK START (Testnet)')}
+${kleur.dim('─'.repeat(50))}
+
+1. Create a new wallet:
+   ${kleur.green('orderly wallet-create --type EVM')}
+
+2. Register an Orderly account:
+   ${kleur.green('orderly wallet-register --broker-id demo')}
+
+3. Get test USDC (wait a few minutes for delivery):
+   ${kleur.green('orderly faucet-usdc <address> --broker-id demo --chain-id 421614')}
+
+4. Add API key for trading:
+   ${kleur.green('orderly wallet-add-key --broker-id demo')}
+
+5. Check balance:
+   ${kleur.green('orderly account-balance')}
+
+6. Place an order:
+   ${kleur.green('orderly order-place PERP_ETH_USDC BUY MARKET 0.01')}
+`;
+
+const DESCRIPTION = `
+${kleur.bold('Orderly Network CLI')}
+${kleur.dim('Secure keychain-based trading CLI for Orderly Network')}
+
+This CLI uses your OS keychain (Keychain/Credential Manager/libsecret) to store
+private keys securely. Keys are NEVER exposed to AI context or logged.
+
+${kleur.cyan().bold('SETUP FLOW')}
+${kleur.dim('─'.repeat(50))}
+
+${kleur.yellow('For new users:')}
+  wallet-create    → Generate a new wallet (EVM or Solana)
+  wallet-register  → Register wallet with Orderly (get account ID)
+  wallet-add-key   → Generate & register Ed25519 API key for trading
+
+${kleur.yellow('For existing Orderly users with API keys:')}
+  auth-import      → Import existing Ed25519 API key directly
+
+${kleur.cyan().bold('COMMANDS BY CATEGORY')}
+${kleur.dim('─'.repeat(50))}
+
+${kleur.yellow('Setup & Auth:')}
+  wallet-create, wallet-import, wallet-list, wallet-show, wallet-logout
+  wallet-register, wallet-add-key
+  auth-import, auth-list, auth-show, auth-logout, auth-export-key
+
+${kleur.yellow('Trading:')}
+  order-place, order-cancel, order-list
+  positions-list, positions-close
+
+${kleur.yellow('Account:')}
+  account-info, account-balance
+
+${kleur.yellow('Market Data (no auth required):')}
+  market-price, market-orderbook
+
+${kleur.yellow('Testnet Only:')}
+  faucet-usdc
+`;
+
 const cli = cac('orderly');
 
-cli.version('0.1.0').help();
-
-cli.option('--network <network>', 'Network to use (mainnet or testnet)', {
-  default: getDefaultNetwork(),
-});
-
 cli
-  .command('auth-init', 'Initialize authentication - generate and store Ed25519 keypair')
+  .version('0.1.0')
+  .help(() => {
+    console.log(DESCRIPTION);
+    console.log(QUICK_START);
+    console.log(kleur.dim('Run any command with --help for more details'));
+    console.log(kleur.cyan('  orderly wallet-create --help'));
+    console.log(kleur.cyan('  orderly order-place --help'));
+  })
+  .option('--network <network>', 'Network: mainnet or testnet (default: testnet)', {
+    default: getDefaultNetwork(),
+  });
+
+// Wallet commands - Setup flow
+cli
+  .command('wallet-create', 'Create a new EVM or Solana wallet')
+  .option('--type <type>', 'Wallet type: EVM or SOL (default: prompts)')
+  .example('orderly wallet-create --type EVM')
+  .example('orderly wallet-create --type SOL')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void init(network);
+    void walletCreate(options.type as WalletType, network);
   });
 
 cli
-  .command('auth-import [private-key]', 'Import an existing Ed25519 private key')
-  .option('--account <id>', 'Account ID to associate with the key')
-  .action((privateKey, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void importKey(privateKey, options.account, network);
-  });
-
-cli.command('auth-list', 'List all stored account keys (public keys only)').action((options) => {
-  const network = options.network as Network | undefined;
-  void list(network);
-});
-
-cli
-  .command('auth-show [account-id]', 'Show public key for an account')
-  .action((accountId, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void show(accountId, network);
-  });
-
-cli
-  .command('auth-logout [account-id]', 'Remove stored key for an account')
-  .action((accountId, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void logout(accountId, network);
-  });
-
-cli.command('account-info [account-id]', 'Get account information').action((accountId, options) => {
-  const network = (options.network as Network) || getDefaultNetwork();
-  void info(accountId, network);
-});
-
-cli.command('account-balance [account-id]', 'Get account balances').action((accountId, options) => {
-  const network = (options.network as Network) || getDefaultNetwork();
-  void balance(accountId, network);
-});
-
-cli
-  .command('order-place <symbol> <side> <type> <quantity>', 'Place a new order')
-  .option('--price <price>', 'Order price (required for LIMIT orders)')
-  .option('--account <id>', 'Account ID to use')
-  .action((symbol, side, type, quantity, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void place(symbol, side, type, quantity, options.price, options.account, network);
-  });
-
-cli
-  .command('order-cancel <order-id>', 'Cancel an order')
-  .option('--symbol <symbol>', 'Symbol of the order (required)')
-  .option('--account <id>', 'Account ID to use')
-  .action((orderId, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void cancel(orderId, options.symbol, options.account, network);
-  });
-
-cli
-  .command('order-list', 'List orders')
-  .option('--symbol <symbol>', 'Filter by symbol')
-  .option('--account <id>', 'Account ID to use')
-  .action((options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void listOrders(options.symbol, options.account, network);
-  });
-
-cli
-  .command('positions-list', 'List open positions')
-  .option('--account <id>', 'Account ID to use')
-  .action((options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void listPositions(options.account, network);
-  });
-
-cli
-  .command('positions-close <symbol>', 'Close a position')
-  .option('--account <id>', 'Account ID to use')
-  .action((symbol, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void closePosition(symbol, options.account, network);
-  });
-
-cli
-  .command('market-price <symbol>', 'Get current market price (public endpoint)')
-  .action((symbol, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void getPrice(symbol, network);
-  });
-
-cli
-  .command('market-orderbook <symbol>', 'Get orderbook (public endpoint)')
-  .action((symbol, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void getOrderbook(symbol, network);
-  });
-
-cli
-  .command('faucet-usdc <address>', 'Get test USDC from faucet (testnet only)')
-  .option('--broker-id <id>', 'Broker ID (required)')
-  .option('--chain-id <id>', 'Chain ID for EVM (not needed for Solana)')
-  .action((address, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void faucetUsdc(requireAddress(address), options.brokerId, options.chainId, network);
-  });
-
-cli
-  .command('wallet-import', 'Import an EVM or Solana wallet private key')
-  .option('--type <type>', 'Wallet type (EVM or SOL)')
-  .option('--address <address>', 'Wallet address (optional, will be derived from private key)')
+  .command('wallet-import', 'Import an existing wallet private key')
+  .option('--type <type>', 'Wallet type: EVM or SOL (default: prompts)')
+  .option('--address <address>', 'Wallet address (optional, derived from key)')
+  .example('orderly wallet-import --type EVM')
+  .example('orderly wallet-import --type SOL')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void walletImport(
@@ -192,38 +200,211 @@ cli
     );
   });
 
-cli.command('wallet-list', 'List all stored wallet keys').action((options) => {
-  const network = options.network as Network | undefined;
-  void walletList(network);
-});
-
-cli.command('wallet-show [address]', 'Show wallet info').action((address, options) => {
-  const network = (options.network as Network) || getDefaultNetwork();
-  void walletShow(normalizeAddress(address), network);
-});
-
-cli.command('wallet-logout [address]', 'Remove stored wallet').action((address, options) => {
-  const network = (options.network as Network) || getDefaultNetwork();
-  void walletLogout(normalizeAddress(address), network);
-});
+cli
+  .command('wallet-list', 'List all stored wallets')
+  .example('orderly wallet-list')
+  .example('orderly wallet-list --network testnet')
+  .action((options) => {
+    const network = options.network as Network | undefined;
+    void walletList(network);
+  });
 
 cli
-  .command('wallet-register', 'Register an Orderly account with your wallet')
-  .option('--broker-id <id>', 'Broker ID')
-  .option('--address <address>', 'Wallet address (optional, will prompt if not provided)')
+  .command('wallet-show [address]', 'Show wallet info')
+  .example('orderly wallet-show')
+  .example('orderly wallet-show 0x1234...')
+  .action((address, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void walletShow(normalizeAddress(address), network);
+  });
+
+cli
+  .command('wallet-logout [address]', 'Remove wallet from keychain')
+  .example('orderly wallet-logout')
+  .example('orderly wallet-logout 0x1234...')
+  .action((address, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void walletLogout(normalizeAddress(address), network);
+  });
+
+cli
+  .command('wallet-register', 'Register an Orderly account with your wallet (Step 2 of setup)')
+  .option('--broker-id <id>', 'Broker ID (e.g., "demo" for testnet)')
+  .option('--address <address>', 'Wallet address (optional, will prompt)')
+  .example('orderly wallet-register --broker-id demo')
+  .example('orderly wallet-register --broker-id demo --address 0x1234...')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void walletRegister(options.brokerId, normalizeAddress(options.address), network);
   });
 
 cli
-  .command('wallet-add-key', 'Add an Orderly API key for trading')
+  .command('wallet-add-key', 'Add Orderly API key for trading (Step 3 of setup)')
   .option('--broker-id <id>', 'Broker ID')
-  .option('--address <address>', 'Wallet address (optional, will prompt if not provided)')
-  .option('--scope <scope>', 'Key scopes (comma-separated: read,trading,asset)')
+  .option('--address <address>', 'Wallet address (optional, will prompt)')
+  .option('--scope <scope>', 'Key scopes: read,trading,asset (default: prompts)')
+  .example('orderly wallet-add-key --broker-id demo')
+  .example('orderly wallet-add-key --broker-id demo --scope read,trading')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void walletAddKey(options.brokerId, normalizeAddress(options.address), options.scope, network);
+  });
+
+// Auth commands - For users with existing API keys
+cli
+  .command(
+    'auth-import [private-key]',
+    'Import existing Ed25519 API key (for users who already have one)'
+  )
+  .option('--account <id>', 'Orderly account ID')
+  .example('orderly auth-import <base64-key> --account 12345')
+  .action((privateKey, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void importKey(privateKey, options.account, network);
+  });
+
+cli
+  .command('auth-list', 'List all stored API keys (public keys only)')
+  .example('orderly auth-list')
+  .action((options) => {
+    const network = options.network as Network | undefined;
+    void list(network);
+  });
+
+cli
+  .command('auth-show [account-id]', 'Show public key for an account')
+  .example('orderly auth-show')
+  .example('orderly auth-show 12345')
+  .action((accountId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void show(accountId, network);
+  });
+
+cli
+  .command('auth-logout [account-id]', 'Remove API key from keychain')
+  .example('orderly auth-logout')
+  .example('orderly auth-logout 12345')
+  .action((accountId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void logout(accountId, network);
+  });
+
+cli
+  .command('auth-export-key [account-id]', 'Export Ed25519 private key (requires interactive TTY)')
+  .example('orderly auth-export-key')
+  .action((accountId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void exportKey(accountId, network);
+  });
+
+// Account commands
+cli
+  .command('account-info [account-id]', 'Get account information')
+  .example('orderly account-info')
+  .action((accountId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void info(normalizeAccountId(accountId), network);
+  });
+
+cli
+  .command('account-balance [account-id]', 'Get account balances')
+  .example('orderly account-balance')
+  .action((accountId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void balance(normalizeAccountId(accountId), network);
+  });
+
+// Trading commands
+cli
+  .command('order-place <symbol> <side> <type> <quantity>', 'Place a new order')
+  .option('--price <price>', 'Order price (required for LIMIT orders)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01')
+  .example('orderly order-place PERP_ETH_USDC SELL LIMIT 0.01 --price 3500')
+  .example('orderly order-place PERP_BTC_USDC BUY MARKET 0.001')
+  .action((symbol, side, type, quantity, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void place(
+      symbol,
+      side,
+      type,
+      quantity,
+      options.price,
+      normalizeAccountId(options.account),
+      network
+    );
+  });
+
+cli
+  .command('order-cancel <order-id>', 'Cancel an order')
+  .option('--symbol <symbol>', 'Symbol of the order')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly order-cancel 123456 --symbol PERP_ETH_USDC')
+  .action((orderId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void cancel(orderId, options.symbol, normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command('order-list', 'List orders')
+  .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly order-list')
+  .example('orderly order-list --symbol PERP_ETH_USDC')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void listOrders(options.symbol, normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command('positions-list', 'List open positions')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly positions-list')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void listPositions(normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command('positions-close <symbol>', 'Close a position')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly positions-close PERP_ETH_USDC')
+  .action((symbol, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void closePosition(symbol, normalizeAccountId(options.account), network);
+  });
+
+// Market data commands (public, no auth)
+cli
+  .command('market-price <symbol>', 'Get current market price (no auth required)')
+  .example('orderly market-price PERP_ETH_USDC')
+  .example('orderly market-price PERP_BTC_USDC')
+  .action((symbol, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getPrice(symbol, network);
+  });
+
+cli
+  .command('market-orderbook <symbol>', 'Get orderbook (no auth required)')
+  .example('orderly market-orderbook PERP_ETH_USDC')
+  .action((symbol, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getOrderbook(symbol, network);
+  });
+
+// Testnet faucet
+cli
+  .command('faucet-usdc <address>', 'Get test USDC from faucet (testnet only)')
+  .option('--broker-id <id>', 'Broker ID (required)')
+  .option('--chain-id <id>', 'Chain ID for EVM: 421614 (Arbitrum Sepolia), 84532 (Base Sepolia)')
+  .example('# EVM (Arbitrum Sepolia):')
+  .example('orderly faucet-usdc 0x1234... --broker-id demo --chain-id 421614')
+  .example('# Solana:')
+  .example('orderly faucet-usdc <sol-address> --broker-id demo')
+  .action((address, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const chainId = options.chainId ? String(options.chainId) : undefined;
+    void faucetUsdc(requireAddress(address), options.brokerId, chainId, network);
   });
 
 try {
@@ -237,9 +418,6 @@ try {
       console.error(kleur.red(`Error: ${message}`));
       console.error();
       console.error(kleur.yellow('Usage examples:'));
-      console.error(kleur.cyan(`  orderly ${commandName}`));
-      console.error();
-      console.error(kleur.dim('Run the following for more help:'));
       console.error(kleur.cyan(`  orderly ${commandName} --help`));
       process.exit(1);
     }

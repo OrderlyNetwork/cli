@@ -1,5 +1,4 @@
 import kleur from 'kleur';
-import ora from 'ora';
 import prompts from 'prompts';
 import axios from 'axios';
 import { WalletKeyPair, Network, WalletType } from '../types.js';
@@ -9,10 +8,7 @@ import {
   deleteWalletKey,
   listWalletKeys,
   hasWalletKey,
-  getKey,
   storeKey,
-  deleteKey,
-  listKeys,
 } from '../lib/keychain.js';
 import {
   createWalletFromPrivateKey,
@@ -20,18 +16,86 @@ import {
   normalizePrivateKey,
   signRegistration as signEVMRegistration,
   signAddKey as signEVMAddKey,
+  generateEVMWallet,
 } from '../lib/evm.js';
 import {
   createSolanaWalletFromPrivateKey,
   signRegistration as signSolanaRegistration,
   signAddKey as signSolanaAddKey,
   getSolanaChainId,
+  generateSolanaWallet,
 } from '../lib/solana.js';
 import { OrderlyClient } from '../lib/api.js';
 import { setDefaultAccount, setDefaultNetwork } from '../lib/config.js';
-import { getPublicKeyBase58 } from '../lib/crypto.js';
+import { getPublicKeyBase58, generateKeyPair } from '../lib/crypto.js';
 
-const spinner = ora();
+export async function walletCreate(
+  walletType: WalletType | undefined,
+  network: Network
+): Promise<void> {
+  console.log(kleur.cyan(`\n🔐 Create New Wallet (${network})\n`));
+
+  let type: WalletType = walletType ?? 'EVM';
+  if (!walletType) {
+    const response = await prompts({
+      type: 'select',
+      name: 'type',
+      message: 'Select wallet type',
+      choices: [
+        { title: 'EVM (Ethereum, Arbitrum, etc.)', value: 'EVM' },
+        { title: 'Solana', value: 'SOL' },
+      ],
+    });
+    if (!response.type) {
+      console.log(kleur.red('Cancelled.'));
+      return;
+    }
+    type = response.type;
+  }
+
+  let address: string;
+  let privateKey: string;
+
+  try {
+    if (type === 'EVM') {
+      const wallet = generateEVMWallet();
+      address = wallet.address;
+      privateKey = wallet.privateKey;
+    } else {
+      const wallet = generateSolanaWallet();
+      address = wallet.address;
+      privateKey = wallet.privateKey;
+    }
+  } catch (error) {
+    console.error(kleur.red('Failed to generate wallet'), error);
+    return;
+  }
+
+  const walletKeyPair: WalletKeyPair = {
+    address,
+    privateKey,
+    walletType: type,
+    network,
+  };
+
+  try {
+    await storeWalletKey(address, network, walletKeyPair);
+  } catch (error) {
+    console.error(kleur.red('Failed to store wallet'), error);
+    return;
+  }
+
+  console.log();
+  console.log(kleur.green('✅ Wallet created successfully!'));
+  console.log(kleur.dim(`Address: ${address}`));
+  console.log(kleur.dim(`Type: ${type}`));
+  console.log(kleur.dim(`Network: ${network}`));
+  console.log();
+  console.log(
+    kleur.yellow('⚠️  Private key is stored in OS keychain and will never be shown again.')
+  );
+  console.log(kleur.dim('Make sure to back up your wallet if needed for external use.'));
+}
 
 export async function walletImport(
   walletType: WalletType | undefined,
@@ -104,10 +168,9 @@ export async function walletImport(
   }
   addr = walletAddress;
 
-  spinner.start('Checking for existing wallet...');
   const existing = await hasWalletKey(addr, network);
   if (existing) {
-    spinner.warn(kleur.yellow(`Wallet already exists for ${addr} on ${network}`));
+    console.log(kleur.yellow(`Wallet already exists for ${addr} on ${network}`));
     const overwrite = await prompts({
       type: 'confirm',
       name: 'value',
@@ -119,7 +182,6 @@ export async function walletImport(
       return;
     }
   }
-  spinner.stop();
 
   const walletKeyPair: WalletKeyPair = {
     address: addr,
@@ -128,13 +190,10 @@ export async function walletImport(
     network,
   };
 
-  spinner.start('Storing wallet in OS keychain...');
   try {
     await storeWalletKey(addr, network, walletKeyPair);
-    spinner.succeed(kleur.green('Wallet stored securely in OS keychain'));
   } catch (error) {
-    spinner.fail(kleur.red('Failed to store wallet'));
-    console.error(error);
+    console.error(kleur.red('Failed to store wallet'), error);
     return;
   }
 
@@ -147,9 +206,7 @@ export async function walletImport(
 export async function walletList(network: Network | undefined): Promise<void> {
   console.log(kleur.cyan('\n📋 Stored Wallets\n'));
 
-  spinner.start('Loading wallets from keychain...');
   const wallets = await listWalletKeys();
-  spinner.stop();
 
   const filteredWallets = network ? wallets.filter((w) => w.network === network) : wallets;
 
@@ -169,10 +226,8 @@ export async function walletShow(address: string | undefined, network: Network):
   let addr = address;
 
   if (!addr) {
-    spinner.start('Loading wallets...');
     const wallets = await listWalletKeys();
     const filteredWallets = wallets.filter((w) => w.network === network);
-    spinner.stop();
 
     if (filteredWallets.length === 0) {
       console.log(kleur.red(`No wallets found for ${network}.`));
@@ -201,9 +256,7 @@ export async function walletShow(address: string | undefined, network: Network):
     return;
   }
 
-  spinner.start('Loading wallet...');
   const wallet = await getWalletKey(addr, network);
-  spinner.stop();
 
   if (!wallet) {
     console.log(kleur.red(`No wallet found for ${addr} on ${network}`));
@@ -223,10 +276,8 @@ export async function walletLogout(address: string | undefined, network: Network
   let addr = address;
 
   if (!addr) {
-    spinner.start('Loading wallets...');
     const wallets = await listWalletKeys();
     const filteredWallets = wallets.filter((w) => w.network === network);
-    spinner.stop();
 
     if (filteredWallets.length === 0) {
       console.log(kleur.yellow(`No wallets stored for ${network}.`));
@@ -267,17 +318,15 @@ export async function walletLogout(address: string | undefined, network: Network
     return;
   }
 
-  spinner.start('Removing wallet from keychain...');
   try {
     const deleted = await deleteWalletKey(addr, network);
     if (deleted) {
-      spinner.succeed(kleur.green(`Wallet removed for ${addr} on ${network}`));
+      console.log(kleur.green(`Wallet removed for ${addr} on ${network}`));
     } else {
-      spinner.warn(kleur.yellow(`No wallet found for ${addr} on ${network}`));
+      console.log(kleur.yellow(`No wallet found for ${addr} on ${network}`));
     }
   } catch (error) {
-    spinner.fail(kleur.red('Failed to remove wallet'));
-    console.error(error);
+    console.error(kleur.red('Failed to remove wallet'), error);
   }
 }
 
@@ -307,10 +356,8 @@ export async function walletRegister(
   let walletKey: WalletKeyPair | null = null;
 
   if (!addr) {
-    spinner.start('Loading wallets...');
     const wallets = await listWalletKeys();
     const filteredWallets = wallets.filter((w) => w.network === network);
-    spinner.stop();
 
     if (filteredWallets.length === 0) {
       console.log(kleur.red(`No wallets found for ${network}. Import a wallet first.`));
@@ -352,27 +399,23 @@ export async function walletRegister(
 
   const client = new OrderlyClient(network);
 
-  spinner.start('Checking if account already exists...');
   try {
     const existingAccount = await client.getAccount(addr, bId, walletKey.walletType);
     if (existingAccount.success && existingAccount.data?.account_id) {
-      spinner.succeed(kleur.yellow(`Account already exists: ${existingAccount.data.account_id}`));
+      console.log(kleur.yellow(`Account already exists: ${existingAccount.data.account_id}`));
       console.log(kleur.dim('Use `orderly wallet-add-key` to add an API key to this account.'));
       return;
     }
   } catch {
     // Continue with registration
   }
-  spinner.stop();
 
-  spinner.start('Fetching registration nonce...');
   const nonceResponse = await client.getRegistrationNonce();
   if (!nonceResponse.success || !nonceResponse.data?.registration_nonce) {
-    spinner.fail(kleur.red('Failed to get registration nonce'));
+    console.log(kleur.red('Failed to get registration nonce'));
     return;
   }
   const nonce = nonceResponse.data.registration_nonce;
-  spinner.succeed(kleur.green('Got registration nonce'));
 
   const timestamp = Date.now();
   const chainId =
@@ -390,7 +433,6 @@ export async function walletRegister(
     chainType: walletKey.walletType,
   };
 
-  spinner.start('Signing registration message...');
   let signature: string;
   try {
     if (walletKey.walletType === 'EVM') {
@@ -400,18 +442,14 @@ export async function walletRegister(
       const wallet = createSolanaWalletFromPrivateKey(walletKey.privateKey);
       signature = await signSolanaRegistration(wallet, message);
     }
-    spinner.succeed(kleur.green('Message signed'));
   } catch (error) {
-    spinner.fail(kleur.red('Failed to sign message'));
-    console.error(error);
+    console.error(kleur.red('Failed to sign message'), error);
     return;
   }
 
-  spinner.start('Registering account...');
   try {
     const result = await client.registerAccount(message, signature, addr, walletKey.walletType);
     if (result.success && result.data?.account_id) {
-      spinner.succeed(kleur.green('Account registered successfully!'));
       console.log();
       console.log(kleur.cyan('Account ID:'));
       console.log(kleur.white(result.data.account_id));
@@ -420,11 +458,10 @@ export async function walletRegister(
         kleur.dim('Next step: Use `orderly wallet-add-key` to add an API key for trading.')
       );
     } else {
-      spinner.fail(kleur.red('Failed to register account'));
+      console.log(kleur.red('Failed to register account'));
       console.log(kleur.dim('Response:'), result);
     }
   } catch (error) {
-    spinner.fail(kleur.red('Failed to register account'));
     if (axios.isAxiosError(error) && error.response?.data) {
       console.log(
         kleur.red(
@@ -466,10 +503,8 @@ export async function walletAddKey(
   let walletKey: WalletKeyPair | null = null;
 
   if (!addr) {
-    spinner.start('Loading wallets...');
     const wallets = await listWalletKeys();
     const filteredWallets = wallets.filter((w) => w.network === network);
-    spinner.stop();
 
     if (filteredWallets.length === 0) {
       console.log(kleur.red(`No wallets found for ${network}. Import a wallet first.`));
@@ -511,14 +546,12 @@ export async function walletAddKey(
 
   const client = new OrderlyClient(network);
 
-  spinner.start('Checking account...');
   const accountInfo = await client.getAccount(addr, bId, walletKey.walletType);
   if (!accountInfo.success || !accountInfo.data?.account_id) {
-    spinner.fail(kleur.red('Account not found. Run `orderly wallet-register` first.'));
+    console.log(kleur.red('Account not found. Run `orderly wallet-register` first.'));
     return;
   }
   const accountId = accountInfo.data.account_id;
-  spinner.succeed(kleur.green(`Found account: ${accountId}`));
 
   let keyScope = scope;
   if (!keyScope) {
@@ -545,48 +578,9 @@ export async function walletAddKey(
     return;
   }
 
-  // Select existing Ed25519 key to authorize
-  spinner.start('Loading available Ed25519 keys...');
-  const allKeys = await listKeys();
-  const availableKeys = allKeys.filter((k) => k.network === network);
-  spinner.stop();
+  const ed25519KeyPair = generateKeyPair();
 
-  if (availableKeys.length === 0) {
-    console.log(kleur.red('\nNo Ed25519 keys found. Generate one first:'));
-    console.log(kleur.cyan('  orderly auth-init'));
-    console.log(kleur.dim('or import an existing key:'));
-    console.log(kleur.cyan('  orderly auth-import <private-key> --account <account-id>'));
-    return;
-  }
-
-  const keyResponse = await prompts({
-    type: 'select',
-    name: 'publicKey',
-    message: 'Select Ed25519 key to authorize for trading',
-    choices: availableKeys.map((k) => ({
-      title: `${k.publicKey.substring(0, 30)}... (${k.accountId})`,
-      value: k.publicKey,
-    })),
-  });
-
-  if (!keyResponse.publicKey) {
-    console.log(kleur.red('Cancelled.'));
-    return;
-  }
-
-  const selectedKey = availableKeys.find((k) => k.publicKey === keyResponse.publicKey);
-  if (!selectedKey) {
-    console.log(kleur.red('Key not found.'));
-    return;
-  }
-
-  const fullKeyPair = await getKey(selectedKey.accountId, network);
-  if (!fullKeyPair) {
-    console.log(kleur.red('Failed to load key pair.'));
-    return;
-  }
-
-  const orderlyKey = `ed25519:${getPublicKeyBase58(fullKeyPair.publicKey)}`;
+  const orderlyKey = `ed25519:${getPublicKeyBase58(ed25519KeyPair.publicKey)}`;
 
   const timestamp = Date.now();
   const expiration = timestamp + 365 * 24 * 60 * 60 * 1000; // 1 year
@@ -607,7 +601,6 @@ export async function walletAddKey(
     chainType: walletKey.walletType,
   };
 
-  spinner.start('Signing add key message...');
   let signature: string;
   try {
     if (walletKey.walletType === 'EVM') {
@@ -617,37 +610,22 @@ export async function walletAddKey(
       const wallet = createSolanaWalletFromPrivateKey(walletKey.privateKey);
       signature = await signSolanaAddKey(wallet, message);
     }
-    spinner.succeed(kleur.green('Message signed'));
   } catch (error) {
-    spinner.fail(kleur.red('Failed to sign message'));
-    console.error(error);
+    console.error(kleur.red('Failed to sign message'), error);
     return;
   }
 
-  spinner.start('Adding Orderly key...');
   try {
     const result = await client.addOrderlyKey(message, signature, addr, walletKey.walletType);
     if (result.success && result.data?.orderly_key) {
-      spinner.succeed(kleur.green('Orderly key added successfully!'));
-
-      spinner.start('Updating key with account association...');
-
-      // Update the key pair with the correct account ID
       const keyPair = {
         accountId,
-        publicKey: fullKeyPair.publicKey,
-        privateKey: fullKeyPair.privateKey,
+        publicKey: ed25519KeyPair.publicKey,
+        privateKey: ed25519KeyPair.privateKey,
         network,
       };
 
-      // Remove old key if exists under different account
-      const existingKey = await getKey(accountId, network);
-      if (existingKey) {
-        await deleteKey(accountId, network);
-      }
-
       await storeKey(accountId, network, keyPair);
-      spinner.succeed(kleur.green('API key associated with account'));
 
       setDefaultAccount(accountId);
       setDefaultNetwork(network);
@@ -661,11 +639,10 @@ export async function walletAddKey(
       console.log(kleur.cyan(`  orderly account-info`));
       console.log(kleur.cyan(`  orderly order-place PERP_ETH_USDC BUY MARKET 0.01`));
     } else {
-      spinner.fail(kleur.red('Failed to add Orderly key'));
+      console.log(kleur.red('Failed to add Orderly key'));
       console.log(kleur.dim('Response:'), result);
     }
   } catch (error) {
-    spinner.fail(kleur.red('Failed to add Orderly key'));
     if (axios.isAxiosError(error) && error.response?.data) {
       console.log(
         kleur.red(

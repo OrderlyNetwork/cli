@@ -1,4 +1,4 @@
-import { ed25519 } from '@noble/curves/ed25519';
+import { ed25519 } from '@noble/curves/ed25519.js';
 import { randomBytes } from 'crypto';
 import { KeyPair } from '../types.js';
 

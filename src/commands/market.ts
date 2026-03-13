@@ -25,3 +25,15 @@ export async function getOrderbook(symbol: string, network: Network): Promise<vo
     }
   }
 }
+
+export async function getSymbols(showInfo: boolean, network: Network): Promise<void> {
+  try {
+    const client = new OrderlyClient(network);
+    const result = showInfo ? await client.getSymbols() : await client.getFutures();
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(kleur.red(error.message));
+    }
+  }
+}

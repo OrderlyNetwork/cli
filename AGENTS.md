@@ -90,11 +90,7 @@ src/
 
 ## CLI Commands
 
-### Global Options
-
-```bash
---network <mainnet|testnet>   # Network to use (default: testnet)
-```
+Run `orderly --help` for the complete command reference. The CLI is self-documenting.
 
 ### Quick Start: Testnet Setup
 
@@ -118,107 +114,25 @@ orderly account-balance --network testnet
 orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --network testnet
 ```
 
-### Authentication
+### Command Categories
 
-```bash
-# Import existing Ed25519 key (for users with pre-registered keys)
-orderly auth-import <base64-private-key> --account <account-id> [--network <network>]
+**Setup & Auth:**
+`wallet-create`, `wallet-import`, `wallet-list`, `wallet-show`, `wallet-logout`, `wallet-register`, `wallet-add-key`, `auth-import`, `auth-list`, `auth-show`, `auth-logout`, `auth-export-key`
 
-# List stored keys (public keys only)
-orderly auth-list [--network <network>]
+**Trading:**
+`order-place`, `order-cancel`, `order-edit`, `order-cancel-all`, `order-list`, `positions-list`, `positions-close`, `leverage`, `trades`
 
-# Show public key for account
-orderly auth-show [account-id] [--network <network>]
+**Account:**
+`account-info`, `account-balance`
 
-# Remove key from keychain
-orderly auth-logout [account-id] [--network <network>]
+**Market Data (no auth):**
+`market-price`, `market-orderbook`, `symbols`
 
-# Export Ed25519 key (interactive TTY only - prevents AI extraction)
-orderly auth-export-key [account-id] [--network <network>]
-```
+**Assets:**
+`chains`, `tokens`, `deposit-info`, `withdraw`, `withdraw-submit`, `asset-history`
 
-### Account
-
-```bash
-# Get account info (requires auth)
-orderly account-info [account-id] [--network <network>]
-
-# Get balances (requires auth)
-orderly account-balance [account-id] [--network <network>]
-```
-
-### Orders
-
-```bash
-# Place order
-orderly order-place <symbol> <side> <type> <quantity> [--price <price>] [--account <id>] [--network <network>]
-
-# Examples:
-orderly order-place PERP_ETH_USDC BUY LIMIT 0.01 --price 3500
-orderly order-place PERP_BTC_USDC SELL MARKET 0.001
-
-# Cancel order
-orderly order-cancel <order-id> [--symbol <symbol>] [--account <id>] [--network <network>]
-
-# List orders
-orderly order-list [--symbol <symbol>] [--account <id>] [--network <network>]
-```
-
-### Positions
-
-```bash
-# List open positions
-orderly positions-list [--account <id>] [--network <network>]
-
-# Close position
-orderly positions-close <symbol> [--account <id>] [--network <network>]
-```
-
-### Market Data (Public - No Auth)
-
-```bash
-# Get current price
-orderly market-price <symbol> [--network <network>]
-
-# Get orderbook
-orderly market-orderbook <symbol> [--network <network>]
-```
-
-### Wallet Commands
-
-```bash
-# Create a new wallet (EVM or Solana)
-orderly wallet-create [--type EVM|SOL] [--network <network>]
-
-# Import wallet private key (EVM or Solana)
-orderly wallet-import [--type EVM|SOL] [--address <address>]
-
-# List stored wallets
-orderly wallet-list [--network <network>]
-
-# Show wallet info
-orderly wallet-show [address] [--network <network>]
-
-# Remove wallet from keychain
-orderly wallet-logout [address] [--network <network>]
-
-# Register Orderly account with wallet
-orderly wallet-register [--broker-id <id>] [--address <address>] [--network <network>]
-
-# Add Orderly API key for trading (generates Ed25519 key automatically)
-orderly wallet-add-key [--broker-id <id>] [--address <address>] [--scope <scope>] [--network <network>]
-```
-
-### Testnet Faucet
-
-```bash
-# Get test USDC (testnet only)
-orderly faucet-usdc <address> --broker-id <id> [--chain-id <id>] [--network testnet]
-
-# Examples:
-orderly faucet-usdc 0x1234... --broker-id demo --chain-id 421614 --network testnet  # EVM
-orderly faucet-usdc Zions51qQNUgWNyp4JegUFoMUpgFx43jBUsYmHtDPdr --broker-id demo --network testnet  # Solana
-```
+**Testnet:**
+`faucet-usdc`
 
 ## Configuration
 

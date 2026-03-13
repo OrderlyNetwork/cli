@@ -18,7 +18,7 @@ export async function place(
 
   if (!accId) {
     console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly auth-init` first.'));
+    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
     return;
   }
 
@@ -91,7 +91,7 @@ export async function cancel(
 
   if (!accId) {
     console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly auth-init` first.'));
+    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
     return;
   }
 
@@ -120,6 +120,94 @@ export async function cancel(
   }
 }
 
+export async function edit(
+  orderId: string,
+  symbol: string,
+  price: string | undefined,
+  quantity: string | undefined,
+  accountId: string | undefined,
+  network: Network
+): Promise<void> {
+  const accId = accountId ?? getDefaultAccount();
+
+  if (!accId) {
+    console.log(kleur.red('No account specified and no default account set.'));
+    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
+    return;
+  }
+
+  if (!price && !quantity) {
+    console.log(kleur.red('At least one of --price or --quantity is required.'));
+    return;
+  }
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
+    return;
+  }
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  const updates: { order_price?: string; order_quantity?: string } = {};
+  if (price) updates.order_price = price;
+  if (quantity) updates.order_quantity = quantity;
+
+  try {
+    const result = await client.editOrder(orderId, updates, symbol);
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
+      console.error(kleur.red(error.message));
+    }
+  }
+}
+
+export async function cancelAll(
+  symbol: string | undefined,
+  accountId: string | undefined,
+  network: Network
+): Promise<void> {
+  const accId = accountId ?? getDefaultAccount();
+
+  if (!accId) {
+    console.log(kleur.red('No account specified and no default account set.'));
+    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
+    return;
+  }
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
+    return;
+  }
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  try {
+    const result = await client.cancelAllOrders(symbol);
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
+      console.error(kleur.red(error.message));
+    }
+  }
+}
+
 export async function listOrders(
   symbol: string | undefined,
   accountId: string | undefined,
@@ -129,7 +217,7 @@ export async function listOrders(
 
   if (!accId) {
     console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly auth-init` first.'));
+    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
     return;
   }
 

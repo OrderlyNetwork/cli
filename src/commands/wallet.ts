@@ -1,7 +1,13 @@
 import kleur from 'kleur';
 import prompts from 'prompts';
 import axios from 'axios';
-import { WalletKeyPair, Network, WalletType } from '../types.js';
+import {
+  WalletKeyPair,
+  Network,
+  WalletType,
+  RegistrationMessage,
+  AddKeyMessage,
+} from '../types.js';
 import {
   storeWalletKey,
   getWalletKey,
@@ -152,7 +158,7 @@ export async function walletImport(
       const wallet = createWalletFromPrivateKey(normalizePrivateKey(key));
       walletAddress = wallet.address;
     } else {
-      const wallet = createSolanaWalletFromPrivateKey(key);
+      const wallet = createSolanaWalletFromPrivateKey(key, network);
       walletAddress = wallet.address;
     }
   } catch (error) {
@@ -418,29 +424,31 @@ export async function walletRegister(
   const nonce = nonceResponse.data.registration_nonce;
 
   const timestamp = Date.now();
-  const chainId =
-    walletKey.walletType === 'SOL'
-      ? getSolanaChainId(network)
-      : network === 'mainnet'
-        ? 42161
-        : 421614;
 
-  const message = {
-    brokerId: bId,
-    chainId,
-    timestamp,
-    registrationNonce: nonce,
-    chainType: walletKey.walletType,
-  };
-
+  let message: Record<string, unknown>;
   let signature: string;
   try {
     if (walletKey.walletType === 'EVM') {
+      const chainId = network === 'mainnet' ? 42161 : 421614;
+      const evmMessage: RegistrationMessage = {
+        brokerId: bId,
+        chainId,
+        timestamp: String(timestamp),
+        registrationNonce: nonce,
+      };
+      message = { ...evmMessage };
       const wallet = createWalletFromPrivateKey(normalizePrivateKey(walletKey.privateKey));
-      signature = await signEVMRegistration(wallet, message);
+      signature = await signEVMRegistration(wallet, evmMessage);
     } else {
-      const wallet = createSolanaWalletFromPrivateKey(walletKey.privateKey);
-      signature = await signSolanaRegistration(wallet, message);
+      const wallet = createSolanaWalletFromPrivateKey(walletKey.privateKey, network);
+      const result = await signSolanaRegistration(wallet, {
+        brokerId: bId,
+        timestamp,
+        registrationNonce: nonce,
+        network,
+      });
+      message = result.message;
+      signature = result.signature;
     }
   } catch (error) {
     console.error(kleur.red('Failed to sign message'), error);
@@ -591,24 +599,33 @@ export async function walletAddKey(
         ? 42161
         : 421614;
 
-  const message = {
-    brokerId: bId,
-    chainId,
-    orderlyKey,
-    scope: keyScope,
-    timestamp,
-    expiration,
-    chainType: walletKey.walletType,
-  };
-
+  let message: Record<string, unknown>;
   let signature: string;
   try {
     if (walletKey.walletType === 'EVM') {
+      const evmMessage: AddKeyMessage = {
+        brokerId: bId,
+        chainId,
+        orderlyKey,
+        scope: keyScope,
+        timestamp,
+        expiration,
+      };
+      message = { ...evmMessage };
       const wallet = createWalletFromPrivateKey(normalizePrivateKey(walletKey.privateKey));
-      signature = await signEVMAddKey(wallet, message);
+      signature = await signEVMAddKey(wallet, evmMessage);
     } else {
-      const wallet = createSolanaWalletFromPrivateKey(walletKey.privateKey);
-      signature = await signSolanaAddKey(wallet, message);
+      const wallet = createSolanaWalletFromPrivateKey(walletKey.privateKey, network);
+      const result = await signSolanaAddKey(wallet, {
+        brokerId: bId,
+        publicKey: orderlyKey,
+        scope: keyScope,
+        timestamp,
+        expiration,
+        network,
+      });
+      message = result.message;
+      signature = result.signature;
     }
   } catch (error) {
     console.error(kleur.red('Failed to sign message'), error);
@@ -616,7 +633,7 @@ export async function walletAddKey(
   }
 
   try {
-    const result = await client.addOrderlyKey(message, signature, addr, walletKey.walletType);
+    const result = await client.addOrderlyKey(message, signature, addr);
     if (result.success && result.data?.orderly_key) {
       const keyPair = {
         accountId,

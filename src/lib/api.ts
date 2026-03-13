@@ -97,6 +97,10 @@ export class OrderlyClient {
     );
   }
 
+  async put<T>(path: string, data?: unknown, requiresAuth = true): Promise<T> {
+    return this.request<T>({ method: 'PUT', url: path, data }, requiresAuth);
+  }
+
   async getAccountInfo(): Promise<unknown> {
     return this.get('/v1/client/info');
   }
@@ -125,6 +129,29 @@ export class OrderlyClient {
     const path = symbol
       ? `/v1/order?order_id=${orderId}&symbol=${symbol}`
       : `/v1/order?order_id=${orderId}`;
+    return this.delete(path);
+  }
+
+  async editOrder(
+    orderId: string,
+    updates: { order_price?: string; order_quantity?: string },
+    symbol: string
+  ): Promise<unknown> {
+    const body: Record<string, unknown> = {
+      order_id: orderId,
+      symbol,
+    };
+    if (updates.order_price !== undefined) {
+      body.order_price = updates.order_price;
+    }
+    if (updates.order_quantity !== undefined) {
+      body.order_quantity = updates.order_quantity;
+    }
+    return this.put('/v1/order', body);
+  }
+
+  async cancelAllOrders(symbol?: string): Promise<unknown> {
+    const path = symbol ? `/v1/orders?symbol=${symbol}` : '/v1/orders';
     return this.delete(path);
   }
 
@@ -168,6 +195,14 @@ export class OrderlyClient {
 
   async getMarketPrice(symbol: string): Promise<unknown> {
     return this.get(`/v1/public/futures/${symbol}`, false);
+  }
+
+  async getSymbols(): Promise<unknown> {
+    return this.get('/v1/public/info', false);
+  }
+
+  async getFutures(): Promise<unknown> {
+    return this.get('/v1/public/futures', false);
   }
 
   async getOrderbook(symbol: string): Promise<unknown> {
@@ -233,7 +268,7 @@ export class OrderlyClient {
       userAddress,
     };
     if (chainType) {
-      body.chainType = chainType;
+      body.chain_type = chainType;
     }
     return this.post('/v1/register_account', body, false);
   }
@@ -250,7 +285,7 @@ export class OrderlyClient {
       userAddress,
     };
     if (chainType) {
-      body.chainType = chainType;
+      body.chain_type = chainType;
     }
     return this.post('/v1/orderly_key', body, false);
   }
@@ -259,5 +294,22 @@ export class OrderlyClient {
     brokerId: string
   ): Promise<{ success: boolean; data?: { chains: Array<{ chain_id: number }> } }> {
     return this.get(`/v1/public/chain_info?broker_id=${brokerId}`, false);
+  }
+
+  async getLeverage(symbol: string): Promise<unknown> {
+    return this.get(`/v1/client/leverage?symbol=${symbol}`);
+  }
+
+  async setLeverage(symbol: string, leverage: number): Promise<unknown> {
+    return this.post('/v1/client/leverage', { symbol, leverage });
+  }
+
+  async getTrades(symbol?: string, startT?: number, endT?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    if (startT) params.append('start_t', startT.toString());
+    if (endT) params.append('end_t', endT.toString());
+    const queryString = params.toString();
+    return this.get(queryString ? `/v1/trades?${queryString}` : '/v1/trades');
   }
 }

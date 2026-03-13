@@ -37,7 +37,7 @@ export interface EIP712Domain {
 export interface RegistrationMessage {
   brokerId: string;
   chainId: number;
-  timestamp: number;
+  timestamp: string;
   registrationNonce: string;
   chainType?: WalletType;
 }

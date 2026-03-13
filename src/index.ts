@@ -3,9 +3,9 @@ import { cac } from 'cac';
 import kleur from 'kleur';
 import { importKey, list, logout, show, exportKey } from './commands/auth.js';
 import { info, balance } from './commands/account.js';
-import { place, cancel, listOrders } from './commands/order.js';
+import { place, cancel, edit, cancelAll, listOrders } from './commands/order.js';
 import { listPositions, closePosition } from './commands/positions.js';
-import { getPrice, getOrderbook } from './commands/market.js';
+import { getPrice, getOrderbook, getSymbols } from './commands/market.js';
 import { faucetUsdc } from './commands/faucet.js';
 import {
   walletImport,
@@ -16,6 +16,16 @@ import {
   walletAddKey,
   walletCreate,
 } from './commands/wallet.js';
+import {
+  getChains,
+  getTokens,
+  depositInfo,
+  withdraw,
+  withdrawSubmit,
+  assetHistory,
+} from './commands/assets.js';
+import { getOrSetLeverage } from './commands/leverage.js';
+import { listTrades } from './commands/trades.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
 
@@ -145,14 +155,17 @@ ${kleur.yellow('Setup & Auth:')}
   auth-import, auth-list, auth-show, auth-logout, auth-export-key
 
 ${kleur.yellow('Trading:')}
-  order-place, order-cancel, order-list
+  order-place, order-cancel, order-edit, order-cancel-all, order-list
   positions-list, positions-close
 
 ${kleur.yellow('Account:')}
   account-info, account-balance
 
 ${kleur.yellow('Market Data (no auth required):')}
-  market-price, market-orderbook
+  market-price, market-orderbook, symbols
+
+${kleur.yellow('Assets:')}
+  chains, tokens, deposit-info, withdraw, withdraw-submit, asset-history
 
 ${kleur.yellow('Testnet Only:')}
   faucet-usdc
@@ -299,19 +312,23 @@ cli
 
 // Account commands
 cli
-  .command('account-info [account-id]', 'Get account information')
+  .command('account-info', 'Get account information')
+  .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly account-info')
-  .action((accountId, options) => {
+  .example('orderly account-info --account 0x1e6b...')
+  .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void info(normalizeAccountId(accountId), network);
+    void info(normalizeAccountId(options.account), network);
   });
 
 cli
-  .command('account-balance [account-id]', 'Get account balances')
+  .command('account-balance', 'Get account balances')
+  .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly account-balance')
-  .action((accountId, options) => {
+  .example('orderly account-balance --account 0x1e6b...')
+  .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void balance(normalizeAccountId(accountId), network);
+    void balance(normalizeAccountId(options.account), network);
   });
 
 // Trading commands
@@ -346,6 +363,37 @@ cli
   });
 
 cli
+  .command('order-edit <order-id>', 'Edit a pending order')
+  .option('--symbol <symbol>', 'Symbol of the order (required)')
+  .option('--price <price>', 'New order price')
+  .option('--quantity <quantity>', 'New order quantity')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly order-edit 123456 --symbol PERP_ETH_USDC --price 3500')
+  .example('orderly order-edit 123456 --symbol PERP_ETH_USDC --quantity 0.02')
+  .action((orderId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void edit(
+      orderId,
+      options.symbol,
+      options.price,
+      options.quantity,
+      normalizeAccountId(options.account),
+      network
+    );
+  });
+
+cli
+  .command('order-cancel-all', 'Cancel all orders')
+  .option('--symbol <symbol>', 'Filter by symbol (optional)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly order-cancel-all')
+  .example('orderly order-cancel-all --symbol PERP_ETH_USDC')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void cancelAll(options.symbol, normalizeAccountId(options.account), network);
+  });
+
+cli
   .command('order-list', 'List orders')
   .option('--symbol <symbol>', 'Filter by symbol')
   .option('--account <id>', 'Account ID (uses default if not set)')
@@ -374,6 +422,32 @@ cli
     void closePosition(symbol, normalizeAccountId(options.account), network);
   });
 
+cli
+  .command('leverage <symbol> [value]', 'Get or set leverage for a symbol')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly leverage PERP_ETH_USDC')
+  .example('orderly leverage PERP_ETH_USDC 10')
+  .action((symbol, value, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const leverageValue = value !== undefined ? parseFloat(value) : undefined;
+    void getOrSetLeverage(symbol, leverageValue, normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command('trades', 'Get trade history')
+  .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
+  .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly trades')
+  .example('orderly trades --symbol PERP_ETH_USDC')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const startT = options.startT ? parseInt(options.startT, 10) : undefined;
+    const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    void listTrades(options.symbol, startT, endT, normalizeAccountId(options.account), network);
+  });
+
 // Market data commands (public, no auth)
 cli
   .command('market-price <symbol>', 'Get current market price (no auth required)')
@@ -392,6 +466,16 @@ cli
     void getOrderbook(symbol, network);
   });
 
+cli
+  .command('symbols', 'List all available trading symbols (no auth required)')
+  .option('--info', 'Show detailed order rules')
+  .example('orderly symbols')
+  .example('orderly symbols --info')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getSymbols(options.info, network);
+  });
+
 // Testnet faucet
 cli
   .command('faucet-usdc <address>', 'Get test USDC from faucet (testnet only)')
@@ -405,6 +489,82 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     const chainId = options.chainId ? String(options.chainId) : undefined;
     void faucetUsdc(requireAddress(address), options.brokerId, chainId, network);
+  });
+
+// Asset commands
+cli
+  .command('chains', 'List supported chains (no auth required)')
+  .example('orderly chains')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getChains(network);
+  });
+
+cli
+  .command('tokens', 'List supported tokens (no auth required)')
+  .example('orderly tokens')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getTokens(network);
+  });
+
+cli
+  .command('deposit-info <token> <chain-id>', 'Get deposit info for a token')
+  .example('orderly deposit-info USDC 421614')
+  .action((token, chainId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void depositInfo(token, Number(chainId), network);
+  });
+
+cli
+  .command('withdraw <token> <amount> <receiver> <chain-id>', 'Prepare withdrawal')
+  .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
+  .option('--account <id>', 'Account ID')
+  .example('orderly withdraw USDC 100 0x1234... 421614 --broker-id demo')
+  .action((token, amount, receiver, chainId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void withdraw(
+      token,
+      amount,
+      receiver,
+      Number(chainId),
+      options.brokerId,
+      normalizeAccountId(options.account),
+      network
+    );
+  });
+
+cli
+  .command(
+    'withdraw-submit <token> <amount> <receiver> <chain-id> <signature>',
+    'Submit signed withdrawal'
+  )
+  .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
+  .option('--account <id>', 'Account ID')
+  .action((token, amount, receiver, chainId, signature, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void withdrawSubmit(
+      token,
+      amount,
+      receiver,
+      Number(chainId),
+      options.brokerId,
+      signature,
+      normalizeAccountId(options.account),
+      network
+    );
+  });
+
+cli
+  .command('asset-history', 'Get asset deposit/withdraw history')
+  .option('--token <token>', 'Filter by token')
+  .option('--side <side>', 'Filter by side: DEPOSIT or WITHDRAW')
+  .option('--account <id>', 'Account ID')
+  .example('orderly asset-history')
+  .example('orderly asset-history --side DEPOSIT')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void assetHistory(options.token, options.side, normalizeAccountId(options.account), network);
   });
 
 try {

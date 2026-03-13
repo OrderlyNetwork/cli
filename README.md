@@ -69,6 +69,10 @@ orderly market orderbook PERP_ETH_USDC
   - Exposed in CLI output
   - Accessible to AI agents
 
+## Commands
+
+Run `orderly --help` for the complete command reference.
+
 ## Development
 
 ```bash

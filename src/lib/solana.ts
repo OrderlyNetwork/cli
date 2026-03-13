@@ -1,7 +1,8 @@
 import bs58 from 'bs58';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { randomBytes } from 'crypto';
-import { RegistrationMessage, AddKeyMessage, Network } from '../types.js';
+import { ethers } from 'ethers';
+import { Network } from '../types.js';
 
 const SOLANA_CHAIN_IDS: Record<Network, number> = {
   mainnet: 900900900,
@@ -14,10 +15,13 @@ export function getSolanaChainId(network: Network): number {
 
 export interface SolanaWallet {
   address: string;
-  signMessage(message: Uint8Array): Promise<Uint8Array>;
+  privateKeyBytes: Uint8Array;
 }
 
-export function createSolanaWalletFromPrivateKey(privateKey: string): SolanaWallet {
+export function createSolanaWalletFromPrivateKey(
+  privateKey: string,
+  _network: Network
+): SolanaWallet {
   let keyBytes: Uint8Array;
 
   if (privateKey.includes(',') || privateKey.includes('[')) {
@@ -55,9 +59,7 @@ export function createSolanaWalletFromPrivateKey(privateKey: string): SolanaWall
 
   return {
     address,
-    signMessage: async (message: Uint8Array) => {
-      return ed25519.sign(message, keyBytes);
-    },
+    privateKeyBytes: keyBytes,
   };
 }
 
@@ -70,59 +72,99 @@ export function isValidSolanaAddress(address: string): boolean {
   }
 }
 
-function buildRegistrationMessage(message: RegistrationMessage): Uint8Array {
-  const encoder = new TextEncoder();
-  const parts = [
-    encoder.encode(message.brokerId),
-    encoder.encode(message.chainId.toString()),
-    encoder.encode(message.timestamp.toString()),
-    encoder.encode(message.registrationNonce),
-  ];
-
-  const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const part of parts) {
-    result.set(part, offset);
-    offset += part.length;
-  }
-  return result;
-}
-
-function buildAddKeyMessage(message: AddKeyMessage): Uint8Array {
-  const encoder = new TextEncoder();
-  const parts = [
-    encoder.encode(message.brokerId),
-    encoder.encode(message.chainId.toString()),
-    encoder.encode(message.orderlyKey),
-    encoder.encode(message.scope),
-    encoder.encode(message.timestamp.toString()),
-    encoder.encode(message.expiration.toString()),
-  ];
-
-  const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const part of parts) {
-    result.set(part, offset);
-    offset += part.length;
-  }
-  return result;
-}
-
 export async function signRegistration(
   wallet: SolanaWallet,
-  message: RegistrationMessage
-): Promise<string> {
-  const messageBytes = buildRegistrationMessage(message);
-  const signature = await wallet.signMessage(messageBytes);
-  return bs58.encode(signature);
+  params: {
+    brokerId: string;
+    timestamp: number;
+    registrationNonce: string;
+    network: Network;
+  }
+): Promise<{ message: Record<string, unknown>; signature: string }> {
+  const chainId = SOLANA_CHAIN_IDS[params.network];
+
+  const message = {
+    brokerId: params.brokerId,
+    chainId,
+    timestamp: params.timestamp,
+    registrationNonce: Number(params.registrationNonce),
+  };
+
+  const brokerIdHash = ethers.solidityPackedKeccak256(['string'], [message.brokerId]);
+  const abicoder = ethers.AbiCoder.defaultAbiCoder();
+  const msgToSignBytes = ethers.getBytes(
+    abicoder.encode(
+      ['bytes32', 'uint256', 'uint256', 'uint256'],
+      [brokerIdHash, message.chainId, message.timestamp, message.registrationNonce]
+    )
+  );
+
+  const hashBytes = ethers.getBytes(ethers.keccak256(msgToSignBytes));
+
+  const signature = ed25519.sign(hashBytes, wallet.privateKeyBytes);
+  const signatureBase64url = Buffer.from(signature).toString('base64url');
+
+  return {
+    message: {
+      ...message,
+      chainType: 'SOL',
+    },
+    signature: signatureBase64url,
+  };
 }
 
-export async function signAddKey(wallet: SolanaWallet, message: AddKeyMessage): Promise<string> {
-  const messageBytes = buildAddKeyMessage(message);
-  const signature = await wallet.signMessage(messageBytes);
-  return bs58.encode(signature);
+export async function signAddKey(
+  wallet: SolanaWallet,
+  params: {
+    brokerId: string;
+    publicKey: string;
+    scope: string;
+    timestamp: number;
+    expiration: number;
+    network: Network;
+  }
+): Promise<{ message: Record<string, unknown>; signature: string }> {
+  const chainId = SOLANA_CHAIN_IDS[params.network];
+
+  const expirationTimestamp = params.timestamp + 1000 * 60 * 60 * 24 * params.expiration;
+
+  const message = {
+    brokerId: params.brokerId,
+    chainType: 'SOL',
+    orderlyKey: params.publicKey,
+    scope: params.scope,
+    chainId,
+    timestamp: params.timestamp,
+    expiration: expirationTimestamp,
+  };
+
+  const brokerIdHash = ethers.solidityPackedKeccak256(['string'], [message.brokerId]);
+  const orderlyKeyHash = ethers.solidityPackedKeccak256(['string'], [message.orderlyKey]);
+  const scopeHash = ethers.solidityPackedKeccak256(['string'], [message.scope]);
+  const abicoder = ethers.AbiCoder.defaultAbiCoder();
+  const msgToSign = ethers.keccak256(
+    ethers.getBytes(
+      abicoder.encode(
+        ['bytes32', 'bytes32', 'bytes32', 'uint256', 'uint256', 'uint256'],
+        [
+          brokerIdHash,
+          orderlyKeyHash,
+          scopeHash,
+          message.chainId,
+          message.timestamp,
+          message.expiration,
+        ]
+      )
+    )
+  );
+
+  const signature = ed25519.sign(new TextEncoder().encode(msgToSign), wallet.privateKeyBytes);
+  const signatureBase64url = Buffer.from(signature).toString('base64url');
+
+  return {
+    message,
+    signature: signatureBase64url,
+  };
 }
 
 export interface GeneratedSolanaWallet {

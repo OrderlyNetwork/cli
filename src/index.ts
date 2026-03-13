@@ -254,7 +254,10 @@ cli
   });
 
 cli
-  .command('wallet-show [address]', 'Show wallet info')
+  .command(
+    'wallet-show [address]',
+    'Show wallet info (address required for AI/scripts, prompts if omitted)'
+  )
   .example('orderly wallet-show')
   .example('orderly wallet-show 0x1234...')
   .action((address, options) => {
@@ -263,7 +266,10 @@ cli
   });
 
 cli
-  .command('wallet-logout [address]', 'Remove wallet from keychain')
+  .command(
+    'wallet-logout [address]',
+    'Remove wallet from keychain (address required for AI/scripts, prompts if omitted)'
+  )
   .example('orderly wallet-logout')
   .example('orderly wallet-logout 0x1234...')
   .action((address, options) => {
@@ -273,8 +279,11 @@ cli
 
 cli
   .command('wallet-register', 'Register an Orderly account with your wallet (Step 2 of setup)')
-  .option('--broker-id <id>', 'Broker ID (e.g., "demo" for testnet)')
-  .option('--address <address>', 'Wallet address (optional, will prompt)')
+  .option(
+    '--broker-id <id>',
+    'Broker ID, e.g., "demo" (required for AI/scripts, prompts if omitted)'
+  )
+  .option('--address <address>', 'Wallet address (required for AI/scripts, prompts if omitted)')
   .example('orderly wallet-register --broker-id demo')
   .example('orderly wallet-register --broker-id demo --address 0x1234...')
   .action((options) => {
@@ -284,9 +293,12 @@ cli
 
 cli
   .command('wallet-add-key', 'Add Orderly API key for trading (Step 3 of setup)')
-  .option('--broker-id <id>', 'Broker ID')
-  .option('--address <address>', 'Wallet address (optional, will prompt)')
-  .option('--scope <scope>', 'Key scopes: read,trading,asset (default: prompts)')
+  .option('--broker-id <id>', 'Broker ID (required for AI/scripts, prompts if omitted)')
+  .option('--address <address>', 'Wallet address (required for AI/scripts, prompts if omitted)')
+  .option(
+    '--scope <scope>',
+    'Key scopes: read,trading,asset (required for AI/scripts, prompts if omitted)'
+  )
   .example('orderly wallet-add-key --broker-id demo')
   .example('orderly wallet-add-key --broker-id demo --scope read,trading')
   .action((options) => {

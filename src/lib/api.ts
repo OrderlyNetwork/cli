@@ -101,6 +101,7 @@ export class OrderlyClient {
     side: string;
     order_quantity: string;
     order_price?: string;
+    reduce_only?: boolean;
   }): Promise<unknown> {
     return this.post('/v1/order', order);
   }
@@ -113,16 +114,46 @@ export class OrderlyClient {
     return this.get('/v1/positions');
   }
 
+  async getPosition(symbol: string): Promise<{
+    success: boolean;
+    data?: {
+      symbol: string;
+      position_qty: number;
+      average_open_price: number;
+    };
+  }> {
+    return this.get(`/v1/position/${symbol}`);
+  }
+
   async closePosition(symbol: string): Promise<unknown> {
-    return this.post('/v1/positions/close', { symbol });
+    const positionResponse = await this.getPosition(symbol);
+    if (!positionResponse.success || !positionResponse.data) {
+      throw new Error(`No position found for ${symbol}`);
+    }
+
+    const { position_qty } = positionResponse.data;
+    if (position_qty === 0) {
+      throw new Error(`Position for ${symbol} is already closed`);
+    }
+
+    const side = position_qty > 0 ? 'SELL' : 'BUY';
+    const quantity = Math.abs(position_qty).toString();
+
+    return this.placeOrder({
+      symbol,
+      order_type: 'MARKET',
+      side,
+      order_quantity: quantity,
+      reduce_only: true,
+    });
   }
 
   async getMarketPrice(symbol: string): Promise<unknown> {
-    return this.get(`/v1/public/kline/${symbol}`, false);
+    return this.get(`/v1/public/futures/${symbol}`, false);
   }
 
   async getOrderbook(symbol: string): Promise<unknown> {
-    return this.get(`/v1/orderbook/${symbol}`, false);
+    return this.get(`/v1/orderbook/${symbol}`, true);
   }
 
   async faucetUsdc(userAddress: string, brokerId: string, chainId?: string): Promise<unknown> {

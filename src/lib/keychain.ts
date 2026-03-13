@@ -1,4 +1,4 @@
-import * as keytar from 'keytar';
+import keytar from 'keytar';
 import {
   StoredKey,
   KeyPair,

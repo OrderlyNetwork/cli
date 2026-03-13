@@ -74,7 +74,7 @@ const buildConfig = {
   entryPoints: [path.join(projectRoot, 'src', 'index.ts')],
   bundle: true,
   platform: 'node',
-  target: 'node20',
+  target: 'node22',
   format: 'esm',
   outfile: path.join(distDir, 'index.js'),
   minify: !isDev,

@@ -1,8 +1,8 @@
 import kleur from 'kleur';
 import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
+import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { getDefaultAccount } from '../lib/config.js';
 import { Network } from '../types.js';
 
 export async function listTrades(
@@ -12,13 +12,8 @@ export async function listTrades(
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {

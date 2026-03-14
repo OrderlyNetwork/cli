@@ -92,27 +92,23 @@ src/
 
 Run `orderly --help` for the complete command reference. The CLI is self-documenting.
 
-### Quick Start: Testnet Setup
-
-```bash
-# 1. Create a new EVM wallet
-orderly wallet-create --type EVM --network testnet
-
-# 2. Register Orderly account
-orderly wallet-register --broker-id demo --network testnet
-
-# 3. Request test USDC (wait a few minutes for delivery)
-orderly faucet-usdc <address> --broker-id demo --chain-id 421614 --network testnet
-
-# 4. Add API key for trading (generates Ed25519 key automatically)
-orderly wallet-add-key --broker-id demo --scope read,trading --network testnet
-
-# 5. Check balance
 orderly account-balance --network testnet
 
+# 4. Request test USDC (wait a few minutes for delivery)
+
+orderly faucet-usdc <address> --broker-id demo --chain-id 421614 --network testnet
+
+# 5. Add API key for trading (generates Ed25519 key automatically)
+
+orderly wallet-add-key --broker-id demo --scope read,trading --network testnet
+
 # 6. Place an order
-orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --network testnet
-```
+
+orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --network testnet
+
+````
+
+**Note:** The `--account` flag is required for all commands that need authentication. Use `auth-list` to see available accounts.
 
 ### Command Categories
 
@@ -126,7 +122,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --network testnet
 `account-info`, `account-balance`
 
 **Market Data (no auth):**
-`market-price`, `market-orderbook`, `symbols`
+`market-price`, `symbols`
 
 **Assets:**
 `chains`, `tokens`, `deposit-info`, `withdraw`, `withdraw-submit`, `asset-history`
@@ -140,8 +136,7 @@ Config stored at `~/.orderly-cli/config.json`:
 
 ```json
 {
-  "defaultNetwork": "testnet",
-  "defaultAccountId": "0x..."
+  "defaultNetwork": "testnet"
 }
 ```
 
@@ -295,18 +290,19 @@ Config file management:
 
 ### Key Endpoints
 
-| Endpoint                       | Auth | Description    |
-| ------------------------------ | ---- | -------------- |
-| `GET /v1/client/info`          | Yes  | Account info   |
-| `GET /v1/client/holding`       | Yes  | Balances       |
-| `POST /v1/order`               | Yes  | Place order    |
-| `DELETE /v1/order/:id`         | Yes  | Cancel order   |
-| `GET /v1/orders`               | Yes  | List orders    |
-| `GET /v1/positions`            | Yes  | List positions |
-| `POST /v1/positions/close`     | Yes  | Close position |
-| `GET /v1/orderbook/:symbol`    | No   | Orderbook      |
-| `GET /v1/public/kline/:symbol` | No   | Klines         |
-| `POST /v1/faucet/usdc`         | No   | Testnet faucet |
+| Endpoint                         | Auth | Description    |
+| -------------------------------- | ---- | -------------- |
+| `GET /v1/client/info`            | Yes  | Account info   |
+| `GET /v1/client/holding`         | Yes  | Balances       |
+| `POST /v1/order`                 | Yes  | Place order    |
+| `DELETE /v1/order/:id`           | Yes  | Cancel order   |
+| `GET /v1/orders`                 | Yes  | List orders    |
+| `GET /v1/positions`              | Yes  | List positions |
+| `POST /v1/positions/close`       | Yes  | Close position |
+| `GET /v1/orderbook/:symbol`      | Yes  | Orderbook      |
+| `GET /v1/public/futures/:symbol` | No   | Market price   |
+| `GET /v1/public/kline/:symbol`   | No   | Klines         |
+| `POST /v1/faucet/usdc`           | No   | Testnet faucet |
 
 ### Signature Format
 

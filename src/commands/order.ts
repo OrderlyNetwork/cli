@@ -2,8 +2,8 @@ import kleur from 'kleur';
 import axios from 'axios';
 import { existsSync, readFileSync } from 'fs';
 import { OrderlyClient } from '../lib/api.js';
+import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { getDefaultAccount } from '../lib/config.js';
 import { Network } from '../types.js';
 
 export async function place(
@@ -15,13 +15,8 @@ export async function place(
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   const validSide = side.toUpperCase();
   if (validSide !== 'BUY' && validSide !== 'SELL') {
@@ -88,13 +83,8 @@ export async function cancel(
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
@@ -129,13 +119,8 @@ export async function edit(
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   if (!price && !quantity) {
     console.log(kleur.red('At least one of --price or --quantity is required.'));
@@ -176,13 +161,8 @@ export async function cancelAll(
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
@@ -214,13 +194,8 @@ export async function listOrders(
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
@@ -252,13 +227,8 @@ export async function batchPlace(
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   let orders: Array<{
     symbol: string;
@@ -315,13 +285,8 @@ export async function batchCancel(
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly wallet-add-key` first.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   if (orderIds.length === 0) {
     console.log(kleur.red('At least one order ID is required.'));

@@ -2,12 +2,8 @@ import kleur from 'kleur';
 import prompts from 'prompts';
 import { publicKeyFromPrivateKey } from '../lib/crypto.js';
 import { storeKey, getKey, deleteKey, listKeys } from '../lib/keychain.js';
-import {
-  setDefaultAccount,
-  getDefaultAccount,
-  setDefaultNetwork,
-  getDefaultNetwork,
-} from '../lib/config.js';
+import { setDefaultNetwork } from '../lib/config.js';
+import { resolveAccountId } from '../lib/account-select.js';
 import { KeyPair, Network } from '../types.js';
 
 export async function importKey(
@@ -63,10 +59,10 @@ export async function importKey(
     return;
   }
 
-  setDefaultAccount(accId);
   setDefaultNetwork(network);
   console.log();
   console.log(kleur.green('✅ Key imported successfully!'));
+  console.log(kleur.dim(`Account ID: ${accId}`));
   console.log(kleur.dim(`Public key: ${publicKey}`));
 }
 
@@ -78,17 +74,12 @@ export async function list(network: Network | undefined): Promise<void> {
   const filteredKeys = network ? keys.filter((k) => k.network === network) : keys;
 
   if (filteredKeys.length === 0) {
-    console.log(kleur.yellow('No keys stored. Run `orderly auth-init` to get started.'));
+    console.log(kleur.yellow('No keys stored. Run `orderly wallet-add-key` to get started.'));
     return;
   }
 
-  const defaultAccountId = getDefaultAccount();
-  const defaultNetwork = getDefaultNetwork();
-
   for (const key of filteredKeys) {
-    const isDefault = key.accountId === defaultAccountId && key.network === defaultNetwork;
-    const prefix = isDefault ? kleur.green('✓ (default)') : ' ';
-    console.log(`${prefix} ${kleur.cyan(key.accountId)} ${kleur.dim(`[${key.network}]`)}`);
+    console.log(`${kleur.cyan(key.accountId)} ${kleur.dim(`[${key.network}]`)}`);
     console.log(kleur.dim(`    Public Key: ${key.publicKey}`));
   }
 }
@@ -99,6 +90,12 @@ export async function logout(accountId: string | undefined, network: Network): P
   let accId = accountId;
 
   if (!accId) {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      console.log(kleur.red('Error: --account is required in non-interactive mode.'));
+      console.log(kleur.dim('Example: orderly auth-logout --account <account-id>'));
+      return;
+    }
+
     const keys = await listKeys();
     const filteredKeys = keys.filter((k) => k.network === network);
 
@@ -154,13 +151,8 @@ export async function logout(accountId: string | undefined, network: Network): P
 }
 
 export async function show(accountId: string | undefined, network: Network): Promise<void> {
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    console.log(kleur.dim('Use `orderly auth-init` or specify an account ID.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   const key = await getKey(accId, network);
 
@@ -188,12 +180,8 @@ export async function exportKey(accountId: string | undefined, network: Network)
   console.log(kleur.yellow('   Make sure no one is watching your screen.'));
   console.log();
 
-  const accId = accountId ?? getDefaultAccount();
-
-  if (!accId) {
-    console.log(kleur.red('No account specified and no default account set.'));
-    return;
-  }
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
 
   const key = await getKey(accId, network);
 

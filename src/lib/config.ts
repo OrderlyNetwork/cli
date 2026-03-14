@@ -49,19 +49,3 @@ export function setDefaultNetwork(network: Network): void {
   config.defaultNetwork = network;
   saveConfig(config);
 }
-
-export function setDefaultAccount(accountId: string): void {
-  const config = loadConfig();
-  config.defaultAccountId = accountId;
-  saveConfig(config);
-}
-
-export function getDefaultAccount(): string | undefined {
-  return loadConfig().defaultAccountId;
-}
-
-export function clearDefaultAccount(): void {
-  const config = loadConfig();
-  delete config.defaultAccountId;
-  saveConfig(config);
-}

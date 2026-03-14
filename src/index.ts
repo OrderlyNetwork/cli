@@ -193,7 +193,7 @@ ${kleur.yellow('Account:')}
   account-info, account-balance
 
 ${kleur.yellow('Market Data (no auth required):')}
-  market-price, market-orderbook, symbols
+  market-price, symbols
 
 ${kleur.yellow('Assets:')}
   chains, tokens, deposit-info, withdraw, withdraw-submit, asset-history
@@ -495,6 +495,15 @@ cli
   });
 
 cli
+  .command('market-orderbook <symbol>', 'Get orderbook')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly market-orderbook PERP_ETH_USDC')
+  .action((symbol, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getOrderbook(symbol, normalizeAccountId(options.account), network);
+  });
+
+cli
   .command('positions-history', 'Get position history')
   .option('--symbol <symbol>', 'Filter by symbol')
   .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
@@ -632,14 +641,6 @@ cli
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void getPrice(symbol, network);
-  });
-
-cli
-  .command('market-orderbook <symbol>', 'Get orderbook (no auth required)')
-  .example('orderly market-orderbook PERP_ETH_USDC')
-  .action((symbol, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void getOrderbook(symbol, network);
   });
 
 cli

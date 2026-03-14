@@ -54,7 +54,6 @@ export interface AddKeyMessage {
 
 export interface OrderlyConfig {
   defaultNetwork?: Network;
-  defaultAccountId?: string;
 }
 
 export interface AccountInfo {

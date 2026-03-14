@@ -184,12 +184,12 @@ export class OrderlyClient {
   async closePosition(symbol: string): Promise<unknown> {
     const positionResponse = await this.getPosition(symbol);
     if (!positionResponse.success || !positionResponse.data) {
-      throw new Error(`No position found for ${symbol}`);
+      throw new Error(`No open position found for ${symbol}`);
     }
 
     const { position_qty } = positionResponse.data;
-    if (position_qty === 0) {
-      throw new Error(`Position for ${symbol} is already closed`);
+    if (!position_qty || position_qty === 0) {
+      throw new Error(`No open position found for ${symbol}`);
     }
 
     const side = position_qty > 0 ? 'SELL' : 'BUY';

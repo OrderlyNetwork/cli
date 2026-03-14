@@ -32,7 +32,7 @@ import {
   generateSolanaWallet,
 } from '../lib/solana.js';
 import { OrderlyClient } from '../lib/api.js';
-import { setDefaultAccount, setDefaultNetwork } from '../lib/config.js';
+import { setDefaultNetwork } from '../lib/config.js';
 import { getPublicKeyBase58, generateKeyPair } from '../lib/crypto.js';
 
 export async function walletCreate(
@@ -343,6 +343,19 @@ export async function walletRegister(
 ): Promise<void> {
   console.log(kleur.cyan(`\n📝 Register Account (${network})\n`));
 
+  // Check for non-interactive mode
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    if (!brokerId || !address) {
+      console.log(
+        kleur.red('Error: --broker-id and --address are required in non-interactive mode.')
+      );
+      console.log(
+        kleur.dim('Example: orderly wallet-register --broker-id demo --address 0x1234...')
+      );
+      return;
+    }
+  }
+
   let bId = brokerId;
   if (!bId) {
     const response = await prompts({
@@ -491,6 +504,19 @@ export async function walletAddKey(
   network: Network
 ): Promise<void> {
   console.log(kleur.cyan(`\n🔐 Add Orderly API Key (${network})\n`));
+
+  // Check for non-interactive mode
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    if (!brokerId || !address) {
+      console.log(
+        kleur.red('Error: --broker-id and --address are required in non-interactive mode.')
+      );
+      console.log(
+        kleur.dim('Example: orderly wallet-add-key --broker-id demo --address 0x1234...')
+      );
+      return;
+    }
+  }
 
   let bId = brokerId;
   if (!bId) {
@@ -643,8 +669,6 @@ export async function walletAddKey(
       };
 
       await storeKey(accountId, network, keyPair);
-
-      setDefaultAccount(accountId);
       setDefaultNetwork(network);
 
       console.log();
@@ -653,8 +677,10 @@ export async function walletAddKey(
       console.log(kleur.dim(`Orderly Key: ${orderlyKey}`));
       console.log();
       console.log(kleur.dim('You can now use trading commands like:'));
-      console.log(kleur.cyan(`  orderly account-info`));
-      console.log(kleur.cyan(`  orderly order-place PERP_ETH_USDC BUY MARKET 0.01`));
+      console.log(kleur.cyan(`  orderly account-info --account ${accountId}`));
+      console.log(
+        kleur.cyan(`  orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account ${accountId}`)
+      );
     } else {
       console.log(kleur.red('Failed to add Orderly key'));
       console.log(kleur.dim('Response:'), result);

@@ -4,10 +4,10 @@ CLI tool for Orderly Network trading with secure OS keychain authentication.
 
 ## Features
 
-- **Secure key storage** - Ed25519 keypairs stored in OS keychain (never in files)
+- **Secure key storage** - Wallet and API keys stored in OS keychain (never in files)
 - **AI-friendly** - Keys never exposed to AI context, CLI returns only results
-- **Full trading support** - Place/cancel orders, manage positions
-- **Public data access** - Market prices, orderbooks (no auth required)
+- **Full trading support** - Place/cancel orders, manage positions, set leverage
+- **Multi-chain** - Supports EVM (Arbitrum, Base, Optimism, etc.) and Solana
 
 ## Installation
 
@@ -17,44 +17,50 @@ yarn install
 yarn build
 ```
 
-## Quick Start
+## Quick Start (Testnet)
 
 ```bash
-# Initialize authentication (generates Ed25519 keypair)
-orderly auth init
+# 1. Create a new EVM wallet
+orderly wallet-create --type EVM --network testnet
 
-# Import existing key
-orderly auth import <base64-private-key> --account <account-id>
+# 2. Register Orderly account
+orderly wallet-register --broker-id demo --network testnet
 
-# View stored keys
-orderly auth list
+# 3. Request test USDC (wait a few minutes for delivery)
+orderly faucet-usdc <address> --broker-id demo --chain-id 421614 --network testnet
 
-# Get account info
-orderly account info
+# 4. Add API key for trading (generates Ed25519 key automatically)
+orderly wallet-add-key --broker-id demo --scope read,trading --network testnet
 
-# Get balances
-orderly account balance
+# 5. List accounts to get your account ID
+orderly auth-list --network testnet
 
-# Place an order
-orderly order place PERP_ETH_USDC BUY LIMIT 0.01 --price 3500
+# 6. Check balance
+orderly account-balance --account <account-id> --network testnet
 
-# Cancel an order
-orderly order cancel <order-id>
+# 7. Place an order
+orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --network testnet
+```
 
-# List orders
-orderly order list --symbol PERP_ETH_USDC
+**Note:** The `--account` flag is required for all authenticated commands. Use `auth-list` to see available accounts.
 
-# List positions
-orderly positions list
+## Common Commands
 
-# Close a position
-orderly positions close PERP_ETH_USDC
+```bash
+# Account management
+orderly account-info --account <account-id>
+orderly account-balance --account <account-id>
 
-# Get market price (public)
-orderly market price PERP_ETH_USDC
+# Trading
+orderly order-place PERP_ETH_USDC BUY LIMIT 0.01 --price 3500 --account <account-id>
+orderly order-cancel <order-id> --symbol PERP_ETH_USDC --account <account-id>
+orderly order-list --account <account-id>
+orderly positions-list --account <account-id>
+orderly positions-close PERP_ETH_USDC --account <account-id>
 
-# Get orderbook (public)
-orderly market orderbook PERP_ETH_USDC
+# Market data (no auth required)
+orderly market-price PERP_ETH_USDC
+orderly symbols
 ```
 
 ## Security

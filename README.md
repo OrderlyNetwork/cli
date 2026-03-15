@@ -68,6 +68,7 @@ orderly positions-close PERP_ETH_USDC --account <account-id>
 
 # Market data
 orderly market-price PERP_ETH_USDC
+orderly market-trades PERP_ETH_USDC --limit 20
 orderly kline PERP_ETH_USDC 1h --limit 100 --account <account-id>
 orderly symbols
 ```

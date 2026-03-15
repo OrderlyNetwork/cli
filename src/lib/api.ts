@@ -241,6 +241,13 @@ export class OrderlyClient {
     return this.get(`/v1/public/futures/${symbol}`, false);
   }
 
+  async getMarketTrades(symbol: string, limit?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    params.append('symbol', symbol);
+    if (limit) params.append('limit', limit.toString());
+    return this.get(`/v1/public/market_trades?${params.toString()}`, false);
+  }
+
   async getSymbols(): Promise<unknown> {
     return this.get('/v1/public/info', false);
   }

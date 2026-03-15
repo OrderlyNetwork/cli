@@ -13,7 +13,13 @@ import {
   batchCancel,
 } from './commands/order.js';
 import { listPositions, closePosition, positionHistory } from './commands/positions.js';
-import { getPrice, getOrderbook, getSymbols, getKline } from './commands/market.js';
+import {
+  getPrice,
+  getOrderbook,
+  getSymbols,
+  getKline,
+  getMarketTrades,
+} from './commands/market.js';
 import { faucetUsdc } from './commands/faucet.js';
 import {
   walletImport,
@@ -196,7 +202,7 @@ ${kleur.yellow('Account:')}
   account-info, account-balance
 
 ${kleur.yellow('Market Data:')}
-  market-price, market-orderbook, kline, symbols
+  market-price, market-orderbook, market-trades, kline, symbols
 
 ${kleur.yellow('Assets:')}
   chains, tokens, deposit-info, withdraw, withdraw-submit, asset-history, funding-history
@@ -738,6 +744,17 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     const limit = options.limit ? parseInt(options.limit, 10) : 100;
     void getKline(symbol, type, limit, normalizeAccountId(options.account), network);
+  });
+
+cli
+  .command('market-trades <symbol>', 'Get recent public trades (no auth required)')
+  .option('--limit <n>', 'Number of trades (default: 50)')
+  .example('orderly market-trades PERP_ETH_USDC')
+  .example('orderly market-trades PERP_BTC_USDC --limit 20')
+  .action((symbol, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const limit = options.limit ? parseInt(options.limit, 10) : undefined;
+    void getMarketTrades(symbol, limit, network);
   });
 
 // Testnet faucet

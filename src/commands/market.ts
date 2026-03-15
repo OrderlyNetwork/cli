@@ -89,3 +89,19 @@ export async function getSymbols(showInfo: boolean, network: Network): Promise<v
     }
   }
 }
+
+export async function getMarketTrades(
+  symbol: string,
+  limit: number | undefined,
+  network: Network
+): Promise<void> {
+  try {
+    const client = new OrderlyClient(network);
+    const result = await client.getMarketTrades(symbol.toUpperCase(), limit);
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(kleur.red(error.message));
+    }
+  }
+}

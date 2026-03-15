@@ -392,6 +392,7 @@ cli
 cli
   .command('order-place <symbol> <side> <type> <quantity>', 'Place a new order')
   .option('--price <price>', 'Order price (required for LIMIT, IOC, FOK, POST_ONLY)')
+  .option('--client-order-id <id>', 'Custom client order ID (optional)')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01')
   .example('orderly order-place PERP_ETH_USDC SELL LIMIT 0.01 --price 3500')
@@ -400,6 +401,7 @@ cli
   .example('orderly order-place PERP_ETH_USDC BUY POST_ONLY 0.01 --price 2000')
   .example('orderly order-place PERP_ETH_USDC SELL ASK 0.01')
   .example('orderly order-place PERP_ETH_USDC BUY BID 0.01')
+  .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --client-order-id my-order-123')
   .action((symbol, side, type, quantity, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void place(
@@ -408,6 +410,7 @@ cli
       type,
       quantity,
       options.price,
+      options.clientOrderId,
       normalizeAccountId(options.account),
       network
     );

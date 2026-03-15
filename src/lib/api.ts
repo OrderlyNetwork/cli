@@ -134,6 +134,7 @@ export class OrderlyClient {
     order_quantity: string;
     order_price?: string;
     reduce_only?: boolean;
+    client_order_id?: string;
   }): Promise<unknown> {
     return this.post('/v1/order', order);
   }

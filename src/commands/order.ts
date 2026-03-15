@@ -15,6 +15,7 @@ export async function place(
   type: string,
   quantity: string,
   price: string | undefined,
+  clientOrderId: string | undefined,
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
@@ -53,6 +54,7 @@ export async function place(
     side: string;
     order_quantity: string;
     order_price?: string;
+    client_order_id?: string;
   } = {
     symbol: symbol.toUpperCase(),
     order_type: validType,
@@ -62,6 +64,10 @@ export async function place(
 
   if (price) {
     orderPayload.order_price = price;
+  }
+
+  if (clientOrderId) {
+    orderPayload.client_order_id = clientOrderId;
   }
 
   try {

@@ -154,7 +154,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 `account-info`, `account-balance`
 
 **Market Data:**
-`market-price`, `market-orderbook`, `market-trades`, `kline`, `symbols`
+`market-price`, `market-orderbook`, `market-trades`, `funding-rates`, `kline`, `symbols`
 
 **Assets:**
 `chains`, `tokens`, `deposit-info`, `withdraw`, `withdraw-submit`, `asset-history`, `funding-history`
@@ -175,6 +175,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 - **`positions-history`**: Supports `--page` and `--limit` for pagination.
 - **`kline`**: Get OHLC data. Intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon, 1y.
 - **`market-trades`**: Get recent public trades for a symbol. No auth required. Use `--limit` to control number of results.
+- **`funding-rates`**: Get public funding rates for all symbols. No auth required. Shows last, 1d, 7d, 30d, 90d, 180d rates.
 - **Symbol names**: Must be uppercase (e.g., `PERP_ETH_USDC`, not `PERP_ETH_usdc`)
 - **Hex account IDs**: Must be quoted to prevent shell parsing issues (e.g., `--account "0x5a6b..."`)
 

@@ -19,6 +19,7 @@ import {
   getSymbols,
   getKline,
   getMarketTrades,
+  getFundingRates,
 } from './commands/market.js';
 import { faucetUsdc } from './commands/faucet.js';
 import {
@@ -202,7 +203,7 @@ ${kleur.yellow('Account:')}
   account-info, account-balance
 
 ${kleur.yellow('Market Data:')}
-  market-price, market-orderbook, market-trades, kline, symbols
+  market-price, market-orderbook, market-trades, funding-rates, kline, symbols
 
 ${kleur.yellow('Assets:')}
   chains, tokens, deposit-info, withdraw, withdraw-submit, asset-history, funding-history
@@ -755,6 +756,15 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     const limit = options.limit ? parseInt(options.limit, 10) : undefined;
     void getMarketTrades(symbol, limit, network);
+  });
+
+cli
+  .command('funding-rates', 'Get public funding rates for all symbols (no auth required)')
+  .example('orderly funding-rates')
+  .example('orderly funding-rates --network mainnet')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getFundingRates(network);
   });
 
 // Testnet faucet

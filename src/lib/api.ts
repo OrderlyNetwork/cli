@@ -248,6 +248,10 @@ export class OrderlyClient {
     return this.get(`/v1/public/market_trades?${params.toString()}`, false);
   }
 
+  async getFundingRates(): Promise<unknown> {
+    return this.get('/v1/public/market_info/funding_history', false);
+  }
+
   async getSymbols(): Promise<unknown> {
     return this.get('/v1/public/info', false);
   }

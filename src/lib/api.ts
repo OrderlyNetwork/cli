@@ -362,21 +362,36 @@ export class OrderlyClient {
 
   async placeAlgoOrder(order: {
     symbol: string;
-    type: string;
+    type?: string;
     algoType: string;
-    side: string;
-    quantity: string;
+    side?: string;
+    quantity?: string;
     triggerPrice?: string;
     price?: string;
     callbackRate?: string;
+    childOrders?: Array<{
+      symbol: string;
+      algo_type: string;
+      side: string;
+      type: string;
+      trigger_price: string;
+      price?: string;
+      reduce_only: boolean;
+    }>;
   }): Promise<unknown> {
     const body: Record<string, unknown> = {
       symbol: order.symbol,
-      type: order.type,
       algo_type: order.algoType,
-      side: order.side,
-      quantity: order.quantity,
     };
+    if (order.type !== undefined) {
+      body.type = order.type;
+    }
+    if (order.side !== undefined) {
+      body.side = order.side;
+    }
+    if (order.quantity !== undefined) {
+      body.quantity = order.quantity;
+    }
     if (order.triggerPrice !== undefined) {
       body.trigger_price = order.triggerPrice;
     }
@@ -385,6 +400,9 @@ export class OrderlyClient {
     }
     if (order.callbackRate !== undefined) {
       body.callback_rate = order.callbackRate;
+    }
+    if (order.childOrders !== undefined) {
+      body.child_orders = order.childOrders;
     }
     return this.post('/v1/algo/order', body);
   }

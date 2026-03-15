@@ -16,6 +16,10 @@ export async function placeAlgoOrder(
   triggerPrice: string | undefined,
   callbackRate: string | undefined,
   orderPrice: string | undefined,
+  tpTriggerPrice: string | undefined,
+  tpPrice: string | undefined,
+  slTriggerPrice: string | undefined,
+  slPrice: string | undefined,
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
@@ -39,9 +43,18 @@ export async function placeAlgoOrder(
       console.log(kleur.red('--callback-rate is required for TRAILING_STOP orders.'));
       return;
     }
-  } else {
+  } else if (validAlgoType === 'TP_SL' || validAlgoType === 'POSITIONAL_TP_SL') {
+    if (!tpTriggerPrice && !slTriggerPrice) {
+      console.log(
+        kleur.red(
+          'At least one of --tp-trigger-price or --sl-trigger-price is required for TP_SL/POSITIONAL_TP_SL orders.'
+        )
+      );
+      return;
+    }
+  } else if (validAlgoType === 'STOP') {
     if (!triggerPrice) {
-      console.log(kleur.red(`--trigger-price is required for ${validAlgoType} orders.`));
+      console.log(kleur.red('--trigger-price is required for STOP orders.'));
       return;
     }
   }
@@ -55,35 +68,103 @@ export async function placeAlgoOrder(
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
-  const orderPayload: {
-    symbol: string;
-    type: string;
-    algoType: string;
-    side: string;
-    quantity: string;
-    triggerPrice?: string;
-    price?: string;
-    callbackRate?: string;
-  } = {
-    symbol: symbol.toUpperCase(),
-    type: orderPrice ? 'LIMIT' : 'MARKET',
-    algoType: validAlgoType,
-    side: validSide,
-    quantity,
-  };
-
-  if (triggerPrice) {
-    orderPayload.triggerPrice = triggerPrice;
-  }
-  if (orderPrice) {
-    orderPayload.price = orderPrice;
-  }
-  if (callbackRate) {
-    orderPayload.callbackRate = callbackRate;
-  }
-
   try {
-    const result = await client.placeAlgoOrder(orderPayload);
+    let result;
+
+    if (validAlgoType === 'TP_SL' || validAlgoType === 'POSITIONAL_TP_SL') {
+      const childOrders: Array<{
+        symbol: string;
+        algo_type: string;
+        side: string;
+        type: string;
+        trigger_price?: string;
+        price?: string;
+        reduce_only: boolean;
+      }> = [];
+
+      const oppositeSide = validSide === 'BUY' ? 'SELL' : 'BUY';
+
+      if (tpTriggerPrice) {
+        const tpOrder: {
+          symbol: string;
+          algo_type: string;
+          side: string;
+          type: string;
+          trigger_price: string;
+          price?: string;
+          reduce_only: boolean;
+        } = {
+          symbol: symbol.toUpperCase(),
+          algo_type: 'TAKE_PROFIT',
+          side: oppositeSide,
+          type:
+            validAlgoType === 'POSITIONAL_TP_SL' ? 'CLOSE_POSITION' : tpPrice ? 'LIMIT' : 'MARKET',
+          trigger_price: tpTriggerPrice,
+          reduce_only: true,
+        };
+        if (tpPrice) tpOrder.price = tpPrice;
+        childOrders.push(tpOrder);
+      }
+
+      if (slTriggerPrice) {
+        const slOrder: {
+          symbol: string;
+          algo_type: string;
+          side: string;
+          type: string;
+          trigger_price: string;
+          price?: string;
+          reduce_only: boolean;
+        } = {
+          symbol: symbol.toUpperCase(),
+          algo_type: 'STOP_LOSS',
+          side: oppositeSide,
+          type:
+            validAlgoType === 'POSITIONAL_TP_SL' ? 'CLOSE_POSITION' : slPrice ? 'LIMIT' : 'MARKET',
+          trigger_price: slTriggerPrice,
+          reduce_only: true,
+        };
+        if (slPrice) slOrder.price = slPrice;
+        childOrders.push(slOrder);
+      }
+
+      result = await client.placeAlgoOrder({
+        symbol: symbol.toUpperCase(),
+        algoType: validAlgoType,
+        quantity: validAlgoType === 'POSITIONAL_TP_SL' ? undefined : quantity,
+        childOrders,
+      });
+    } else {
+      const orderPayload: {
+        symbol: string;
+        type: string;
+        algoType: string;
+        side: string;
+        quantity: string;
+        triggerPrice?: string;
+        price?: string;
+        callbackRate?: string;
+      } = {
+        symbol: symbol.toUpperCase(),
+        type: orderPrice ? 'LIMIT' : 'MARKET',
+        algoType: validAlgoType,
+        side: validSide,
+        quantity,
+      };
+
+      if (triggerPrice) {
+        orderPayload.triggerPrice = triggerPrice;
+      }
+      if (orderPrice) {
+        orderPayload.price = orderPrice;
+      }
+      if (callbackRate) {
+        orderPayload.callbackRate = callbackRate;
+      }
+
+      result = await client.placeAlgoOrder(orderPayload);
+    }
+
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {

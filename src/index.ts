@@ -570,17 +570,26 @@ cli
 cli
   .command(
     'algo-order-place <symbol> <side> <algoType> <quantity>',
-    'Place an algo order (STOP, TP_SL, TRAILING_STOP, BRACKET)'
+    'Place an algo order (STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET)'
   )
-  .option('--trigger-price <price>', 'Trigger price (required for STOP/TP_SL)')
+  .option('--trigger-price <price>', 'Trigger price (required for STOP)')
   .option(
     '--callback-rate <rate>',
     'Callback rate as decimal, e.g. 0.05 for 5% (required for TRAILING_STOP)'
   )
   .option('--order-price <price>', 'Order price (for limit orders)')
+  .option('--tp-trigger-price <price>', 'Take-profit trigger price (for TP_SL/POSITIONAL_TP_SL)')
+  .option('--tp-price <price>', 'Take-profit order price (optional, MARKET if not set)')
+  .option('--sl-trigger-price <price>', 'Stop-loss trigger price (for TP_SL/POSITIONAL_TP_SL)')
+  .option('--sl-price <price>', 'Stop-loss order price (optional, MARKET if not set)')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly algo-order-place PERP_ETH_USDC SELL STOP 0.01 --trigger-price 2000')
-  .example('orderly algo-order-place PERP_ETH_USDC SELL TP_SL 0.01 --trigger-price 2500')
+  .example(
+    'orderly algo-order-place PERP_ETH_USDC SELL TP_SL 0.01 --tp-trigger-price 2500 --sl-trigger-price 1500'
+  )
+  .example(
+    'orderly algo-order-place PERP_ETH_USDC SELL POSITIONAL_TP_SL 0 --tp-trigger-price 2500 --sl-trigger-price 1500'
+  )
   .example('orderly algo-order-place PERP_ETH_USDC SELL TRAILING_STOP 0.01 --callback-rate 0.05')
   .action((symbol, side, algoType, quantity, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -592,6 +601,10 @@ cli
       options.triggerPrice,
       options.callbackRate,
       options.orderPrice,
+      options.tpTriggerPrice,
+      options.tpPrice,
+      options.slTriggerPrice,
+      options.slPrice,
       normalizeAccountId(options.account),
       network
     );

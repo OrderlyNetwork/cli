@@ -391,11 +391,15 @@ cli
 // Trading commands
 cli
   .command('order-place <symbol> <side> <type> <quantity>', 'Place a new order')
-  .option('--price <price>', 'Order price (required for LIMIT orders)')
+  .option('--price <price>', 'Order price (required for LIMIT, IOC, FOK, POST_ONLY)')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01')
   .example('orderly order-place PERP_ETH_USDC SELL LIMIT 0.01 --price 3500')
-  .example('orderly order-place PERP_BTC_USDC BUY MARKET 0.001')
+  .example('orderly order-place PERP_ETH_USDC BUY IOC 0.01 --price 2100')
+  .example('orderly order-place PERP_ETH_USDC SELL FOK 0.01 --price 2100')
+  .example('orderly order-place PERP_ETH_USDC BUY POST_ONLY 0.01 --price 2000')
+  .example('orderly order-place PERP_ETH_USDC SELL ASK 0.01')
+  .example('orderly order-place PERP_ETH_USDC BUY BID 0.01')
   .action((symbol, side, type, quantity, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void place(

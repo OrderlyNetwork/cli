@@ -6,6 +6,9 @@ import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
 import { Network } from '../types.js';
 
+const VALID_ORDER_TYPES = ['LIMIT', 'MARKET', 'IOC', 'FOK', 'POST_ONLY', 'ASK', 'BID'];
+const PRICE_REQUIRED_TYPES = ['LIMIT', 'IOC', 'FOK', 'POST_ONLY'];
+
 export async function place(
   symbol: string,
   side: string,
@@ -25,13 +28,13 @@ export async function place(
   }
 
   const validType = type.toUpperCase();
-  if (validType !== 'LIMIT' && validType !== 'MARKET') {
-    console.log(kleur.red('Invalid order type. Use LIMIT or MARKET.'));
+  if (!VALID_ORDER_TYPES.includes(validType)) {
+    console.log(kleur.red(`Invalid order type. Use one of: ${VALID_ORDER_TYPES.join(', ')}`));
     return;
   }
 
-  if (validType === 'LIMIT' && !price) {
-    console.log(kleur.red('Price is required for LIMIT orders.'));
+  if (PRICE_REQUIRED_TYPES.includes(validType) && !price) {
+    console.log(kleur.red(`Price is required for ${validType} orders.`));
     return;
   }
 

@@ -266,6 +266,7 @@ export async function cancelAll(
 
 export async function listOrders(
   symbol: string | undefined,
+  status: string | undefined,
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
@@ -282,7 +283,7 @@ export async function listOrders(
   client.setKeyPair(keyPair);
 
   try {
-    const result = await client.getOrders(symbol);
+    const result = await client.getOrders(symbol, status?.toUpperCase());
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {

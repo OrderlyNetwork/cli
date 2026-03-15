@@ -104,9 +104,12 @@ export class OrderlyClient {
     return this.get('/v1/client/holding');
   }
 
-  async getOrders(symbol?: string): Promise<unknown> {
-    const path = symbol ? `/v1/orders?symbol=${symbol}` : '/v1/orders';
-    return this.get(path);
+  async getOrders(symbol?: string, status?: string): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    if (status) params.append('status', status);
+    const queryString = params.toString();
+    return this.get(queryString ? `/v1/orders?${queryString}` : '/v1/orders');
   }
 
   async getOrder(orderId: string): Promise<{

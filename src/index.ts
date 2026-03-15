@@ -459,12 +459,15 @@ cli
 cli
   .command('order-list', 'List orders')
   .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--status <status>', 'Filter by status: NEW, FILLED, CANCELLED, INCOMPLETE, COMPLETED')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly order-list')
   .example('orderly order-list --symbol PERP_ETH_USDC')
+  .example('orderly order-list --status INCOMPLETE')
+  .example('orderly order-list --status FILLED --symbol PERP_ETH_USDC')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void listOrders(options.symbol, normalizeAccountId(options.account), network);
+    void listOrders(options.symbol, options.status, normalizeAccountId(options.account), network);
   });
 
 cli

@@ -409,31 +409,31 @@ export class OrderlyClient {
   async findAlgoOrderById(orderId: string): Promise<{
     success: boolean;
     data?: {
-      algo_id: number;
+      algo_order_id: number;
       symbol: string;
       type: string;
       quantity: number;
       trigger_price?: number;
-      status: string;
+      algo_status: string;
     };
   }> {
     const result = (await this.get('/v1/algo/orders')) as {
       success: boolean;
       data?: {
         rows: Array<{
-          algo_id: number;
+          algo_order_id: number;
           symbol: string;
           type: string;
           quantity: number;
           trigger_price?: number;
-          status: string;
+          algo_status: string;
         }>;
       };
     };
     if (!result.success || !result.data?.rows) {
       return { success: false };
     }
-    const order = result.data.rows.find((r) => String(r.algo_id) === orderId);
+    const order = result.data.rows.find((r) => String(r.algo_order_id) === orderId);
     if (!order) {
       return { success: false };
     }

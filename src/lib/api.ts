@@ -109,6 +109,21 @@ export class OrderlyClient {
     return this.get(path);
   }
 
+  async getOrder(orderId: string): Promise<{
+    success: boolean;
+    data?: {
+      order_id: number;
+      symbol: string;
+      price: number;
+      quantity: number;
+      side: string;
+      status: string;
+      type: string;
+    };
+  }> {
+    return this.get(`/v1/order/${orderId}`);
+  }
+
   async placeOrder(order: {
     symbol: string;
     order_type: string;
@@ -129,12 +144,19 @@ export class OrderlyClient {
 
   async editOrder(
     orderId: string,
-    updates: { order_price?: string; order_quantity?: string },
+    updates: {
+      order_price?: string;
+      order_quantity?: string;
+      order_type: string;
+      side: string;
+    },
     symbol: string
   ): Promise<unknown> {
     const body: Record<string, unknown> = {
       order_id: orderId,
       symbol,
+      order_type: updates.order_type,
+      side: updates.side,
     };
     if (updates.order_price !== undefined) {
       body.order_price = updates.order_price;
@@ -379,5 +401,39 @@ export class OrderlyClient {
   async getAlgoOrders(symbol?: string): Promise<unknown> {
     const path = symbol ? `/v1/algo/orders?symbol=${symbol}` : '/v1/algo/orders';
     return this.get(path);
+  }
+
+  async findAlgoOrderById(orderId: string): Promise<{
+    success: boolean;
+    data?: {
+      algo_id: number;
+      symbol: string;
+      type: string;
+      quantity: number;
+      trigger_price?: number;
+      status: string;
+    };
+  }> {
+    const result = (await this.get('/v1/algo/orders')) as {
+      success: boolean;
+      data?: {
+        rows: Array<{
+          algo_id: number;
+          symbol: string;
+          type: string;
+          quantity: number;
+          trigger_price?: number;
+          status: string;
+        }>;
+      };
+    };
+    if (!result.success || !result.data?.rows) {
+      return { success: false };
+    }
+    const order = result.data.rows.find((r) => String(r.algo_id) === orderId);
+    if (!order) {
+      return { success: false };
+    }
+    return { success: true, data: order };
   }
 }

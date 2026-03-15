@@ -158,8 +158,9 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 
 ### Command Notes
 
-- **`order-edit`**: Requires BOTH `--price` AND `--quantity` (API limitation)
-- **`order-cancel`**: Requires `--symbol` parameter
+- **`order-edit`**: Only requires what you want to change (`--price` OR `--quantity` OR both). Symbol and other fields auto-fetched.
+- **`order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
+- **`algo-order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
 - **Symbol names**: Must be uppercase (e.g., `PERP_ETH_USDC`, not `PERP_ETH_usdc`)
 - **Hex account IDs**: Must be quoted to prevent shell parsing issues (e.g., `--account "0x5a6b..."`)
 
@@ -439,3 +440,4 @@ The `auth-export-key` command is designed to prevent AI agents from extracting p
 ## License
 
 MIT
+````

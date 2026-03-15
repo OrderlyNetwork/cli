@@ -86,12 +86,6 @@ export async function cancel(
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
 
-  if (!symbol) {
-    console.log(kleur.red('--symbol is required for order cancellation.'));
-    console.log(kleur.dim('Example: orderly order-cancel 123456 --symbol PERP_ETH_USDC'));
-    return;
-  }
-
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
     console.log(kleur.red(`No key found for account ${accId} on ${network}`));
@@ -101,8 +95,31 @@ export async function cancel(
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
+  let orderSymbol = symbol;
+  if (!orderSymbol) {
+    try {
+      const orderRes = await client.getOrder(orderId);
+      if (!orderRes.success || !orderRes.data) {
+        console.log(kleur.red(`Order ${orderId} not found.`));
+        return;
+      }
+      orderSymbol = orderRes.data.symbol;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data) {
+        console.error(
+          kleur.red(
+            `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+          )
+        );
+      } else if (error instanceof Error) {
+        console.error(kleur.red(error.message));
+      }
+      return;
+    }
+  }
+
   try {
-    const result = await client.cancelOrder(orderId, symbol);
+    const result = await client.cancelOrder(orderId, orderSymbol);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
@@ -119,7 +136,7 @@ export async function cancel(
 
 export async function edit(
   orderId: string,
-  symbol: string,
+  symbol: string | undefined,
   price: string | undefined,
   quantity: string | undefined,
   accountId: string | undefined,
@@ -128,11 +145,11 @@ export async function edit(
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
 
-  if (!price || !quantity) {
-    console.log(kleur.red('Both --price and --quantity are required to edit an order.'));
+  if (!price && !quantity) {
+    console.log(kleur.red('At least one of --price or --quantity is required to edit an order.'));
     console.log(
       kleur.dim(
-        'Example: orderly order-edit 123456 --symbol PERP_ETH_USDC --price 3500 --quantity 0.01'
+        'Examples:\n  orderly order-edit 123456 --price 3500\n  orderly order-edit 123456 --quantity 0.02\n  orderly order-edit 123456 --price 3500 --quantity 0.02'
       )
     );
     return;
@@ -147,13 +164,56 @@ export async function edit(
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
-  const updates: { order_price?: string; order_quantity?: string } = {
-    order_price: price,
-    order_quantity: quantity,
+  let orderSymbol = symbol;
+  let orderType: string | undefined;
+  let orderSide: string | undefined;
+  let existingQuantity: string | undefined;
+  let existingPrice: string | undefined;
+
+  try {
+    const orderRes = await client.getOrder(orderId);
+    if (!orderRes.success || !orderRes.data) {
+      console.log(kleur.red(`Order ${orderId} not found.`));
+      return;
+    }
+    if (!orderSymbol) {
+      orderSymbol = orderRes.data.symbol;
+    }
+    orderType = orderRes.data.type;
+    orderSide = orderRes.data.side;
+    if (!quantity && orderRes.data.quantity !== undefined) {
+      existingQuantity = String(orderRes.data.quantity);
+    }
+    if (!price && orderRes.data.price !== undefined) {
+      existingPrice = String(orderRes.data.price);
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      console.error(
+        kleur.red(
+          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+        )
+      );
+    } else if (error instanceof Error) {
+      console.error(kleur.red(error.message));
+    }
+    return;
+  }
+
+  const updates: {
+    order_price?: string;
+    order_quantity?: string;
+    order_type: string;
+    side: string;
+  } = {
+    order_type: orderType!,
+    side: orderSide!,
+    order_price: price ?? existingPrice,
+    order_quantity: quantity ?? existingQuantity,
   };
 
   try {
-    const result = await client.editOrder(orderId, updates, symbol);
+    const result = await client.editOrder(orderId, updates, orderSymbol!);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {

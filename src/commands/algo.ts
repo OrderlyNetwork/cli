@@ -100,7 +100,7 @@ export async function placeAlgoOrder(
 
 export async function cancelAlgoOrder(
   orderId: string,
-  symbol: string,
+  symbol: string | undefined,
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
@@ -116,8 +116,31 @@ export async function cancelAlgoOrder(
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
+  let orderSymbol = symbol;
+  if (!orderSymbol) {
+    try {
+      const orderRes = await client.findAlgoOrderById(orderId);
+      if (!orderRes.success || !orderRes.data) {
+        console.log(kleur.red(`Algo order ${orderId} not found.`));
+        return;
+      }
+      orderSymbol = orderRes.data.symbol;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data) {
+        console.error(
+          kleur.red(
+            `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
+          )
+        );
+      } else if (error instanceof Error) {
+        console.error(kleur.red(error.message));
+      }
+      return;
+    }
+  }
+
   try {
-    const result = await client.cancelAlgoOrder(orderId, symbol);
+    const result = await client.cancelAlgoOrder(orderId, orderSymbol!);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {

@@ -411,8 +411,9 @@ cli
 
 cli
   .command('order-cancel <order-id>', 'Cancel an order')
-  .option('--symbol <symbol>', 'Symbol of the order (required)')
+  .option('--symbol <symbol>', 'Symbol of the order (auto-fetched if not provided)')
   .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly order-cancel 123456')
   .example('orderly order-cancel 123456 --symbol PERP_ETH_USDC')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -420,12 +421,14 @@ cli
   });
 
 cli
-  .command('order-edit <order-id>', 'Edit a pending order')
-  .option('--symbol <symbol>', 'Symbol of the order (required)')
-  .option('--price <price>', 'New order price (required)')
-  .option('--quantity <quantity>', 'New order quantity (required)')
+  .command('order-edit <order-id>', 'Edit a pending order (only specify what to change)')
+  .option('--symbol <symbol>', 'Symbol of the order (auto-fetched if not provided)')
+  .option('--price <price>', 'New order price')
+  .option('--quantity <quantity>', 'New order quantity')
   .option('--account <id>', 'Account ID (uses default if not set)')
-  .example('orderly order-edit 123456 --symbol PERP_ETH_USDC --price 3500 --quantity 0.01')
+  .example('orderly order-edit 123456 --price 3500')
+  .example('orderly order-edit 123456 --quantity 0.02')
+  .example('orderly order-edit 123456 --price 3500 --quantity 0.01')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void edit(
@@ -589,8 +592,9 @@ cli
 
 cli
   .command('algo-order-cancel <order-id>', 'Cancel an algo order')
-  .option('--symbol <symbol>', 'Symbol of the order (required)')
+  .option('--symbol <symbol>', 'Symbol of the order (auto-fetched if not provided)')
   .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly algo-order-cancel 123456')
   .example('orderly algo-order-cancel 123456 --symbol PERP_ETH_USDC')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();

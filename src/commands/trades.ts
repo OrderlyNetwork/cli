@@ -9,6 +9,8 @@ export async function listTrades(
   symbol: string | undefined,
   startT: number | undefined,
   endT: number | undefined,
+  page: number | undefined,
+  size: number | undefined,
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
@@ -25,7 +27,7 @@ export async function listTrades(
   client.setKeyPair(keyPair);
 
   try {
-    const result = await client.getTrades(symbol?.toUpperCase(), startT, endT);
+    const result = await client.getTrades(symbol?.toUpperCase(), startT, endT, page, size);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {

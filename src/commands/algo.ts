@@ -272,6 +272,8 @@ export async function cancelAllAlgoOrders(
 
 export async function listAlgoOrders(
   symbol: string | undefined,
+  page: number | undefined,
+  size: number | undefined,
   accountId: string | undefined,
   network: Network
 ): Promise<void> {
@@ -288,7 +290,7 @@ export async function listAlgoOrders(
   client.setKeyPair(keyPair);
 
   try {
-    const result = await client.getAlgoOrders(symbol);
+    const result = await client.getAlgoOrders(symbol, page, size);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {

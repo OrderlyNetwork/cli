@@ -165,11 +165,14 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 ### Command Notes
 
 - **`order-place`**: Supports MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK, BID. Use `--client-order-id` for custom ID.
-- **`order-list`**: Use `--status` to filter (NEW, FILLED, CANCELLED, INCOMPLETE, COMPLETED).
+- **`order-list`**: Use `--status` to filter (NEW, FILLED, CANCELLED, INCOMPLETE, COMPLETED). Supports `--page` and `--size` for pagination.
 - **`order-edit`**: Only requires what you want to change (`--price` OR `--quantity` OR both). Symbol and other fields auto-fetched.
 - **`order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
 - **`algo-order-place`**: Supports STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET. For TP_SL use `--tp-trigger-price` and `--sl-trigger-price`.
+- **`algo-order-list`**: Supports `--page` and `--size` for pagination.
 - **`algo-order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
+- **`trades`**: Supports `--page` and `--size` for pagination.
+- **`positions-history`**: Supports `--page` and `--limit` for pagination.
 - **`kline`**: Get OHLC data. Intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon, 1y.
 - **Symbol names**: Must be uppercase (e.g., `PERP_ETH_USDC`, not `PERP_ETH_usdc`)
 - **Hex account IDs**: Must be quoted to prevent shell parsing issues (e.g., `--account "0x5a6b..."`)

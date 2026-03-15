@@ -104,10 +104,17 @@ export class OrderlyClient {
     return this.get('/v1/client/holding');
   }
 
-  async getOrders(symbol?: string, status?: string): Promise<unknown> {
+  async getOrders(
+    symbol?: string,
+    status?: string,
+    page?: number,
+    size?: number
+  ): Promise<unknown> {
     const params = new URLSearchParams();
     if (symbol) params.append('symbol', symbol);
     if (status) params.append('status', status);
+    if (page) params.append('page', page.toString());
+    if (size) params.append('size', size.toString());
     const queryString = params.toString();
     return this.get(queryString ? `/v1/orders?${queryString}` : '/v1/orders');
   }
@@ -349,22 +356,36 @@ export class OrderlyClient {
     return this.post('/v1/client/leverage', { symbol, leverage });
   }
 
-  async getTrades(symbol?: string, startT?: number, endT?: number): Promise<unknown> {
+  async getTrades(
+    symbol?: string,
+    startT?: number,
+    endT?: number,
+    page?: number,
+    size?: number
+  ): Promise<unknown> {
     const params = new URLSearchParams();
     if (symbol) params.append('symbol', symbol);
     if (startT) params.append('start_t', startT.toString());
     if (endT) params.append('end_t', endT.toString());
+    if (page) params.append('page', page.toString());
+    if (size) params.append('size', size.toString());
     const queryString = params.toString();
     return this.get(queryString ? `/v1/trades?${queryString}` : '/v1/trades');
   }
 
-  async getPositionHistory(symbol?: string, startT?: number, endT?: number): Promise<unknown> {
+  async getPositionHistory(
+    symbol?: string,
+    startT?: number,
+    endT?: number,
+    page?: number,
+    limit?: number
+  ): Promise<unknown> {
     const params = new URLSearchParams();
     if (symbol) params.append('symbol', symbol);
     if (startT) params.append('start_t', startT.toString());
     if (endT) params.append('end_t', endT.toString());
-    params.append('page', '1');
-    params.append('limit', '25');
+    params.append('page', (page ?? 1).toString());
+    params.append('limit', (limit ?? 25).toString());
     const queryString = params.toString();
     return this.get(`/v1/position_history?${queryString}`);
   }
@@ -428,9 +449,13 @@ export class OrderlyClient {
     return this.delete(queryString ? `/v1/algo/orders?${queryString}` : '/v1/algo/orders');
   }
 
-  async getAlgoOrders(symbol?: string): Promise<unknown> {
-    const path = symbol ? `/v1/algo/orders?symbol=${symbol}` : '/v1/algo/orders';
-    return this.get(path);
+  async getAlgoOrders(symbol?: string, page?: number, size?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    if (page) params.append('page', page.toString());
+    if (size) params.append('size', size.toString());
+    const queryString = params.toString();
+    return this.get(queryString ? `/v1/algo/orders?${queryString}` : '/v1/algo/orders');
   }
 
   async findAlgoOrderById(orderId: string): Promise<{

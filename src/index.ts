@@ -466,14 +466,26 @@ cli
   .command('order-list', 'List orders')
   .option('--symbol <symbol>', 'Filter by symbol')
   .option('--status <status>', 'Filter by status: NEW, FILLED, CANCELLED, INCOMPLETE, COMPLETED')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25, max: 500)')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly order-list')
   .example('orderly order-list --symbol PERP_ETH_USDC')
   .example('orderly order-list --status INCOMPLETE')
   .example('orderly order-list --status FILLED --symbol PERP_ETH_USDC')
+  .example('orderly order-list --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void listOrders(options.symbol, options.status, normalizeAccountId(options.account), network);
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
+    void listOrders(
+      options.symbol,
+      options.status,
+      page,
+      size,
+      normalizeAccountId(options.account),
+      network
+    );
   });
 
 cli
@@ -532,17 +544,24 @@ cli
   .option('--symbol <symbol>', 'Filter by symbol')
   .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
   .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--limit <n>', 'Page size (default: 25)')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly positions-history')
   .example('orderly positions-history --symbol PERP_ETH_USDC')
+  .example('orderly positions-history --page 2 --limit 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const startT = options.startT ? parseInt(options.startT, 10) : undefined;
     const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const limit = options.limit ? parseInt(options.limit, 10) : undefined;
     void positionHistory(
       options.symbol,
       startT,
       endT,
+      page,
+      limit,
       normalizeAccountId(options.account),
       network
     );
@@ -563,14 +582,27 @@ cli
   .option('--symbol <symbol>', 'Filter by symbol')
   .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
   .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25, max: 500)')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly trades')
   .example('orderly trades --symbol PERP_ETH_USDC')
+  .example('orderly trades --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const startT = options.startT ? parseInt(options.startT, 10) : undefined;
     const endT = options.endT ? parseInt(options.endT, 10) : undefined;
-    void listTrades(options.symbol, startT, endT, normalizeAccountId(options.account), network);
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
+    void listTrades(
+      options.symbol,
+      startT,
+      endT,
+      page,
+      size,
+      normalizeAccountId(options.account),
+      network
+    );
   });
 
 cli
@@ -648,12 +680,17 @@ cli
 cli
   .command('algo-order-list', 'List algo orders')
   .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25, max: 500)')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly algo-order-list')
   .example('orderly algo-order-list --symbol PERP_ETH_USDC')
+  .example('orderly algo-order-list --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void listAlgoOrders(options.symbol, normalizeAccountId(options.account), network);
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
+    void listAlgoOrders(options.symbol, page, size, normalizeAccountId(options.account), network);
   });
 
 cli

@@ -1,6 +1,6 @@
 import kleur from 'kleur';
 import prompts from 'prompts';
-import { publicKeyFromPrivateKey } from '../lib/crypto.js';
+import { publicKeyFromPrivateKey, base64ToBase58 } from '../lib/crypto.js';
 import { storeKey, getKey, deleteKey, listKeys } from '../lib/keychain.js';
 import { setDefaultNetwork } from '../lib/config.js';
 import { resolveAccountId } from '../lib/account-select.js';
@@ -47,6 +47,7 @@ export async function importKey(
   const publicKey = publicKeyFromPrivateKey(key);
   const keyPair: KeyPair = {
     accountId: accId,
+    address: '',
     publicKey,
     privateKey: key,
     network,
@@ -66,8 +67,15 @@ export async function importKey(
   console.log(kleur.dim(`Public key: ${publicKey}`));
 }
 
+function getWalletType(key: { accountId: string; walletType?: string }): string {
+  if (key.walletType) {
+    return key.walletType;
+  }
+  return 'Unknown';
+}
+
 export async function list(network: Network | undefined): Promise<void> {
-  console.log(kleur.cyan('\n📋 Stored Keys\n'));
+  console.log(kleur.cyan('\n📋 Stored API Keys\n'));
 
   const keys = await listKeys();
 
@@ -79,12 +87,23 @@ export async function list(network: Network | undefined): Promise<void> {
   }
 
   for (const key of filteredKeys) {
-    console.log(`${kleur.cyan(key.accountId)} ${kleur.dim(`[${key.network}]`)}`);
-    console.log(kleur.dim(`    Public Key: ${key.publicKey}`));
+    const publicKeyBase58 = base64ToBase58(key.publicKey);
+    const walletType = getWalletType(key);
+    console.log(
+      `${kleur.cyan(key.accountId)} ${kleur.dim(`[${key.network}]`)} ${kleur.yellow(`(${walletType})`)}`
+    );
+    if (key.address) {
+      console.log(kleur.dim(`    Address:        ${key.address}`));
+    }
+    console.log(kleur.dim(`    API Public Key: ${publicKeyBase58}`));
   }
 }
 
-export async function logout(accountId: string | undefined, network: Network): Promise<void> {
+export async function logout(
+  accountId: string | undefined,
+  network: Network,
+  force: boolean = false
+): Promise<void> {
   console.log(kleur.cyan('\n🚪 Logout\n'));
 
   let accId = accountId;
@@ -126,16 +145,18 @@ export async function logout(accountId: string | undefined, network: Network): P
     return;
   }
 
-  const confirm = await prompts({
-    type: 'confirm',
-    name: 'value',
-    message: `Remove key for account ${accId} on ${network}?`,
-    initial: false,
-  });
+  if (!force) {
+    const confirm = await prompts({
+      type: 'confirm',
+      name: 'value',
+      message: `Remove key for account ${accId} on ${network}?`,
+      initial: false,
+    });
 
-  if (!confirm.value) {
-    console.log(kleur.red('Cancelled.'));
-    return;
+    if (!confirm.value) {
+      console.log(kleur.red('Cancelled.'));
+      return;
+    }
   }
 
   try {
@@ -161,11 +182,63 @@ export async function show(accountId: string | undefined, network: Network): Pro
     return;
   }
 
-  console.log(kleur.cyan('\n🔑 Account Key\n'));
-  console.log(`Account ID: ${kleur.white(key.accountId)}`);
-  console.log(`Network:    ${kleur.white(key.network)}`);
-  console.log(`Public Key: ${kleur.white(key.publicKey)}`);
+  const publicKeyBase58 = base64ToBase58(key.publicKey);
+  const walletType = getWalletType(key);
+
+  console.log(kleur.cyan('\n🔑 API Key Details\n'));
+  console.log(`Account ID:     ${kleur.white(key.accountId)}`);
+  if (key.address) {
+    console.log(`Address:        ${kleur.white(key.address)}`);
+  }
+  console.log(`Network:        ${kleur.white(key.network)}`);
+  console.log(`Wallet Type:    ${kleur.white(walletType)}`);
+  console.log(`API Public Key: ${kleur.white(publicKeyBase58)}`);
   console.log(kleur.dim('\n(Private key is stored securely and cannot be displayed)'));
+}
+
+export async function cleanup(network: Network): Promise<void> {
+  console.log(kleur.cyan('\n🧹 Cleaning up keys\n'));
+
+  const keys = await listKeys();
+  const filteredKeys = keys.filter((k) => k.network === network);
+
+  if (filteredKeys.length === 0) {
+    console.log(kleur.green(`No keys found for ${network}.`));
+    return;
+  }
+
+  console.log(kleur.yellow(`Found ${filteredKeys.length} key(s) for ${network}:`));
+  for (const key of filteredKeys) {
+    console.log(kleur.dim(`  - ${key.accountId}`));
+  }
+  console.log();
+
+  if (process.stdin.isTTY && process.stdout.isTTY) {
+    const confirm = await prompts({
+      type: 'confirm',
+      name: 'value',
+      message: `Delete all ${filteredKeys.length} key(s)?`,
+      initial: false,
+    });
+
+    if (!confirm.value) {
+      console.log(kleur.red('Cancelled.'));
+      return;
+    }
+  }
+
+  let removed = 0;
+  for (const key of filteredKeys) {
+    try {
+      await deleteKey(key.accountId, network);
+      console.log(kleur.green(`✓ Removed: ${key.accountId}`));
+      removed++;
+    } catch (error) {
+      console.log(kleur.red(`Failed to remove ${key.accountId}: ${error}`));
+    }
+  }
+
+  console.log(kleur.green(`\n✅ Cleanup complete. ${removed} key(s) removed.`));
 }
 
 export async function exportKey(accountId: string | undefined, network: Network): Promise<void> {
@@ -174,7 +247,6 @@ export async function exportKey(accountId: string | undefined, network: Network)
     console.log(kleur.dim('Run directly in your terminal, not via scripts or AI agents.'));
     return;
   }
-
   console.log(kleur.cyan('\n📤 Export API Key\n'));
   console.log(kleur.yellow('⚠️  WARNING: This will display your private key on screen.'));
   console.log(kleur.yellow('   Make sure no one is watching your screen.'));

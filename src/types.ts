@@ -3,6 +3,8 @@ export type WalletType = 'EVM' | 'SOL';
 
 export interface KeyPair {
   accountId: string;
+  address: string;
+  walletType?: WalletType;
   publicKey: string;
   privateKey: string;
   network: Network;
@@ -10,6 +12,8 @@ export interface KeyPair {
 
 export interface StoredKey {
   accountId: string;
+  address?: string;
+  walletType?: WalletType;
   publicKey: string;
   network: Network;
 }

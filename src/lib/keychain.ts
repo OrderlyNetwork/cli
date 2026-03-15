@@ -43,6 +43,8 @@ export async function listKeys(): Promise<StoredKey[]> {
     const keyPair = JSON.parse(cred.password) as KeyPair;
     return {
       accountId: keyPair.accountId,
+      address: keyPair.address,
+      walletType: keyPair.walletType,
       publicKey: keyPair.publicKey,
       network: keyPair.network,
     };

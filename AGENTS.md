@@ -88,6 +88,32 @@ src/
     └── api.ts            # REST client with auto-signing
 ```
 
+## Key Types
+
+### API KeyPair (stored in keychain)
+
+```typescript
+interface KeyPair {
+  accountId: string; // Orderly account ID (hex, 64 chars)
+  address: string; // Wallet address (hex for EVM, base58 for Solana)
+  walletType?: 'EVM' | 'SOL';
+  publicKey: string; // Ed25519 API public key (base64)
+  privateKey: string; // Ed25519 API private key (base64)
+  network: 'mainnet' | 'testnet';
+}
+```
+
+### Wallet KeyPair (stored in keychain)
+
+```typescript
+interface WalletKeyPair {
+  address: string; // Wallet address
+  privateKey: string; // Wallet private key
+  walletType: 'EVM' | 'SOL';
+  network: 'mainnet' | 'testnet';
+}
+```
+
 ## CLI Commands
 
 Run `orderly --help` for the complete command reference. The CLI is self-documenting.
@@ -113,7 +139,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 ### Command Categories
 
 **Setup & Auth:**
-`wallet-create`, `wallet-import`, `wallet-list`, `wallet-show`, `wallet-logout`, `wallet-register`, `wallet-add-key`, `auth-import`, `auth-list`, `auth-show`, `auth-logout`, `auth-export-key`
+`wallet-create`, `wallet-import`, `wallet-list`, `wallet-show`, `wallet-logout`, `wallet-register`, `wallet-add-key`, `auth-import`, `auth-list`, `auth-show`, `auth-logout`, `auth-cleanup`, `auth-export-key`
 
 **Trading:**
 `order-place`, `order-cancel`, `order-edit`, `order-cancel-all`, `order-list`, `positions-list`, `positions-close`, `leverage`, `trades`
@@ -129,6 +155,13 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 
 **Testnet:**
 `faucet-usdc`
+
+### Command Notes
+
+- **`order-edit`**: Requires BOTH `--price` AND `--quantity` (API limitation)
+- **`order-cancel`**: Requires `--symbol` parameter
+- **Symbol names**: Must be uppercase (e.g., `PERP_ETH_USDC`, not `PERP_ETH_usdc`)
+- **Hex account IDs**: Must be quoted to prevent shell parsing issues (e.g., `--account "0x5a6b..."`)
 
 ## Configuration
 
@@ -184,7 +217,7 @@ OS keychain integration using `keytar`:
 - `storeKey(accountId, network, keyPair)` - Store keypair in keychain
 - `getKey(accountId, network)` - Retrieve keypair
 - `deleteKey(accountId, network)` - Remove keypair
-- `listKeys()` - List all stored keys (public keys only)
+- `listKeys()` - List all stored keys (includes address, walletType, public key)
 - `hasKey(accountId, network)` - Check if key exists
 
 ### `src/lib/evm.ts`
@@ -216,6 +249,8 @@ Ed25519 cryptography using `@noble/curves`:
 - `sign(message, privateKeyBase64)` - Sign a message
 - `verify(message, signature, publicKey)` - Verify signature
 - `publicKeyFromPrivateKey(privateKeyBase64)` - Derive public key
+- `base64ToBase58(base64)` - Convert base64 to base58 encoding
+- `getPublicKeyBase58(publicKeyBase64)` - Get public key in base58 format
 
 ### `src/lib/api.ts`
 

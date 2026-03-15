@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { cac } from 'cac';
 import kleur from 'kleur';
-import { importKey, list, logout, show, exportKey } from './commands/auth.js';
+import { importKey, list, logout, show, exportKey, cleanup } from './commands/auth.js';
 import { info, balance } from './commands/account.js';
 import {
   place,
@@ -183,7 +183,7 @@ ${kleur.dim('─'.repeat(50))}
 ${kleur.yellow('Setup & Auth:')}
   wallet-create, wallet-import, wallet-list, wallet-show, wallet-logout
   wallet-register, wallet-add-key
-  auth-import, auth-list, auth-show, auth-logout, auth-export-key
+  auth-import, auth-list, auth-show, auth-logout, auth-cleanup, auth-export-key
 
 ${kleur.yellow('Trading:')}
   order-place, order-cancel, order-edit, order-cancel-all, order-list
@@ -351,6 +351,15 @@ cli
   });
 
 cli
+  .command('auth-cleanup', 'Remove all stored API keys for a network')
+  .example('orderly auth-cleanup')
+  .example('orderly auth-cleanup --network testnet')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void cleanup(network);
+  });
+
+cli
   .command('auth-export-key [account-id]', 'Export Ed25519 private key (requires interactive TTY)')
   .example('orderly auth-export-key')
   .action((accountId, options) => {
@@ -402,7 +411,7 @@ cli
 
 cli
   .command('order-cancel <order-id>', 'Cancel an order')
-  .option('--symbol <symbol>', 'Symbol of the order')
+  .option('--symbol <symbol>', 'Symbol of the order (required)')
   .option('--account <id>', 'Account ID (uses default if not set)')
   .example('orderly order-cancel 123456 --symbol PERP_ETH_USDC')
   .action((orderId, options) => {
@@ -413,11 +422,10 @@ cli
 cli
   .command('order-edit <order-id>', 'Edit a pending order')
   .option('--symbol <symbol>', 'Symbol of the order (required)')
-  .option('--price <price>', 'New order price')
-  .option('--quantity <quantity>', 'New order quantity')
+  .option('--price <price>', 'New order price (required)')
+  .option('--quantity <quantity>', 'New order quantity (required)')
   .option('--account <id>', 'Account ID (uses default if not set)')
-  .example('orderly order-edit 123456 --symbol PERP_ETH_USDC --price 3500')
-  .example('orderly order-edit 123456 --symbol PERP_ETH_USDC --quantity 0.02')
+  .example('orderly order-edit 123456 --symbol PERP_ETH_USDC --price 3500 --quantity 0.01')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void edit(

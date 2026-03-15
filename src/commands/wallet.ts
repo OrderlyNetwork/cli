@@ -663,6 +663,8 @@ export async function walletAddKey(
     if (result.success && result.data?.orderly_key) {
       const keyPair = {
         accountId,
+        address: addr,
+        walletType: walletKey.walletType,
         publicKey: ed25519KeyPair.publicKey,
         privateKey: ed25519KeyPair.privateKey,
         network,

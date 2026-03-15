@@ -86,6 +86,12 @@ export async function cancel(
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
 
+  if (!symbol) {
+    console.log(kleur.red('--symbol is required for order cancellation.'));
+    console.log(kleur.dim('Example: orderly order-cancel 123456 --symbol PERP_ETH_USDC'));
+    return;
+  }
+
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
     console.log(kleur.red(`No key found for account ${accId} on ${network}`));
@@ -122,8 +128,13 @@ export async function edit(
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
 
-  if (!price && !quantity) {
-    console.log(kleur.red('At least one of --price or --quantity is required.'));
+  if (!price || !quantity) {
+    console.log(kleur.red('Both --price and --quantity are required to edit an order.'));
+    console.log(
+      kleur.dim(
+        'Example: orderly order-edit 123456 --symbol PERP_ETH_USDC --price 3500 --quantity 0.01'
+      )
+    );
     return;
   }
 
@@ -136,9 +147,10 @@ export async function edit(
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
-  const updates: { order_price?: string; order_quantity?: string } = {};
-  if (price) updates.order_price = price;
-  if (quantity) updates.order_quantity = quantity;
+  const updates: { order_price?: string; order_quantity?: string } = {
+    order_price: price,
+    order_quantity: quantity,
+  };
 
   try {
     const result = await client.editOrder(orderId, updates, symbol);

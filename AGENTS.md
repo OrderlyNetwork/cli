@@ -76,8 +76,13 @@ src/
 │   ├── wallet.ts         # Wallet management (Layer 1)
 │   ├── account.ts        # Account info & balance
 │   ├── order.ts          # Place/cancel/list orders
+│   ├── algo.ts           # Algo orders (TP/SL, STOP, etc.)
 │   ├── positions.ts      # List/close positions
-│   ├── market.ts         # Public market data
+│   ├── market.ts         # Market data (price, orderbook, kline)
+│   ├── assets.ts         # Deposit/withdraw/chains/tokens
+│   ├── leverage.ts       # Leverage management
+│   ├── trades.ts         # Trade history
+│   ├── funding.ts        # Funding rate history
 │   └── faucet.ts         # Testnet faucet
 └── lib/
     ├── keychain.ts       # OS keychain (keytar)
@@ -85,7 +90,8 @@ src/
     ├── evm.ts            # EIP-712 signing for EVM wallets
     ├── solana.ts         # Ed25519 signing for Solana wallets
     ├── config.ts         # ~/.orderly-cli/config.json
-    └── api.ts            # REST client with auto-signing
+    ├── api.ts            # REST client with auto-signing
+    └── account-select.ts # Account resolution
 ```
 
 ## Key Types
@@ -142,25 +148,29 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 `wallet-create`, `wallet-import`, `wallet-list`, `wallet-show`, `wallet-logout`, `wallet-register`, `wallet-add-key`, `auth-import`, `auth-list`, `auth-show`, `auth-logout`, `auth-cleanup`, `auth-export-key`
 
 **Trading:**
-`order-place`, `order-cancel`, `order-edit`, `order-cancel-all`, `order-list`, `positions-list`, `positions-close`, `leverage`, `trades`
+`order-place`, `order-cancel`, `order-edit`, `order-cancel-all`, `order-list`, `batch-order-place`, `batch-order-cancel`, `algo-order-place`, `algo-order-cancel`, `algo-order-cancel-all`, `algo-order-list`, `positions-list`, `positions-close`, `position-history`, `leverage`, `trades`
 
 **Account:**
 `account-info`, `account-balance`
 
-**Market Data (no auth):**
-`market-price`, `symbols`
+**Market Data:**
+`market-price`, `market-orderbook`, `kline`, `symbols`
 
 **Assets:**
-`chains`, `tokens`, `deposit-info`, `withdraw`, `withdraw-submit`, `asset-history`
+`chains`, `tokens`, `deposit-info`, `withdraw`, `withdraw-submit`, `asset-history`, `funding-history`
 
 **Testnet:**
 `faucet-usdc`
 
 ### Command Notes
 
+- **`order-place`**: Supports MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK, BID. Use `--client-order-id` for custom ID.
+- **`order-list`**: Use `--status` to filter (NEW, FILLED, CANCELLED, INCOMPLETE, COMPLETED).
 - **`order-edit`**: Only requires what you want to change (`--price` OR `--quantity` OR both). Symbol and other fields auto-fetched.
 - **`order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
+- **`algo-order-place`**: Supports STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET. For TP_SL use `--tp-trigger-price` and `--sl-trigger-price`.
 - **`algo-order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
+- **`kline`**: Get OHLC data. Intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon, 1y.
 - **Symbol names**: Must be uppercase (e.g., `PERP_ETH_USDC`, not `PERP_ETH_usdc`)
 - **Hex account IDs**: Must be quoted to prevent shell parsing issues (e.g., `--account "0x5a6b..."`)
 
@@ -336,8 +346,8 @@ Config file management:
 | `GET /v1/positions`              | Yes  | List positions |
 | `POST /v1/positions/close`       | Yes  | Close position |
 | `GET /v1/orderbook/:symbol`      | Yes  | Orderbook      |
+| `GET /v1/kline`                  | Yes  | Klines/OHLC    |
 | `GET /v1/public/futures/:symbol` | No   | Market price   |
-| `GET /v1/public/kline/:symbol`   | No   | Klines         |
 | `POST /v1/faucet/usdc`           | No   | Testnet faucet |
 
 ### Signature Format

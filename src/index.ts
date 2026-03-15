@@ -13,7 +13,7 @@ import {
   batchCancel,
 } from './commands/order.js';
 import { listPositions, closePosition, positionHistory } from './commands/positions.js';
-import { getPrice, getOrderbook, getSymbols } from './commands/market.js';
+import { getPrice, getOrderbook, getSymbols, getKline } from './commands/market.js';
 import { faucetUsdc } from './commands/faucet.js';
 import {
   walletImport,
@@ -187,16 +187,19 @@ ${kleur.yellow('Setup & Auth:')}
 
 ${kleur.yellow('Trading:')}
   order-place, order-cancel, order-edit, order-cancel-all, order-list
-  positions-list, positions-close
+  batch-order-place, batch-order-cancel
+  algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-list
+  positions-list, positions-close, position-history
+  leverage, trades
 
 ${kleur.yellow('Account:')}
   account-info, account-balance
 
-${kleur.yellow('Market Data (no auth required):')}
-  market-price, symbols
+${kleur.yellow('Market Data:')}
+  market-price, market-orderbook, kline, symbols
 
 ${kleur.yellow('Assets:')}
-  chains, tokens, deposit-info, withdraw, withdraw-submit, asset-history
+  chains, tokens, deposit-info, withdraw, withdraw-submit, asset-history, funding-history
 
 ${kleur.yellow('Testnet Only:')}
   faucet-usdc
@@ -686,6 +689,18 @@ cli
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void getSymbols(options.info, network);
+  });
+
+cli
+  .command('kline <symbol> <type>', 'Get candlestick/kline data')
+  .option('--limit <n>', 'Number of candles (max 1000)')
+  .option('--account <id>', 'Account ID (uses default if not set)')
+  .example('orderly kline PERP_ETH_USDC 1h')
+  .example('orderly kline PERP_BTC_USDC 1d --limit 30')
+  .action((symbol, type, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const limit = options.limit ? parseInt(options.limit, 10) : 100;
+    void getKline(symbol, type, limit, normalizeAccountId(options.account), network);
   });
 
 // Testnet faucet

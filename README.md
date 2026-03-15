@@ -51,15 +51,24 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 orderly account-info --account <account-id>
 orderly account-balance --account <account-id>
 
-# Trading
+# Trading - Orders
 orderly order-place PERP_ETH_USDC BUY LIMIT 0.01 --price 3500 --account <account-id>
+orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --client-order-id my-order-123 --account <account-id>
 orderly order-cancel <order-id> --symbol PERP_ETH_USDC --account <account-id>
-orderly order-list --account <account-id>
+orderly order-list --status NEW --account <account-id>
+
+# Trading - Algo Orders (TP/SL)
+orderly algo-order-place PERP_ETH_USDC BUY STOP 0.01 --trigger-price 2000 --account <account-id>
+orderly algo-order-place PERP_ETH_USDC SELL TP_SL 0.01 --tp-trigger-price 2500 --sl-trigger-price 1500 --account <account-id>
+orderly algo-order-list --account <account-id>
+
+# Positions
 orderly positions-list --account <account-id>
 orderly positions-close PERP_ETH_USDC --account <account-id>
 
-# Market data (no auth required)
+# Market data
 orderly market-price PERP_ETH_USDC
+orderly kline PERP_ETH_USDC 1h --limit 100 --account <account-id>
 orderly symbols
 ```
 

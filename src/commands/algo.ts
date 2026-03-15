@@ -77,7 +77,7 @@ export async function placeAlgoOrder(
         algo_type: string;
         side: string;
         type: string;
-        trigger_price?: string;
+        trigger_price: string;
         price?: string;
         reduce_only: boolean;
       }> = [];

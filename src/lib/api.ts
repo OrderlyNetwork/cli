@@ -242,6 +242,14 @@ export class OrderlyClient {
     return this.get('/v1/public/futures', false);
   }
 
+  async getKline(symbol: string, type: string, limit?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    params.append('symbol', symbol);
+    params.append('type', type);
+    if (limit) params.append('limit', limit.toString());
+    return this.get(`/v1/kline?${params.toString()}`, true);
+  }
+
   async getOrderbook(symbol: string): Promise<unknown> {
     return this.get(`/v1/orderbook/${symbol}`, true);
   }

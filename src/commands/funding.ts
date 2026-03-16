@@ -23,8 +23,6 @@ export async function fundingHistory(
     return;
   }
 
-  console.log(kleur.cyan('\n💰 Funding Fee History\n'));
-
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 

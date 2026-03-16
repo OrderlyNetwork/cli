@@ -870,10 +870,21 @@ cli
   });
 
 cli
-  .command('withdraw <token> <amount> <receiver> <chain-id>', 'Prepare withdrawal')
+  .command(
+    'withdraw <token> <amount> <receiver> <chain-id>',
+    'Withdraw tokens (auto-signs with wallet key)'
+  )
   .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
   .option('--account <id>', 'Account ID')
-  .example('orderly withdraw USDC 100 0x1234... 421614 --broker-id demo')
+  .option('--raw', 'Amount is in smallest units (default: false, use human-readable like 10.5)')
+  .example('# Withdraw 10 USDC (human-readable amount)')
+  .example('orderly withdraw USDC 10 0x1234... 421614 --broker-id demo')
+  .example('# Withdraw 0.5 USDC')
+  .example('orderly withdraw USDC 0.5 0x1234... 421614')
+  .example('# Withdraw to Solana (50 USDC)')
+  .example('orderly withdraw USDC 50 <sol-address> 901901901')
+  .example('# Use raw amount (10000000 = 10 USDC with 6 decimals)')
+  .example('orderly withdraw USDC 10000000 0x1234... 421614 --raw')
   .action((token, amount, receiver, chainId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void withdraw(
@@ -883,18 +894,24 @@ cli
       Number(chainId),
       options.brokerId,
       normalizeAccountId(options.account),
-      network
+      network,
+      options.raw || false
     );
   });
 
 cli
   .command(
     'withdraw-submit <token> <amount> <receiver> <chain-id> <signature>',
-    'Submit signed withdrawal'
+    '[DEPRECATED] Submit signed withdrawal - use `withdraw` instead which auto-signs'
   )
   .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
   .option('--account <id>', 'Account ID')
   .action((token, amount, receiver, chainId, signature, options) => {
+    console.log(
+      kleur.yellow(
+        'Note: withdraw-submit is deprecated. Use `withdraw` which auto-signs with stored wallet key.'
+      )
+    );
     const network = (options.network as Network) || getDefaultNetwork();
     void withdrawSubmit(
       token,

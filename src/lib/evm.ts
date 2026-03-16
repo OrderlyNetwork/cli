@@ -125,3 +125,49 @@ export function generateEVMWallet(): GeneratedEVMWallet {
     mnemonic: wallet.mnemonic?.phrase,
   };
 }
+
+export interface WithdrawMessage {
+  brokerId: string;
+  chainId: number;
+  receiver: string;
+  token: string;
+  amount: string;
+  withdrawNonce: string;
+  timestamp: string | number;
+}
+
+const WITHDRAW_TYPES = {
+  Withdraw: [
+    { name: 'brokerId', type: 'string' },
+    { name: 'chainId', type: 'uint256' },
+    { name: 'receiver', type: 'address' },
+    { name: 'token', type: 'string' },
+    { name: 'amount', type: 'uint256' },
+    { name: 'withdrawNonce', type: 'uint64' },
+    { name: 'timestamp', type: 'uint64' },
+  ],
+};
+
+const VERIFYING_CONTRACTS: Record<Network, string> = {
+  mainnet: '0x6F7a338F2aA472838dEFD3283eB360d4Dff5D203',
+  testnet: '0x1826B75e2ef249173FC735149AE4B8e9ea10abff',
+};
+
+export async function signWithdraw(
+  wallet: EVMWallet,
+  message: WithdrawMessage,
+  network: Network
+): Promise<string> {
+  const domain: EIP712Domain = {
+    name: 'Orderly',
+    version: '1',
+    chainId: message.chainId,
+    verifyingContract: VERIFYING_CONTRACTS[network],
+  };
+
+  return wallet.signTypedData(
+    domain,
+    WITHDRAW_TYPES,
+    message as unknown as Record<string, unknown>
+  );
+}

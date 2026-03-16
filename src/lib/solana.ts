@@ -110,7 +110,7 @@ export async function signRegistration(
   const msgToSignTextEncoded: Uint8Array = new TextEncoder().encode(msgToSignHex);
 
   const signatureBytes = ed25519.sign(msgToSignTextEncoded, wallet.privateKeyBytes);
-  const signature = `0x${  bytesToHex(signatureBytes)}`;
+  const signature = `0x${bytesToHex(signatureBytes)}`;
 
   return {
     message: {
@@ -167,7 +167,7 @@ export async function signAddKey(
   const msgToSignTextEncoded: Uint8Array = new TextEncoder().encode(msgToSignHex);
 
   const signatureBytes = ed25519.sign(msgToSignTextEncoded, wallet.privateKeyBytes);
-  const signature = `0x${  bytesToHex(signatureBytes)}`;
+  const signature = `0x${bytesToHex(signatureBytes)}`;
 
   return {
     message,
@@ -190,4 +190,62 @@ export function generateSolanaWallet(): GeneratedSolanaWallet {
     address,
     privateKey: privateKeyBase58,
   };
+}
+
+export interface WithdrawMessage {
+  brokerId: string;
+  chainId: number;
+  receiver: string;
+  token: string;
+  amount: string;
+  withdrawNonce: string;
+  timestamp: number | string;
+}
+
+export async function signWithdraw(
+  wallet: SolanaWallet,
+  params: WithdrawMessage
+): Promise<{ message: Record<string, unknown>; signature: string }> {
+  const timestamp = Date.now();
+
+  const message = {
+    brokerId: params.brokerId,
+    chainId: params.chainId,
+    receiver: params.receiver,
+    token: params.token,
+    amount: params.amount,
+    withdrawNonce: params.withdrawNonce,
+    timestamp,
+    chainType: 'SOL' as const,
+  };
+
+  const brokerIdHash = solidityPackedKeccak256(['string'], [message.brokerId]);
+  const tokenSymbolHash = solidityPackedKeccak256(['string'], [message.token]);
+  const salt = keccak256(Buffer.from('Orderly Network'));
+
+  const receiverBytes = bs58.decode(message.receiver);
+
+  const abicoder = AbiCoder.defaultAbiCoder();
+  const encodedData = abicoder.encode(
+    ['bytes32', 'bytes32', 'uint256', 'bytes32', 'uint256', 'uint64', 'uint64', 'bytes32'],
+    [
+      brokerIdHash,
+      tokenSymbolHash,
+      message.chainId,
+      receiverBytes,
+      message.amount,
+      message.withdrawNonce,
+      timestamp,
+      salt,
+    ]
+  );
+
+  const msgToSign = keccak256(getBytes(encodedData));
+  const msgToSignHex = msgToSign.slice(2);
+  const msgToSignTextEncoded: Uint8Array = new TextEncoder().encode(msgToSignHex);
+
+  const signatureBytes = ed25519.sign(msgToSignTextEncoded, wallet.privateKeyBytes);
+  const signature = `0x${bytesToHex(signatureBytes)}`;
+
+  return { message, signature };
 }

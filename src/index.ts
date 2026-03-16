@@ -50,6 +50,7 @@ import {
 import { fundingHistory } from './commands/funding.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
+import { OutputFormat } from './lib/output.js';
 
 function findRawAddress(optionName: string): string | undefined {
   for (let i = 0; i < process.argv.length - 1; i++) {
@@ -225,7 +226,12 @@ cli
   })
   .option('--network <network>', 'Network: mainnet or testnet (default: testnet)', {
     default: getDefaultNetwork(),
-  });
+  })
+  .option('--csv', 'Output as CSV instead of JSON (for list data)');
+
+function getFormat(options: { csv?: boolean }): OutputFormat {
+  return options.csv ? 'csv' : 'json';
+}
 
 // Wallet commands - Setup flow
 cli
@@ -385,7 +391,7 @@ cli
   .example('orderly account-info --account 0x1e6b...')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void info(normalizeAccountId(options.account), network);
+    void info(normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli
@@ -395,7 +401,7 @@ cli
   .example('orderly account-balance --account 0x1e6b...')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void balance(normalizeAccountId(options.account), network);
+    void balance(normalizeAccountId(options.account), network, getFormat(options));
   });
 
 // Trading commands
@@ -422,7 +428,8 @@ cli
       options.price,
       options.clientOrderId,
       normalizeAccountId(options.account),
-      network
+      network,
+      getFormat(options)
     );
   });
 
@@ -434,7 +441,13 @@ cli
   .example('orderly order-cancel 123456 --symbol PERP_ETH_USDC')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void cancel(orderId, options.symbol, normalizeAccountId(options.account), network);
+    void cancel(
+      orderId,
+      options.symbol,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli
@@ -454,7 +467,8 @@ cli
       options.price,
       options.quantity,
       normalizeAccountId(options.account),
-      network
+      network,
+      getFormat(options)
     );
   });
 
@@ -466,7 +480,12 @@ cli
   .example('orderly order-cancel-all --symbol PERP_ETH_USDC')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void cancelAll(options.symbol, normalizeAccountId(options.account), network);
+    void cancelAll(
+      options.symbol,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli
@@ -491,7 +510,8 @@ cli
       page,
       size,
       normalizeAccountId(options.account),
-      network
+      network,
+      getFormat(options)
     );
   });
 
@@ -506,7 +526,7 @@ cli
   .example('orderly batch-order-place orders.json')
   .action((orders, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void batchPlace(orders, normalizeAccountId(options.account), network);
+    void batchPlace(orders, normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli
@@ -516,7 +536,7 @@ cli
   .action((orderIds, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const ids = Array.isArray(orderIds) ? orderIds : [orderIds];
-    void batchCancel(ids, normalizeAccountId(options.account), network);
+    void batchCancel(ids, normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli
@@ -525,7 +545,7 @@ cli
   .example('orderly positions-list')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void listPositions(normalizeAccountId(options.account), network);
+    void listPositions(normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli
@@ -534,7 +554,7 @@ cli
   .example('orderly positions-close PERP_ETH_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void closePosition(symbol, normalizeAccountId(options.account), network);
+    void closePosition(symbol, normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli
@@ -543,7 +563,7 @@ cli
   .example('orderly market-orderbook PERP_ETH_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getOrderbook(symbol, normalizeAccountId(options.account), network);
+    void getOrderbook(symbol, normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli
@@ -570,7 +590,8 @@ cli
       page,
       limit,
       normalizeAccountId(options.account),
-      network
+      network,
+      getFormat(options)
     );
   });
 cli
@@ -581,7 +602,13 @@ cli
   .action((symbol, value, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const leverageValue = value !== undefined ? parseFloat(value) : undefined;
-    void getOrSetLeverage(symbol, leverageValue, normalizeAccountId(options.account), network);
+    void getOrSetLeverage(
+      symbol,
+      leverageValue,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli
@@ -608,7 +635,8 @@ cli
       page,
       size,
       normalizeAccountId(options.account),
-      network
+      network,
+      getFormat(options)
     );
   });
 
@@ -651,7 +679,8 @@ cli
       options.slTriggerPrice,
       options.slPrice,
       normalizeAccountId(options.account),
-      network
+      network,
+      getFormat(options)
     );
   });
 
@@ -663,7 +692,13 @@ cli
   .example('orderly algo-order-cancel 123456 --symbol PERP_ETH_USDC')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void cancelAlgoOrder(orderId, options.symbol, normalizeAccountId(options.account), network);
+    void cancelAlgoOrder(
+      orderId,
+      options.symbol,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli
@@ -680,7 +715,8 @@ cli
       options.symbol,
       options.algoType,
       normalizeAccountId(options.account),
-      network
+      network,
+      getFormat(options)
     );
   });
 
@@ -697,7 +733,14 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
-    void listAlgoOrders(options.symbol, page, size, normalizeAccountId(options.account), network);
+    void listAlgoOrders(
+      options.symbol,
+      page,
+      size,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli
@@ -712,17 +755,23 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     const startT = options.startT ? parseInt(options.startT, 10) : undefined;
     const endT = options.endT ? parseInt(options.endT, 10) : undefined;
-    void fundingHistory(options.symbol, startT, endT, normalizeAccountId(options.account), network);
+    void fundingHistory(
+      options.symbol,
+      startT,
+      endT,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
-// Market data commands (public, no auth)
 cli
   .command('market-price <symbol>', 'Get current market price (no auth required)')
   .example('orderly market-price PERP_ETH_USDC')
   .example('orderly market-price PERP_BTC_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getPrice(symbol, network);
+    void getPrice(symbol, network, getFormat(options));
   });
 
 cli
@@ -732,7 +781,7 @@ cli
   .example('orderly symbols --info')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getSymbols(options.info, network);
+    void getSymbols(options.info, network, getFormat(options));
   });
 
 cli
@@ -744,7 +793,14 @@ cli
   .action((symbol, type, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const limit = options.limit ? parseInt(options.limit, 10) : 100;
-    void getKline(symbol, type, limit, normalizeAccountId(options.account), network);
+    void getKline(
+      symbol,
+      type,
+      limit,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli
@@ -755,7 +811,7 @@ cli
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const limit = options.limit ? parseInt(options.limit, 10) : undefined;
-    void getMarketTrades(symbol, limit, network);
+    void getMarketTrades(symbol, limit, network, getFormat(options));
   });
 
 cli
@@ -764,7 +820,7 @@ cli
   .example('orderly funding-rates --network mainnet')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getFundingRates(network);
+    void getFundingRates(network, getFormat(options));
   });
 
 // Testnet faucet
@@ -779,7 +835,13 @@ cli
   .action((address, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const chainId = options.chainId ? String(options.chainId) : undefined;
-    void faucetUsdc(requireAddress(address), options.brokerId, chainId, network);
+    void faucetUsdc(
+      requireAddress(address),
+      options.brokerId,
+      chainId,
+      network,
+      getFormat(options)
+    );
   });
 
 // Asset commands
@@ -788,7 +850,7 @@ cli
   .example('orderly chains')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getChains(network);
+    void getChains(network, getFormat(options));
   });
 
 cli
@@ -796,7 +858,7 @@ cli
   .example('orderly tokens')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getTokens(network);
+    void getTokens(network, getFormat(options));
   });
 
 cli
@@ -855,7 +917,13 @@ cli
   .example('orderly asset-history --side DEPOSIT')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void assetHistory(options.token, options.side, normalizeAccountId(options.account), network);
+    void assetHistory(
+      options.token,
+      options.side,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 try {

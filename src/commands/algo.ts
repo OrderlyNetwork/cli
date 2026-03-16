@@ -3,6 +3,7 @@ import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
+import { output, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_ALGO_TYPES = ['STOP', 'TP_SL', 'POSITIONAL_TP_SL', 'TRAILING_STOP', 'BRACKET'];
@@ -21,7 +22,8 @@ export async function placeAlgoOrder(
   slTriggerPrice: string | undefined,
   slPrice: string | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -165,7 +167,7 @@ export async function placeAlgoOrder(
       result = await client.placeAlgoOrder(orderPayload);
     }
 
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -183,7 +185,8 @@ export async function cancelAlgoOrder(
   orderId: string,
   symbol: string | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -222,7 +225,7 @@ export async function cancelAlgoOrder(
 
   try {
     const result = await client.cancelAlgoOrder(orderId, orderSymbol!);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -240,7 +243,8 @@ export async function cancelAllAlgoOrders(
   symbol: string | undefined,
   algoType: string | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -256,7 +260,7 @@ export async function cancelAllAlgoOrders(
 
   try {
     const result = await client.cancelAllAlgoOrders(symbol, algoType);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -275,7 +279,8 @@ export async function listAlgoOrders(
   page: number | undefined,
   size: number | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -291,7 +296,7 @@ export async function listAlgoOrders(
 
   try {
     const result = await client.getAlgoOrders(symbol, page, size);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(

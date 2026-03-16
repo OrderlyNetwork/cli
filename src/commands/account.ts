@@ -3,9 +3,14 @@ import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
+import { output, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
-export async function info(accountId: string | undefined, network: Network): Promise<void> {
+export async function info(
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
 
@@ -20,7 +25,7 @@ export async function info(accountId: string | undefined, network: Network): Pro
 
   try {
     const data = await client.getAccountInfo();
-    console.log(JSON.stringify(data, null, 2));
+    output(data, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -34,7 +39,11 @@ export async function info(accountId: string | undefined, network: Network): Pro
   }
 }
 
-export async function balance(accountId: string | undefined, network: Network): Promise<void> {
+export async function balance(
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
 
@@ -49,7 +58,7 @@ export async function balance(accountId: string | undefined, network: Network): 
 
   try {
     const data = await client.getBalances();
-    console.log(JSON.stringify(data, null, 2));
+    output(data, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(

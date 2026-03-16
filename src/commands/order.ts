@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'fs';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
+import { output, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_ORDER_TYPES = ['LIMIT', 'MARKET', 'IOC', 'FOK', 'POST_ONLY', 'ASK', 'BID'];
@@ -17,7 +18,8 @@ export async function place(
   price: string | undefined,
   clientOrderId: string | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -72,7 +74,7 @@ export async function place(
 
   try {
     const result = await client.placeOrder(orderPayload);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -90,7 +92,8 @@ export async function cancel(
   orderId: string,
   symbol: string | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -129,7 +132,7 @@ export async function cancel(
 
   try {
     const result = await client.cancelOrder(orderId, orderSymbol);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -149,7 +152,8 @@ export async function edit(
   price: string | undefined,
   quantity: string | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -223,7 +227,7 @@ export async function edit(
 
   try {
     const result = await client.editOrder(orderId, updates, orderSymbol!);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -240,7 +244,8 @@ export async function edit(
 export async function cancelAll(
   symbol: string | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -256,7 +261,7 @@ export async function cancelAll(
 
   try {
     const result = await client.cancelAllOrders(symbol);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -276,7 +281,8 @@ export async function listOrders(
   page: number | undefined,
   size: number | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -292,7 +298,7 @@ export async function listOrders(
 
   try {
     const result = await client.getOrders(symbol, status?.toUpperCase(), page, size);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -309,7 +315,8 @@ export async function listOrders(
 export async function batchPlace(
   ordersInput: string,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -350,7 +357,7 @@ export async function batchPlace(
 
   try {
     const result = await client.placeBatchOrder(orders);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(
@@ -367,7 +374,8 @@ export async function batchPlace(
 export async function batchCancel(
   orderIds: string[],
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -388,7 +396,7 @@ export async function batchCancel(
 
   try {
     const result = await client.cancelBatchOrders(orderIds);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(

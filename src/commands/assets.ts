@@ -3,6 +3,7 @@ import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
+import { output, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 import { getContractAddresses, isSupportedChain } from '../lib/contracts.js';
 
@@ -28,14 +29,12 @@ const WITHDRAW_TYPES = {
   ],
 };
 
-export async function getChains(network: Network): Promise<void> {
-  console.log(kleur.cyan('\n🔗 Supported Chains\n'));
-
+export async function getChains(network: Network, format: OutputFormat = 'json'): Promise<void> {
   const client = new OrderlyClient(network);
 
   try {
     const result = await client.get('/v1/public/chain_info?broker_id=demo', false);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.log(
@@ -49,14 +48,12 @@ export async function getChains(network: Network): Promise<void> {
   }
 }
 
-export async function getTokens(network: Network): Promise<void> {
-  console.log(kleur.cyan('\n📋 Supported Tokens\n'));
-
+export async function getTokens(network: Network, format: OutputFormat = 'json'): Promise<void> {
   const client = new OrderlyClient(network);
 
   try {
     const result = await client.get('/v1/public/token', false);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.log(
@@ -261,7 +258,8 @@ export async function assetHistory(
   token: string | undefined,
   side: string | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -272,8 +270,6 @@ export async function assetHistory(
     return;
   }
 
-  console.log(kleur.cyan('\n📜 Asset History\n'));
-
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
 
@@ -283,7 +279,7 @@ export async function assetHistory(
     if (side) path += `&side=${side.toUpperCase()}`;
 
     const result = await client.get(path);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.log(

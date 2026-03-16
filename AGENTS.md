@@ -10,6 +10,12 @@ A CLI tool for Orderly Network trading with secure OS keychain-based authenticat
 - **Self-documenting**: Run `orderly --help` for complete setup flow and command reference
 - **Agent-friendly**: Designed for use by AI agents with clear, minimal output
 
+**Output Format:**
+
+- **Default**: Compact JSON (no whitespace) - optimal for AI context efficiency
+- **`--csv` flag**: CSV format for tabular data - use for lists (symbols, positions, orders, trades)
+- API response wrapper (`{ success, data }`) is automatically unwrapped - output is just the `data` field
+
 **Key Technologies:**
 
 - TypeScript (ES modules)

@@ -74,6 +74,24 @@ orderly kline PERP_ETH_USDC 1h --limit 100 --account <account-id>
 orderly symbols
 ```
 
+## Output Format
+
+By default, output is compact JSON (no whitespace) for AI/programmatic use:
+
+```bash
+orderly market-price PERP_ETH_USDC
+# {"symbol":"PERP_ETH_USDC","index_price":2124.82,"mark_price":2124.89,...}
+```
+
+Use `--csv` for tabular data (more token-efficient for lists):
+
+```bash
+orderly symbols --csv
+# symbol,index_price,mark_price,...
+# PERP_ETH_USDC,2124.82,2124.89,...
+# PERP_BTC_USDC,71551.7,71551.7,...
+```
+
 ## Security
 
 - Private keys are stored in the OS keychain:

@@ -1,13 +1,15 @@
 import kleur from 'kleur';
 import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
+import { output, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 export async function faucetUsdc(
   address: string,
   brokerId: string,
   chainId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   if (network !== 'testnet') {
     console.log(kleur.red('Faucet is only available on testnet.'));
@@ -18,7 +20,7 @@ export async function faucetUsdc(
   try {
     const client = new OrderlyClient(network);
     const result = await client.faucetUsdc(address, brokerId, chainId);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.error(

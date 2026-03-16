@@ -3,6 +3,7 @@ import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
+import { output, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 export async function fundingHistory(
@@ -10,7 +11,8 @@ export async function fundingHistory(
   startT: number | undefined,
   endT: number | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -36,7 +38,7 @@ export async function fundingHistory(
 
     const queryString = params.toString();
     const result = await client.get(`/v1/funding_fee/history?${queryString}`);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       console.log(

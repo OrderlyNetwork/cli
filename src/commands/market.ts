@@ -2,15 +2,20 @@ import kleur from 'kleur';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
+import { output, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_KLINE_TYPES = ['1m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w', '1mon', '1y'];
 
-export async function getPrice(symbol: string, network: Network): Promise<void> {
+export async function getPrice(
+  symbol: string,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
   try {
     const client = new OrderlyClient(network);
     const result = await client.getMarketPrice(symbol.toUpperCase());
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (error instanceof Error) {
       console.error(kleur.red(error.message));
@@ -23,7 +28,8 @@ export async function getKline(
   type: string,
   limit: number | undefined,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -44,7 +50,7 @@ export async function getKline(
     const client = new OrderlyClient(network);
     client.setKeyPair(keyPair);
     const result = await client.getKline(symbol.toUpperCase(), validType, limit);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (error instanceof Error) {
       console.error(kleur.red(error.message));
@@ -55,7 +61,8 @@ export async function getKline(
 export async function getOrderbook(
   symbol: string,
   accountId: string | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -70,7 +77,7 @@ export async function getOrderbook(
     const client = new OrderlyClient(network);
     client.setKeyPair(keyPair);
     const result = await client.getOrderbook(symbol.toUpperCase());
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (error instanceof Error) {
       console.error(kleur.red(error.message));
@@ -78,11 +85,15 @@ export async function getOrderbook(
   }
 }
 
-export async function getSymbols(showInfo: boolean, network: Network): Promise<void> {
+export async function getSymbols(
+  showInfo: boolean,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
   try {
     const client = new OrderlyClient(network);
     const result = showInfo ? await client.getSymbols() : await client.getFutures();
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (error instanceof Error) {
       console.error(kleur.red(error.message));
@@ -93,12 +104,13 @@ export async function getSymbols(showInfo: boolean, network: Network): Promise<v
 export async function getMarketTrades(
   symbol: string,
   limit: number | undefined,
-  network: Network
+  network: Network,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   try {
     const client = new OrderlyClient(network);
     const result = await client.getMarketTrades(symbol.toUpperCase(), limit);
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (error instanceof Error) {
       console.error(kleur.red(error.message));
@@ -106,11 +118,14 @@ export async function getMarketTrades(
   }
 }
 
-export async function getFundingRates(network: Network): Promise<void> {
+export async function getFundingRates(
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
   try {
     const client = new OrderlyClient(network);
     const result = await client.getFundingRates();
-    console.log(JSON.stringify(result, null, 2));
+    output(result, format);
   } catch (error) {
     if (error instanceof Error) {
       console.error(kleur.red(error.message));

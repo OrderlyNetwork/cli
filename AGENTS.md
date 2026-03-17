@@ -130,23 +130,27 @@ interface WalletKeyPair {
 
 Run `orderly --help` for the complete command reference. The CLI is self-documenting.
 
-orderly account-balance --network testnet
+```bash
+# 1. Create a wallet
+orderly wallet-create --type EVM --network testnet
 
-# 4. Request test USDC (wait a few minutes for delivery)
+# 2. Register an Orderly account (returns account ID)
+orderly wallet-register --broker-id demo --network testnet
 
+# 3. Request test USDC (wait a few minutes for delivery)
 orderly faucet-usdc <address> --broker-id demo --chain-id 421614 --network testnet
 
-# 5. Add API key for trading (generates Ed25519 key automatically)
-
+# 4. Add API key for trading (generates Ed25519 key automatically)
 orderly wallet-add-key --broker-id demo --scope read,trading --network testnet
 
-# 6. Place an order
+# 5. List available accounts (get account ID for --account flag)
+orderly auth-list --network testnet
 
+# 6. Place an order (--account is always required for authenticated commands)
 orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --network testnet
+```
 
-````
-
-**Note:** The `--account` flag is required for all commands that need authentication. Use `auth-list` to see available accounts.
+**Important: `--account` is always required** for all authenticated commands. There is no default account. Use `orderly auth-list` to get account IDs. Hex account IDs must be quoted to prevent shell parsing.
 
 ### Command Categories
 
@@ -172,7 +176,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 
 - **`order-place`**: Supports MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK, BID. Use `--client-order-id` for custom ID.
 - **`order-list`**: Use `--status` to filter (NEW, FILLED, CANCELLED, INCOMPLETE, COMPLETED). Supports `--page` and `--size` for pagination.
-- **`order-edit`**: Only requires what you want to change (`--price` OR `--quantity` OR both). Symbol and other fields auto-fetched.
+- **`order-edit`**: Only requires what you want to change (`--price` OR `--quantity` OR both). Symbol and other fields auto-fetched from existing order.
 - **`order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
 - **`algo-order-place`**: Supports STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET. For TP_SL use `--tp-trigger-price` and `--sl-trigger-price`.
 - **`algo-order-list`**: Supports `--page` and `--size` for pagination.
@@ -195,7 +199,7 @@ Config stored at `~/.orderly-cli/config.json`:
 }
 ```
 
-Non-sensitive data only. Keys are in OS keychain.
+Non-sensitive data only. Keys are in OS keychain. No default account - `--account` must always be provided explicitly.
 
 ## Common Tasks
 
@@ -296,8 +300,6 @@ Config file management:
 
 - `loadConfig()` - Load config from `~/.orderly-cli/config.json`
 - `saveConfig(config)` - Save config
-- `setDefaultAccount(accountId)` - Set default account
-- `getDefaultAccount()` - Get default account
 - `setDefaultNetwork(network)` - Set default network
 - `getDefaultNetwork()` - Get default network
 - `getApiBaseUrl(network)` - Get API URL for network
@@ -439,8 +441,8 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account "0x5a6b..."
 AI agents can safely use this CLI without exposing private keys:
 
 ```bash
-# AI calls this
-orderly account-info
+# AI calls this (--account is always required)
+orderly account-info --account <account-id>
 
 # CLI:
 # 1. Reads key from OS keychain (secure)
@@ -461,4 +463,3 @@ The `auth-export-key` command is designed to prevent AI agents from extracting p
 ## License
 
 MIT
-````

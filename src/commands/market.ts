@@ -22,6 +22,7 @@ export async function getPrice(
   }
 }
 
+// /v1/kline requires auth (confirmed via unauthenticated curl returns orderly-account-id header is empty)
 export async function getKline(
   symbol: string,
   type: string,
@@ -55,6 +56,7 @@ export async function getKline(
   }
 }
 
+// /v1/orderbook requires auth (confirmed via unauthenticated curl returns orderly-account-id header is empty)
 export async function getOrderbook(
   symbol: string,
   accountId: string | undefined,

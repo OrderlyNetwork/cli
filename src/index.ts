@@ -336,7 +336,7 @@ cli
   .example('orderly auth-list')
   .action((options) => {
     const network = options.network as Network | undefined;
-    void list(network);
+    void list(network, getFormat(options));
   });
 
 cli
@@ -345,7 +345,7 @@ cli
   .example('orderly auth-show 12345')
   .action((accountId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void show(accountId, network);
+    void show(accountId, network, getFormat(options));
   });
 
 cli

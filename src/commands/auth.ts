@@ -5,7 +5,7 @@ import { storeKey, getKey, deleteKey, listKeys } from '../lib/keychain.js';
 import { setDefaultNetwork } from '../lib/config.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { KeyPair, Network } from '../types.js';
-import { error } from '../lib/output.js';
+import { error, output, type OutputFormat } from '../lib/output.js';
 
 export async function importKey(
   privateKey: string | undefined,
@@ -72,29 +72,30 @@ function getWalletType(key: { accountId: string; walletType?: string }): string 
   return 'Unknown';
 }
 
-export async function list(network: Network | undefined): Promise<void> {
-  console.log(kleur.cyan('\n📋 Stored API Keys\n'));
-
+export async function list(
+  network: Network | undefined,
+  format: OutputFormat = 'json'
+): Promise<void> {
   const keys = await listKeys();
 
   const filteredKeys = network ? keys.filter((k) => k.network === network) : keys;
 
   if (filteredKeys.length === 0) {
-    console.log(kleur.yellow('No keys stored. Run `orderly wallet-add-key` to get started.'));
+    if (format === 'json') {
+      console.log(kleur.yellow('No keys stored. Run `orderly wallet-add-key` to get started.'));
+    }
     return;
   }
 
-  for (const key of filteredKeys) {
-    const publicKeyBase58 = base64ToBase58(key.publicKey);
-    const walletType = getWalletType(key);
-    console.log(
-      `${kleur.cyan(key.accountId)} ${kleur.dim(`[${key.network}]`)} ${kleur.yellow(`(${walletType})`)}`
-    );
-    if (key.address) {
-      console.log(kleur.dim(`    Address:        ${key.address}`));
-    }
-    console.log(kleur.dim(`    API Public Key: ${publicKeyBase58}`));
-  }
+  const result = filteredKeys.map((key) => ({
+    accountId: key.accountId,
+    address: key.address || '',
+    network: key.network,
+    walletType: getWalletType(key),
+    publicKey: base64ToBase58(key.publicKey),
+  }));
+
+  output(result, format);
 }
 
 export async function logout(
@@ -164,7 +165,11 @@ export async function logout(
   }
 }
 
-export async function show(accountId: string | undefined, network: Network): Promise<void> {
+export async function show(
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
 
@@ -174,18 +179,15 @@ export async function show(accountId: string | undefined, network: Network): Pro
     error(`No key found for account ${accId} on ${network}`);
   }
 
-  const publicKeyBase58 = base64ToBase58(key.publicKey);
-  const walletType = getWalletType(key);
+  const result = {
+    accountId: key.accountId,
+    address: key.address || '',
+    network: key.network,
+    walletType: getWalletType(key),
+    publicKey: base64ToBase58(key.publicKey),
+  };
 
-  console.log(kleur.cyan('\n🔑 API Key Details\n'));
-  console.log(`Account ID:     ${kleur.white(key.accountId)}`);
-  if (key.address) {
-    console.log(`Address:        ${kleur.white(key.address)}`);
-  }
-  console.log(`Network:        ${kleur.white(key.network)}`);
-  console.log(`Wallet Type:    ${kleur.white(walletType)}`);
-  console.log(`API Public Key: ${kleur.white(publicKeyBase58)}`);
-  console.log(kleur.dim('\n(Private key is stored securely and cannot be displayed)'));
+  output(result, format);
 }
 
 export async function cleanup(network: Network): Promise<void> {

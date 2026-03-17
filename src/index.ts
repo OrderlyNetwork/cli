@@ -866,7 +866,8 @@ cli
   .example('orderly deposit-info USDC 421614')
   .action((token, chainId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void depositInfo(token, Number(chainId), network);
+    const format: OutputFormat = (options.csv as boolean) ? 'csv' : 'json';
+    void depositInfo(token, Number(chainId), network, format);
   });
 
 cli

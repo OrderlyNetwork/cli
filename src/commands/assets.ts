@@ -56,11 +56,19 @@ export async function getTokens(network: Network, format: OutputFormat = 'json')
   }
 }
 
-export async function depositInfo(token: string, chainId: number, network: Network): Promise<void> {
+export async function depositInfo(
+  token: string,
+  chainId: number,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
   if (!isSupportedChain(chainId, network)) {
-    throw new Error(
-      `Chain ID ${chainId} is not supported on ${network}. Use 'orderly chains' to see supported chains.`
+    console.log(
+      kleur.red(
+        `Chain ID ${chainId} is not supported on ${network}. Use 'orderly chains' to see supported chains.`
+      )
     );
+    return;
   }
 
   const addresses = getContractAddresses(chainId, network);
@@ -71,7 +79,7 @@ export async function depositInfo(token: string, chainId: number, network: Netwo
     tokenAddress: addresses.usdc,
     vaultAddress: addresses.vault,
   };
-  console.log(JSON.stringify(result));
+  output(result, format);
 }
 
 export async function withdraw(

@@ -1,4 +1,5 @@
 import kleur from 'kleur';
+import axios from 'axios';
 
 type OutputFormat = 'json' | 'csv';
 
@@ -102,9 +103,26 @@ export function output(data: unknown, format: OutputFormat = 'json'): void {
   }
 }
 
-export function error(message: string): never {
+export function error(message: string, hints?: string[]): never {
   console.error(kleur.red(message));
+  if (hints?.length) {
+    for (const hint of hints) {
+      console.error(kleur.dim(hint));
+    }
+  }
   process.exit(1);
 }
 
 export type { OutputFormat };
+
+export function handleError(err: unknown): never {
+  if (axios.isAxiosError(err) && err.response?.data) {
+    const data = err.response.data;
+    const message = data?.message || JSON.stringify(data);
+    error(`API Error: ${message}`);
+  } else if (err instanceof Error) {
+    error(err.message);
+  } else {
+    error(String(err));
+  }
+}

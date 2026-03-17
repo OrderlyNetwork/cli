@@ -1,10 +1,8 @@
-import kleur from 'kleur';
-import axios from 'axios';
 import { existsSync, readFileSync } from 'fs';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, error, OutputFormat } from '../lib/output.js';
+import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_ORDER_TYPES = ['LIMIT', 'MARKET', 'IOC', 'FOK', 'POST_ONLY', 'ASK', 'BID'];
@@ -72,11 +70,7 @@ export async function place(
     const result = await client.placeOrder(orderPayload);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -107,11 +101,7 @@ export async function cancel(
       }
       orderSymbol = orderRes.data.symbol;
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.data) {
-        error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-      } else if (err instanceof Error) {
-        error(err.message);
-      }
+      handleError(err);
     }
   }
 
@@ -119,11 +109,7 @@ export async function cancel(
     const result = await client.cancelOrder(orderId, orderSymbol);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -140,12 +126,12 @@ export async function edit(
   if (!accId) return;
 
   if (!price && !quantity) {
-    console.error(kleur.red('At least one of --price or --quantity is required to edit an order.'));
-    console.error(kleur.dim('Examples:'));
-    console.error(kleur.dim('  orderly order-edit 123456 --price 3500'));
-    console.error(kleur.dim('  orderly order-edit 123456 --quantity 0.02'));
-    console.error(kleur.dim('  orderly order-edit 123456 --price 3500 --quantity 0.02'));
-    process.exit(1);
+    error('At least one of --price or --quantity is required to edit an order.', [
+      'Examples:',
+      '  orderly order-edit 123456 --price 3500',
+      '  orderly order-edit 123456 --quantity 0.02',
+      '  orderly order-edit 123456 --price 3500 --quantity 0.02',
+    ]);
   }
 
   const keyPair = await getKey(accId, network);
@@ -179,11 +165,7 @@ export async function edit(
       existingQuantity = String(orderRes.data.quantity);
     }
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 
   const updates = {
@@ -197,11 +179,7 @@ export async function edit(
     const result = await client.editOrder(orderId, updates, orderSymbol!);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -226,11 +204,7 @@ export async function cancelAll(
     const result = await client.cancelAllOrders(symbol);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -258,11 +232,7 @@ export async function listOrders(
     const result = await client.getOrders(symbol, status?.toUpperCase(), page, size);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -310,11 +280,7 @@ export async function batchPlace(
     const result = await client.placeBatchOrder(orders);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -343,10 +309,6 @@ export async function batchCancel(
     const result = await client.cancelBatchOrders(orderIds);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }

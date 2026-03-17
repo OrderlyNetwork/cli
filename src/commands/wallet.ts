@@ -1,6 +1,5 @@
 import kleur from 'kleur';
 import prompts from 'prompts';
-import axios from 'axios';
 import {
   WalletKeyPair,
   Network,
@@ -34,7 +33,7 @@ import {
 import { OrderlyClient } from '../lib/api.js';
 import { setDefaultNetwork } from '../lib/config.js';
 import { getPublicKeyBase58, generateKeyPair } from '../lib/crypto.js';
-import { error } from '../lib/output.js';
+import { error, handleError } from '../lib/output.js';
 
 export async function walletCreate(
   walletType: WalletType | undefined,
@@ -457,14 +456,7 @@ export async function walletRegister(
       error('Failed to register account');
     }
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    } else {
-      console.error(err);
-      process.exit(1);
-    }
+    handleError(err);
   }
 }
 
@@ -651,13 +643,6 @@ export async function walletAddKey(
       error('Failed to add Orderly key');
     }
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    } else {
-      console.error(err);
-      process.exit(1);
-    }
+    handleError(err);
   }
 }

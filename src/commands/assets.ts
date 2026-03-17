@@ -1,10 +1,9 @@
 import kleur from 'kleur';
-import axios from 'axios';
 import { parseUnits } from 'ethers';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey, getWalletKey } from '../lib/keychain.js';
-import { output, error, OutputFormat } from '../lib/output.js';
+import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 import { getContractAddresses, isSupportedChain } from '../lib/contracts.js';
 import { createWalletFromPrivateKey, signWithdraw as signWithdrawEVM } from '../lib/evm.js';
@@ -25,11 +24,7 @@ export async function getChains(network: Network, format: OutputFormat = 'json')
     const result = await client.get('/v1/public/chain_info?broker_id=demo', false);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -40,11 +35,7 @@ export async function getTokens(network: Network, format: OutputFormat = 'json')
     const result = await client.get('/v1/public/token', false);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -116,9 +107,7 @@ export async function withdraw(
       rawAmountValue = parseUnits(amount, tokenInfo.decimals).toString();
     } catch (err) {
       if (err instanceof Error && err.message.includes('fractional component')) {
-        console.error(kleur.red(`Invalid amount: ${amount}`));
-        console.error(kleur.dim('Amount must be a valid number (e.g., 10.5)'));
-        process.exit(1);
+        error(`Invalid amount: ${amount}`, ['Amount must be a valid number (e.g., 10.5)']);
       }
       throw err;
     }
@@ -205,11 +194,7 @@ export async function withdraw(
       error('Failed to initiate withdrawal');
     }
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -271,11 +256,7 @@ export async function withdrawSubmit(
       error('Failed to initiate withdrawal');
     }
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -305,10 +286,6 @@ export async function assetHistory(
     const result = await client.get(path);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }

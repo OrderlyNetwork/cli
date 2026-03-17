@@ -1,7 +1,7 @@
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, error, OutputFormat } from '../lib/output.js';
+import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_KLINE_TYPES = ['1m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w', '1mon', '1y'];
@@ -16,9 +16,7 @@ export async function getPrice(
     const result = await client.getMarketPrice(symbol.toUpperCase());
     output(result, format);
   } catch (err) {
-    if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -50,9 +48,7 @@ export async function getKline(
     const result = await client.getKline(symbol.toUpperCase(), validType, limit);
     output(result, format);
   } catch (err) {
-    if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -77,9 +73,7 @@ export async function getOrderbook(
     const result = await client.getOrderbook(symbol.toUpperCase());
     output(result, format);
   } catch (err) {
-    if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -93,9 +87,7 @@ export async function getSymbols(
     const result = showInfo ? await client.getSymbols() : await client.getFutures();
     output(result, format);
   } catch (err) {
-    if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -110,9 +102,7 @@ export async function getMarketTrades(
     const result = await client.getMarketTrades(symbol.toUpperCase(), limit);
     output(result, format);
   } catch (err) {
-    if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -125,8 +115,6 @@ export async function getFundingRates(
     const result = await client.getFundingRates();
     output(result, format);
   } catch (err) {
-    if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }

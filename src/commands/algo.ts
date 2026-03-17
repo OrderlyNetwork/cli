@@ -1,8 +1,7 @@
-import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, error, OutputFormat } from '../lib/output.js';
+import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_ALGO_TYPES = ['STOP', 'TP_SL', 'POSITIONAL_TP_SL', 'TRAILING_STOP', 'BRACKET'];
@@ -160,11 +159,7 @@ export async function placeAlgoOrder(
 
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -195,11 +190,7 @@ export async function cancelAlgoOrder(
       }
       orderSymbol = orderRes.data.symbol;
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.data) {
-        error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-      } else if (err instanceof Error) {
-        error(err.message);
-      }
+      handleError(err);
     }
   }
 
@@ -207,11 +198,7 @@ export async function cancelAlgoOrder(
     const result = await client.cancelAlgoOrder(orderId, orderSymbol!);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -237,11 +224,7 @@ export async function cancelAllAlgoOrders(
     const result = await client.cancelAllAlgoOrders(symbol, algoType);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }
 
@@ -268,10 +251,6 @@ export async function listAlgoOrders(
     const result = await client.getAlgoOrders(symbol, page, size);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }

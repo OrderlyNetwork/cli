@@ -1,8 +1,7 @@
-import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, error, OutputFormat } from '../lib/output.js';
+import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 export async function fundingHistory(
@@ -36,10 +35,6 @@ export async function fundingHistory(
     const result = await client.get(`/v1/funding_fee/history?${queryString}`);
     output(result, format);
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
-    } else if (err instanceof Error) {
-      error(err.message);
-    }
+    handleError(err);
   }
 }

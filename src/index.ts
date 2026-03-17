@@ -50,7 +50,7 @@ import {
 import { fundingHistory } from './commands/funding.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
-import { OutputFormat } from './lib/output.js';
+import { OutputFormat, error } from './lib/output.js';
 
 function findRawAddress(optionName: string): string | undefined {
   for (let i = 0; i < process.argv.length - 1; i++) {
@@ -75,9 +75,9 @@ function normalizeAddress(address: unknown, optionName = 'address'): string | un
   if (typeof address === 'number' || str.includes('e+') || str.includes('e-')) {
     const raw = findRawAddress(optionName);
     if (raw) return raw;
-    console.error(kleur.red('Error: Hex addresses must be quoted to prevent parsing as numbers.'));
-    console.error(kleur.dim('Example: --address "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"'));
-    process.exit(1);
+    error('Hex addresses must be quoted to prevent parsing as numbers.', [
+      'Example: --address "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"',
+    ]);
   }
   return str;
 }
@@ -87,9 +87,9 @@ function requireAddress(address: unknown): string {
   if (typeof address === 'number' || str.includes('e+') || str.includes('e-')) {
     const raw = findRawAddress('address');
     if (raw) return raw;
-    console.error(kleur.red('Error: Hex addresses must be quoted to prevent parsing as numbers.'));
-    console.error(kleur.dim('Example: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"'));
-    process.exit(1);
+    error('Hex addresses must be quoted to prevent parsing as numbers.', [
+      'Example: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"',
+    ]);
   }
   return str;
 }
@@ -115,15 +115,9 @@ function normalizeAccountId(accountId: unknown): string | undefined {
   if (typeof accountId === 'number' || str.includes('e+') || str.includes('e-')) {
     const raw = findRawAccountId('account');
     if (raw) return raw;
-    console.error(
-      kleur.red('Error: Hex account IDs must be quoted to prevent parsing as numbers.')
-    );
-    console.error(
-      kleur.dim(
-        'Example: --account "0x1e6b18f967e262ea4ee8a1efab67c578bcc45cdcfd435c15b6913dcf14d0217e"'
-      )
-    );
-    process.exit(1);
+    error('Hex account IDs must be quoted to prevent parsing as numbers.', [
+      'Example: --account "0x1e6b18f967e262ea4ee8a1efab67c578bcc45cdcfd435c15b6913dcf14d0217e"',
+    ]);
   }
   return str;
 }
@@ -943,18 +937,14 @@ cli
 
 try {
   cli.parse();
-} catch (error) {
-  if (error instanceof Error && error.name === 'CACError') {
-    const message = error.message;
+} catch (err) {
+  if (err instanceof Error && err.name === 'CACError') {
+    const message = err.message;
     const match = message.match(/missing required args for command `(.+)`/);
     if (match) {
       const commandName = match[1];
-      console.error(kleur.red(`Error: ${message}`));
-      console.error();
-      console.error(kleur.yellow('Usage examples:'));
-      console.error(kleur.cyan(`  orderly ${commandName} --help`));
-      process.exit(1);
+      error(`${message}`, [`Usage examples:`, `  orderly ${commandName} --help`]);
     }
   }
-  throw error;
+  throw err;
 }

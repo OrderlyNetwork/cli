@@ -1,6 +1,6 @@
-import kleur from 'kleur';
 import prompts from 'prompts';
 import { listKeys } from './keychain.js';
+import { error } from './output.js';
 import { Network } from '../types.js';
 
 export async function resolveAccountId(
@@ -10,19 +10,17 @@ export async function resolveAccountId(
   if (accountId) return accountId;
 
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    console.error(kleur.red('Error: --account is required in non-interactive mode.'));
-    console.error(kleur.dim('Example: --account <account-id>'));
-    console.error(kleur.dim('Run `orderly auth-list` to see available accounts.'));
-    process.exit(1);
+    error('--account is required in non-interactive mode.', [
+      'Example: --account <account-id>',
+      'Run `orderly auth-list` to see available accounts.',
+    ]);
   }
 
   const keys = await listKeys();
   const filteredKeys = keys.filter((k) => k.network === network);
 
   if (filteredKeys.length === 0) {
-    console.error(kleur.red(`No accounts found for ${network}.`));
-    console.error(kleur.dim('Run `orderly wallet-add-key` to add an account.'));
-    process.exit(1);
+    error(`No accounts found for ${network}.`, ['Run `orderly wallet-add-key` to add an account.']);
   }
 
   if (filteredKeys.length === 1) {

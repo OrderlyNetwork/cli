@@ -739,17 +739,24 @@ cli
   .option('--symbol <symbol>', 'Filter by symbol')
   .option('--start-t <timestamp>', 'Start timestamp (ms)')
   .option('--end-t <timestamp>', 'End timestamp (ms)')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25)')
   .option('--account <id>', 'Account ID (required)')
   .example('orderly funding-history')
   .example('orderly funding-history --symbol PERP_ETH_USDC')
+  .example('orderly funding-history --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const startT = options.startT ? parseInt(options.startT, 10) : undefined;
     const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
     void fundingHistory(
       options.symbol,
       startT,
       endT,
+      page,
+      size,
       normalizeAccountId(options.account),
       network,
       getFormat(options)
@@ -921,14 +928,21 @@ cli
   .command('asset-history', 'Get asset deposit/withdraw history')
   .option('--token <token>', 'Filter by token')
   .option('--side <side>', 'Filter by side: DEPOSIT or WITHDRAW')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 20)')
   .option('--account <id>', 'Account ID')
   .example('orderly asset-history')
   .example('orderly asset-history --side DEPOSIT')
+  .example('orderly asset-history --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
     void assetHistory(
       options.token,
       options.side,
+      page,
+      size,
       normalizeAccountId(options.account),
       network,
       getFormat(options)

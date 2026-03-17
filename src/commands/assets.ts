@@ -263,6 +263,8 @@ export async function withdrawSubmit(
 export async function assetHistory(
   token: string | undefined,
   side: string | undefined,
+  page: number | undefined,
+  size: number | undefined,
   accountId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -279,11 +281,13 @@ export async function assetHistory(
   client.setKeyPair(keyPair);
 
   try {
-    let path = '/v1/asset/history?page=1&size=20';
-    if (token) path += `&token=${token.toUpperCase()}`;
-    if (side) path += `&side=${side.toUpperCase()}`;
+    const params = new URLSearchParams();
+    if (token) params.append('token', token.toUpperCase());
+    if (side) params.append('side', side.toUpperCase());
+    params.append('page', (page ?? 1).toString());
+    params.append('size', (size ?? 20).toString());
 
-    const result = await client.get(path);
+    const result = await client.get(`/v1/asset/history?${params.toString()}`);
     output(result, format);
   } catch (err) {
     handleError(err);

@@ -8,6 +8,8 @@ export async function fundingHistory(
   symbol: string | undefined,
   startT: number | undefined,
   endT: number | undefined,
+  page: number | undefined,
+  size: number | undefined,
   accountId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -28,8 +30,8 @@ export async function fundingHistory(
     if (symbol) params.append('symbol', symbol.toUpperCase());
     if (startT) params.append('start_t', startT.toString());
     if (endT) params.append('end_t', endT.toString());
-    params.append('page', '1');
-    params.append('size', '25');
+    params.append('page', (page ?? 1).toString());
+    params.append('size', (size ?? 25).toString());
 
     const queryString = params.toString();
     const result = await client.get(`/v1/funding_fee/history?${queryString}`);

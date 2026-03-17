@@ -114,5 +114,5 @@ export const NETWORK_URLS: Record<Network, { api: string; ws: string }> = {
 };
 
 export const DEFAULT_CONFIG: OrderlyConfig = {
-  defaultNetwork: 'mainnet',
+  defaultNetwork: 'testnet',
 };

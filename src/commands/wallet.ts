@@ -552,6 +552,9 @@ export async function walletAddKey(
   const accountId = accountInfo.data.account_id;
 
   let keyScope = scope;
+  if (!keyScope && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    keyScope = 'read,trading';
+  }
   if (!keyScope) {
     const response = await prompts({
       type: 'multiselect',

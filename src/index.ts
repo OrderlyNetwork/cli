@@ -311,10 +311,7 @@ cli
   .command('wallet-add-key', 'Add Orderly API key for trading (Step 3 of setup)')
   .option('--broker-id <id>', 'Broker ID (required for AI/scripts, prompts if omitted)')
   .option('--address <address>', 'Wallet address (required for AI/scripts, prompts if omitted)')
-  .option(
-    '--scope <scope>',
-    'Key scopes: read,trading,asset (required for AI/scripts, prompts if omitted)'
-  )
+  .option('--scope <scope>', 'Key scopes: read,trading,asset (default: read,trading)')
   .example('orderly wallet-add-key --broker-id demo')
   .example('orderly wallet-add-key --broker-id demo --scope read,trading')
   .action((options) => {

@@ -57,32 +57,21 @@ export async function getTokens(network: Network, format: OutputFormat = 'json')
 }
 
 export async function depositInfo(token: string, chainId: number, network: Network): Promise<void> {
-  console.log(kleur.cyan(`\n📥 Deposit Info for ${token} (Chain ${chainId})\n`));
-
   if (!isSupportedChain(chainId, network)) {
-    console.log(kleur.red(`Chain ID ${chainId} is not supported on ${network}`));
-    console.log(kleur.dim('Use `orderly chains` to see supported chains'));
-    return;
+    throw new Error(
+      `Chain ID ${chainId} is not supported on ${network}. Use 'orderly chains' to see supported chains.`
+    );
   }
 
-  try {
-    const addresses = getContractAddresses(chainId, network);
-    console.log(`Chain:          ${addresses.name}`);
-    console.log(`Token:          ${token.toUpperCase()}`);
-    console.log(`Token Address:  ${addresses.usdc}`);
-    console.log(`Vault Address:  ${addresses.vault}`);
-    console.log();
-    console.log(kleur.dim('To deposit:'));
-    console.log(kleur.dim('1. Approve token spending on the vault contract'));
-    console.log(kleur.dim('2. Call vault.deposit() with your account ID and amount'));
-    console.log();
-    console.log(kleur.yellow('Note: Direct deposit requires wallet interaction.'));
-    console.log(kleur.yellow('Use a web3 wallet or ethers.js to execute the deposit transaction.'));
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log(kleur.red(error.message));
-    }
-  }
+  const addresses = getContractAddresses(chainId, network);
+  const result = {
+    chain: addresses.name,
+    chainId,
+    token: token.toUpperCase(),
+    tokenAddress: addresses.usdc,
+    vaultAddress: addresses.vault,
+  };
+  console.log(JSON.stringify(result));
 }
 
 export async function withdraw(

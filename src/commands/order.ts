@@ -180,8 +180,8 @@ export async function edit(
   let orderSymbol = symbol;
   let orderType: string | undefined;
   let orderSide: string | undefined;
-  let existingQuantity: string | undefined;
   let existingPrice: string | undefined;
+  let existingQuantity: string | undefined;
 
   try {
     const orderRes = await client.getOrder(orderId);
@@ -194,11 +194,11 @@ export async function edit(
     }
     orderType = orderRes.data.type;
     orderSide = orderRes.data.side;
-    if (!quantity && orderRes.data.quantity !== undefined) {
-      existingQuantity = String(orderRes.data.quantity);
-    }
-    if (!price && orderRes.data.price !== undefined) {
+    if (orderRes.data.price !== undefined && orderRes.data.price !== null) {
       existingPrice = String(orderRes.data.price);
+    }
+    if (orderRes.data.quantity !== undefined && orderRes.data.quantity !== null) {
+      existingQuantity = String(orderRes.data.quantity);
     }
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
@@ -213,16 +213,11 @@ export async function edit(
     return;
   }
 
-  const updates: {
-    order_price?: string;
-    order_quantity?: string;
-    order_type: string;
-    side: string;
-  } = {
+  const updates = {
     order_type: orderType!,
     side: orderSide!,
-    order_price: price ?? existingPrice,
-    order_quantity: quantity ?? existingQuantity,
+    order_price: Number(price ?? existingPrice),
+    order_quantity: Number(quantity ?? existingQuantity),
   };
 
   try {

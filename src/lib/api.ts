@@ -156,25 +156,21 @@ export class OrderlyClient {
   async editOrder(
     orderId: string,
     updates: {
-      order_price?: string;
-      order_quantity?: string;
+      order_price: number;
+      order_quantity: number;
       order_type: string;
       side: string;
     },
     symbol: string
   ): Promise<unknown> {
     const body: Record<string, unknown> = {
-      order_id: orderId,
+      order_id: Number(orderId),
       symbol,
       order_type: updates.order_type,
       side: updates.side,
+      order_price: updates.order_price,
+      order_quantity: updates.order_quantity,
     };
-    if (updates.order_price !== undefined) {
-      body.order_price = updates.order_price;
-    }
-    if (updates.order_quantity !== undefined) {
-      body.order_quantity = updates.order_quantity;
-    }
     return this.put('/v1/order', body);
   }
 

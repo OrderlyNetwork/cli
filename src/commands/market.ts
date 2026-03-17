@@ -1,8 +1,7 @@
-import kleur from 'kleur';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, OutputFormat } from '../lib/output.js';
+import { output, error, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_KLINE_TYPES = ['1m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w', '1mon', '1y'];
@@ -16,9 +15,9 @@ export async function getPrice(
     const client = new OrderlyClient(network);
     const result = await client.getMarketPrice(symbol.toUpperCase());
     output(result, format);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -36,14 +35,12 @@ export async function getKline(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const validType = type.toLowerCase();
   if (!VALID_KLINE_TYPES.includes(validType)) {
-    console.log(kleur.red(`Invalid kline type. Use one of: ${VALID_KLINE_TYPES.join(', ')}`));
-    return;
+    error(`Invalid kline type. Use one of: ${VALID_KLINE_TYPES.join(', ')}`);
   }
 
   try {
@@ -51,9 +48,9 @@ export async function getKline(
     client.setKeyPair(keyPair);
     const result = await client.getKline(symbol.toUpperCase(), validType, limit);
     output(result, format);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -69,8 +66,7 @@ export async function getOrderbook(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   try {
@@ -78,9 +74,9 @@ export async function getOrderbook(
     client.setKeyPair(keyPair);
     const result = await client.getOrderbook(symbol.toUpperCase());
     output(result, format);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -94,9 +90,9 @@ export async function getSymbols(
     const client = new OrderlyClient(network);
     const result = showInfo ? await client.getSymbols() : await client.getFutures();
     output(result, format);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -111,9 +107,9 @@ export async function getMarketTrades(
     const client = new OrderlyClient(network);
     const result = await client.getMarketTrades(symbol.toUpperCase(), limit);
     output(result, format);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -126,9 +122,9 @@ export async function getFundingRates(
     const client = new OrderlyClient(network);
     const result = await client.getFundingRates();
     output(result, format);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (err instanceof Error) {
+      error(err.message);
     }
   }
 }

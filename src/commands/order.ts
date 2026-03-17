@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'fs';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, OutputFormat } from '../lib/output.js';
+import { output, error, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_ORDER_TYPES = ['LIMIT', 'MARKET', 'IOC', 'FOK', 'POST_ONLY', 'ASK', 'BID'];
@@ -26,25 +26,21 @@ export async function place(
 
   const validSide = side.toUpperCase();
   if (validSide !== 'BUY' && validSide !== 'SELL') {
-    console.log(kleur.red('Invalid side. Use BUY or SELL.'));
-    return;
+    error('Invalid side. Use BUY or SELL.');
   }
 
   const validType = type.toUpperCase();
   if (!VALID_ORDER_TYPES.includes(validType)) {
-    console.log(kleur.red(`Invalid order type. Use one of: ${VALID_ORDER_TYPES.join(', ')}`));
-    return;
+    error(`Invalid order type. Use one of: ${VALID_ORDER_TYPES.join(', ')}`);
   }
 
   if (PRICE_REQUIRED_TYPES.includes(validType) && !price) {
-    console.log(kleur.red(`Price is required for ${validType} orders.`));
-    return;
+    error(`Price is required for ${validType} orders.`);
   }
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -75,15 +71,11 @@ export async function place(
   try {
     const result = await client.placeOrder(orderPayload);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -100,8 +92,7 @@ export async function cancel(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -112,36 +103,26 @@ export async function cancel(
     try {
       const orderRes = await client.getOrder(orderId);
       if (!orderRes.success || !orderRes.data) {
-        console.log(kleur.red(`Order ${orderId} not found.`));
-        return;
+        error(`Order ${orderId} not found.`);
       }
       orderSymbol = orderRes.data.symbol;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.data) {
-        console.error(
-          kleur.red(
-            `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-          )
-        );
-      } else if (error instanceof Error) {
-        console.error(kleur.red(error.message));
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data) {
+        error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+      } else if (err instanceof Error) {
+        error(err.message);
       }
-      return;
     }
   }
 
   try {
     const result = await client.cancelOrder(orderId, orderSymbol);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -159,19 +140,17 @@ export async function edit(
   if (!accId) return;
 
   if (!price && !quantity) {
-    console.log(kleur.red('At least one of --price or --quantity is required to edit an order.'));
-    console.log(
-      kleur.dim(
-        'Examples:\n  orderly order-edit 123456 --price 3500\n  orderly order-edit 123456 --quantity 0.02\n  orderly order-edit 123456 --price 3500 --quantity 0.02'
-      )
-    );
-    return;
+    console.error(kleur.red('At least one of --price or --quantity is required to edit an order.'));
+    console.error(kleur.dim('Examples:'));
+    console.error(kleur.dim('  orderly order-edit 123456 --price 3500'));
+    console.error(kleur.dim('  orderly order-edit 123456 --quantity 0.02'));
+    console.error(kleur.dim('  orderly order-edit 123456 --price 3500 --quantity 0.02'));
+    process.exit(1);
   }
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -186,8 +165,7 @@ export async function edit(
   try {
     const orderRes = await client.getOrder(orderId);
     if (!orderRes.success || !orderRes.data) {
-      console.log(kleur.red(`Order ${orderId} not found.`));
-      return;
+      error(`Order ${orderId} not found.`);
     }
     if (!orderSymbol) {
       orderSymbol = orderRes.data.symbol;
@@ -200,17 +178,12 @@ export async function edit(
     if (orderRes.data.quantity !== undefined && orderRes.data.quantity !== null) {
       existingQuantity = String(orderRes.data.quantity);
     }
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
-    return;
   }
 
   const updates = {
@@ -223,15 +196,11 @@ export async function edit(
   try {
     const result = await client.editOrder(orderId, updates, orderSymbol!);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -247,8 +216,7 @@ export async function cancelAll(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -257,15 +225,11 @@ export async function cancelAll(
   try {
     const result = await client.cancelAllOrders(symbol);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -284,8 +248,7 @@ export async function listOrders(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -294,15 +257,11 @@ export async function listOrders(
   try {
     const result = await client.getOrders(symbol, status?.toUpperCase(), page, size);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -332,19 +291,16 @@ export async function batchPlace(
   }
 
   if (!Array.isArray(orders) || orders.length === 0) {
-    console.log(kleur.red('Orders must be a non-empty array.'));
-    return;
+    error('Orders must be a non-empty array.');
   }
 
   if (orders.length > 10) {
-    console.log(kleur.red('Maximum 10 orders allowed per batch.'));
-    return;
+    error('Maximum 10 orders allowed per batch.');
   }
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -353,15 +309,11 @@ export async function batchPlace(
   try {
     const result = await client.placeBatchOrder(orders);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -376,14 +328,12 @@ export async function batchCancel(
   if (!accId) return;
 
   if (orderIds.length === 0) {
-    console.log(kleur.red('At least one order ID is required.'));
-    return;
+    error('At least one order ID is required.');
   }
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -392,15 +342,11 @@ export async function batchCancel(
   try {
     const result = await client.cancelBatchOrders(orderIds);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }

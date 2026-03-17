@@ -1,3 +1,5 @@
+import kleur from 'kleur';
+
 type OutputFormat = 'json' | 'csv';
 
 interface ApiResponse {
@@ -98,6 +100,11 @@ export function output(data: unknown, format: OutputFormat = 'json'): void {
   } else {
     console.log(JSON.stringify(unwrapped));
   }
+}
+
+export function error(message: string): never {
+  console.error(kleur.red(message));
+  process.exit(1);
 }
 
 export type { OutputFormat };

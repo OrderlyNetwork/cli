@@ -10,19 +10,19 @@ export async function resolveAccountId(
   if (accountId) return accountId;
 
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    console.log(kleur.red('Error: --account is required in non-interactive mode.'));
-    console.log(kleur.dim('Example: --account <account-id>'));
-    console.log(kleur.dim('Run `orderly auth-list` to see available accounts.'));
-    return null;
+    console.error(kleur.red('Error: --account is required in non-interactive mode.'));
+    console.error(kleur.dim('Example: --account <account-id>'));
+    console.error(kleur.dim('Run `orderly auth-list` to see available accounts.'));
+    process.exit(1);
   }
 
   const keys = await listKeys();
   const filteredKeys = keys.filter((k) => k.network === network);
 
   if (filteredKeys.length === 0) {
-    console.log(kleur.red(`No accounts found for ${network}.`));
-    console.log(kleur.dim('Run `orderly wallet-add-key` to add an account.'));
-    return null;
+    console.error(kleur.red(`No accounts found for ${network}.`));
+    console.error(kleur.dim('Run `orderly wallet-add-key` to add an account.'));
+    process.exit(1);
   }
 
   if (filteredKeys.length === 1) {

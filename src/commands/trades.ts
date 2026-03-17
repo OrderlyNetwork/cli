@@ -1,9 +1,8 @@
-import kleur from 'kleur';
 import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, OutputFormat } from '../lib/output.js';
+import { output, error, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 export async function listTrades(
@@ -21,8 +20,7 @@ export async function listTrades(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -31,15 +29,11 @@ export async function listTrades(
   try {
     const result = await client.getTrades(symbol?.toUpperCase(), startT, endT, page, size);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }

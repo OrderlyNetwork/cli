@@ -1,9 +1,8 @@
-import kleur from 'kleur';
 import axios from 'axios';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, OutputFormat } from '../lib/output.js';
+import { output, error, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_ALGO_TYPES = ['STOP', 'TP_SL', 'POSITIONAL_TP_SL', 'TRAILING_STOP', 'BRACKET'];
@@ -30,41 +29,33 @@ export async function placeAlgoOrder(
 
   const validSide = side.toUpperCase();
   if (!VALID_SIDES.includes(validSide)) {
-    console.log(kleur.red(`Invalid side. Use ${VALID_SIDES.join(' or ')}.`));
-    return;
+    error(`Invalid side. Use ${VALID_SIDES.join(' or ')}.`);
   }
 
   const validAlgoType = algoType.toUpperCase();
   if (!VALID_ALGO_TYPES.includes(validAlgoType)) {
-    console.log(kleur.red(`Invalid algo type. Use one of: ${VALID_ALGO_TYPES.join(', ')}`));
-    return;
+    error(`Invalid algo type. Use one of: ${VALID_ALGO_TYPES.join(', ')}`);
   }
 
   if (validAlgoType === 'TRAILING_STOP') {
     if (!callbackRate) {
-      console.log(kleur.red('--callback-rate is required for TRAILING_STOP orders.'));
-      return;
+      error('--callback-rate is required for TRAILING_STOP orders.');
     }
   } else if (validAlgoType === 'TP_SL' || validAlgoType === 'POSITIONAL_TP_SL') {
     if (!tpTriggerPrice && !slTriggerPrice) {
-      console.log(
-        kleur.red(
-          'At least one of --tp-trigger-price or --sl-trigger-price is required for TP_SL/POSITIONAL_TP_SL orders.'
-        )
+      error(
+        'At least one of --tp-trigger-price or --sl-trigger-price is required for TP_SL/POSITIONAL_TP_SL orders.'
       );
-      return;
     }
   } else if (validAlgoType === 'STOP') {
     if (!triggerPrice) {
-      console.log(kleur.red('--trigger-price is required for STOP orders.'));
-      return;
+      error('--trigger-price is required for STOP orders.');
     }
   }
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -168,15 +159,11 @@ export async function placeAlgoOrder(
     }
 
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -193,8 +180,7 @@ export async function cancelAlgoOrder(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -205,36 +191,26 @@ export async function cancelAlgoOrder(
     try {
       const orderRes = await client.findAlgoOrderById(orderId);
       if (!orderRes.success || !orderRes.data) {
-        console.log(kleur.red(`Algo order ${orderId} not found.`));
-        return;
+        error(`Algo order ${orderId} not found.`);
       }
       orderSymbol = orderRes.data.symbol;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.data) {
-        console.error(
-          kleur.red(
-            `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-          )
-        );
-      } else if (error instanceof Error) {
-        console.error(kleur.red(error.message));
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data) {
+        error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+      } else if (err instanceof Error) {
+        error(err.message);
       }
-      return;
     }
   }
 
   try {
     const result = await client.cancelAlgoOrder(orderId, orderSymbol!);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -251,8 +227,7 @@ export async function cancelAllAlgoOrders(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -261,15 +236,11 @@ export async function cancelAllAlgoOrders(
   try {
     const result = await client.cancelAllAlgoOrders(symbol, algoType);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -287,8 +258,7 @@ export async function listAlgoOrders(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -297,15 +267,11 @@ export async function listAlgoOrders(
   try {
     const result = await client.getAlgoOrders(symbol, page, size);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.error(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.error(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }

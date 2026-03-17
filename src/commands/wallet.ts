@@ -34,6 +34,7 @@ import {
 import { OrderlyClient } from '../lib/api.js';
 import { setDefaultNetwork } from '../lib/config.js';
 import { getPublicKeyBase58, generateKeyPair } from '../lib/crypto.js';
+import { error } from '../lib/output.js';
 
 export async function walletCreate(
   walletType: WalletType | undefined,
@@ -53,8 +54,7 @@ export async function walletCreate(
       ],
     });
     if (!response.type) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     type = response.type;
   }
@@ -72,9 +72,8 @@ export async function walletCreate(
       address = wallet.address;
       privateKey = wallet.privateKey;
     }
-  } catch (error) {
-    console.error(kleur.red('Failed to generate wallet'), error);
-    return;
+  } catch {
+    error('Failed to generate wallet');
   }
 
   const walletKeyPair: WalletKeyPair = {
@@ -86,9 +85,8 @@ export async function walletCreate(
 
   try {
     await storeWalletKey(address, network, walletKeyPair);
-  } catch (error) {
-    console.error(kleur.red('Failed to store wallet'), error);
-    return;
+  } catch {
+    error('Failed to store wallet');
   }
 
   console.log();
@@ -123,8 +121,7 @@ export async function walletImport(
       ],
     });
     if (!response.type) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     type = response.type;
   }
@@ -146,8 +143,7 @@ export async function walletImport(
       },
     });
     if (!response.privateKey) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     key = response.privateKey.trim();
   }
@@ -161,16 +157,12 @@ export async function walletImport(
       const wallet = createSolanaWalletFromPrivateKey(key, network);
       walletAddress = wallet.address;
     }
-  } catch (error) {
-    console.log(
-      kleur.red(`Invalid private key: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    );
-    return;
+  } catch (err) {
+    error(`Invalid private key: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 
   if (addr && addr.toLowerCase() !== walletAddress.toLowerCase()) {
-    console.log(kleur.red('Provided address does not match private key'));
-    return;
+    error('Provided address does not match private key');
   }
   addr = walletAddress;
 
@@ -184,8 +176,7 @@ export async function walletImport(
       initial: false,
     });
     if (!overwrite.value) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
   }
 
@@ -198,9 +189,8 @@ export async function walletImport(
 
   try {
     await storeWalletKey(addr, network, walletKeyPair);
-  } catch (error) {
-    console.error(kleur.red('Failed to store wallet'), error);
-    return;
+  } catch {
+    error('Failed to store wallet');
   }
 
   console.log();
@@ -236,8 +226,7 @@ export async function walletShow(address: string | undefined, network: Network):
     const filteredWallets = wallets.filter((w) => w.network === network);
 
     if (filteredWallets.length === 0) {
-      console.log(kleur.red(`No wallets found for ${network}.`));
-      return;
+      error(`No wallets found for ${network}.`);
     }
 
     const response = await prompts({
@@ -251,22 +240,19 @@ export async function walletShow(address: string | undefined, network: Network):
     });
 
     if (!response.address) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     addr = response.address;
   }
 
   if (!addr) {
-    console.log(kleur.red('No address specified.'));
-    return;
+    error('No address specified.');
   }
 
   const wallet = await getWalletKey(addr, network);
 
   if (!wallet) {
-    console.log(kleur.red(`No wallet found for ${addr} on ${network}`));
-    return;
+    error(`No wallet found for ${addr} on ${network}`);
   }
 
   console.log(kleur.cyan('\n🔑 Wallet Info\n'));
@@ -301,15 +287,13 @@ export async function walletLogout(address: string | undefined, network: Network
     });
 
     if (!response.address) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     addr = response.address;
   }
 
   if (!addr) {
-    console.log(kleur.red('No address selected.'));
-    return;
+    error('No address selected.');
   }
 
   const confirm = await prompts({
@@ -320,8 +304,7 @@ export async function walletLogout(address: string | undefined, network: Network
   });
 
   if (!confirm.value) {
-    console.log(kleur.red('Cancelled.'));
-    return;
+    error('Cancelled.');
   }
 
   try {
@@ -331,8 +314,8 @@ export async function walletLogout(address: string | undefined, network: Network
     } else {
       console.log(kleur.yellow(`No wallet found for ${addr} on ${network}`));
     }
-  } catch (error) {
-    console.error(kleur.red('Failed to remove wallet'), error);
+  } catch {
+    error('Failed to remove wallet');
   }
 }
 
@@ -365,8 +348,7 @@ export async function walletRegister(
       validate: (value: string) => (value.length > 0 ? true : 'Broker ID is required'),
     });
     if (!response.brokerId) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     bId = response.brokerId.trim();
   }
@@ -379,8 +361,7 @@ export async function walletRegister(
     const filteredWallets = wallets.filter((w) => w.network === network);
 
     if (filteredWallets.length === 0) {
-      console.log(kleur.red(`No wallets found for ${network}. Import a wallet first.`));
-      return;
+      error(`No wallets found for ${network}. Import a wallet first.`);
     }
 
     const response = await prompts({
@@ -394,26 +375,22 @@ export async function walletRegister(
     });
 
     if (!response.address) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     addr = response.address;
   }
 
   if (!addr) {
-    console.log(kleur.red('No address selected.'));
-    return;
+    error('No address selected.');
   }
 
   walletKey = await getWalletKey(addr, network);
   if (!walletKey) {
-    console.log(kleur.red(`No wallet found for ${addr} on ${network}`));
-    return;
+    error(`No wallet found for ${addr} on ${network}`);
   }
 
   if (!bId) {
-    console.log(kleur.red('Broker ID is required.'));
-    return;
+    error('Broker ID is required.');
   }
 
   const client = new OrderlyClient(network);
@@ -431,8 +408,7 @@ export async function walletRegister(
 
   const nonceResponse = await client.getRegistrationNonce();
   if (!nonceResponse.success || !nonceResponse.data?.registration_nonce) {
-    console.log(kleur.red('Failed to get registration nonce'));
-    return;
+    error('Failed to get registration nonce');
   }
   const nonce = nonceResponse.data.registration_nonce;
 
@@ -463,9 +439,8 @@ export async function walletRegister(
       message = result.message;
       signature = result.signature;
     }
-  } catch (error) {
-    console.error(kleur.red('Failed to sign message'), error);
-    return;
+  } catch {
+    error('Failed to sign message');
   }
 
   try {
@@ -479,20 +454,16 @@ export async function walletRegister(
         kleur.dim('Next step: Use `orderly wallet-add-key` to add an API key for trading.')
       );
     } else {
-      console.log(kleur.red('Failed to register account'));
-      console.log(kleur.dim('Response:'), result);
+      error('Failed to register account');
     }
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.log(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.log(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     } else {
-      console.error(error);
+      console.error(err);
+      process.exit(1);
     }
   }
 }
@@ -527,8 +498,7 @@ export async function walletAddKey(
       validate: (value: string) => (value.length > 0 ? true : 'Broker ID is required'),
     });
     if (!response.brokerId) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     bId = response.brokerId.trim();
   }
@@ -541,8 +511,7 @@ export async function walletAddKey(
     const filteredWallets = wallets.filter((w) => w.network === network);
 
     if (filteredWallets.length === 0) {
-      console.log(kleur.red(`No wallets found for ${network}. Import a wallet first.`));
-      return;
+      error(`No wallets found for ${network}. Import a wallet first.`);
     }
 
     const response = await prompts({
@@ -556,34 +525,29 @@ export async function walletAddKey(
     });
 
     if (!response.address) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     addr = response.address;
   }
 
   if (!addr) {
-    console.log(kleur.red('No address selected.'));
-    return;
+    error('No address selected.');
   }
 
   if (!bId) {
-    console.log(kleur.red('Broker ID is required.'));
-    return;
+    error('Broker ID is required.');
   }
 
   walletKey = await getWalletKey(addr, network);
   if (!walletKey) {
-    console.log(kleur.red(`No wallet found for ${addr} on ${network}`));
-    return;
+    error(`No wallet found for ${addr} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
 
   const accountInfo = await client.getAccount(addr, bId, walletKey.walletType);
   if (!accountInfo.success || !accountInfo.data?.account_id) {
-    console.log(kleur.red('Account not found. Run `orderly wallet-register` first.'));
-    return;
+    error('Account not found. Run `orderly wallet-register` first.');
   }
   const accountId = accountInfo.data.account_id;
 
@@ -601,15 +565,13 @@ export async function walletAddKey(
       hint: '- Space to select. Return to submit',
     });
     if (!response.scopes || response.scopes.length === 0) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     keyScope = response.scopes.join(',');
   }
 
   if (!keyScope) {
-    console.log(kleur.red('Key scope is required.'));
-    return;
+    error('Key scope is required.');
   }
 
   const ed25519KeyPair = generateKeyPair();
@@ -653,9 +615,8 @@ export async function walletAddKey(
       message = result.message;
       signature = result.signature;
     }
-  } catch (error) {
-    console.error(kleur.red('Failed to sign message'), error);
-    return;
+  } catch {
+    error('Failed to sign message');
   }
 
   try {
@@ -684,20 +645,16 @@ export async function walletAddKey(
         kleur.cyan(`  orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account ${accountId}`)
       );
     } else {
-      console.log(kleur.red('Failed to add Orderly key'));
-      console.log(kleur.dim('Response:'), result);
+      error('Failed to add Orderly key');
     }
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.log(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.log(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     } else {
-      console.error(error);
+      console.error(err);
+      process.exit(1);
     }
   }
 }

@@ -5,6 +5,7 @@ import { storeKey, getKey, deleteKey, listKeys } from '../lib/keychain.js';
 import { setDefaultNetwork } from '../lib/config.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { KeyPair, Network } from '../types.js';
+import { error } from '../lib/output.js';
 
 export async function importKey(
   privateKey: string | undefined,
@@ -24,8 +25,7 @@ export async function importKey(
       validate: (value: string) => (value.length > 0 ? true : 'Private key is required'),
     });
     if (!response.privateKey) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     key = response.privateKey.trim();
   }
@@ -38,8 +38,7 @@ export async function importKey(
       validate: (value: string) => (value.length > 0 ? true : 'Account ID is required'),
     });
     if (!response.accountId) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     accId = response.accountId.trim();
   }
@@ -55,9 +54,8 @@ export async function importKey(
 
   try {
     await storeKey(accId, network, keyPair);
-  } catch (error) {
-    console.error(kleur.red('Failed to store key'), error);
-    return;
+  } catch (err) {
+    error(`Failed to store key: ${err}`);
   }
 
   setDefaultNetwork(network);
@@ -110,9 +108,7 @@ export async function logout(
 
   if (!accId) {
     if (!process.stdin.isTTY || !process.stdout.isTTY) {
-      console.log(kleur.red('Error: --account is required in non-interactive mode.'));
-      console.log(kleur.dim('Example: orderly auth-logout --account <account-id>'));
-      return;
+      error('Error: --account is required in non-interactive mode.');
     }
 
     const keys = await listKeys();
@@ -134,15 +130,13 @@ export async function logout(
     });
 
     if (!response.accountId) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
     accId = response.accountId;
   }
 
   if (!accId) {
-    console.log(kleur.red('No account selected.'));
-    return;
+    error('No account selected.');
   }
 
   if (!force) {
@@ -154,8 +148,7 @@ export async function logout(
     });
 
     if (!confirm.value) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
   }
 
@@ -166,8 +159,8 @@ export async function logout(
     } else {
       console.log(kleur.yellow(`No key found for ${accId} on ${network}`));
     }
-  } catch (error) {
-    console.error(kleur.red('Failed to remove key'), error);
+  } catch (err) {
+    error(`Failed to remove key: ${err}`);
   }
 }
 
@@ -178,8 +171,7 @@ export async function show(accountId: string | undefined, network: Network): Pro
   const key = await getKey(accId, network);
 
   if (!key) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const publicKeyBase58 = base64ToBase58(key.publicKey);
@@ -222,8 +214,7 @@ export async function cleanup(network: Network): Promise<void> {
     });
 
     if (!confirm.value) {
-      console.log(kleur.red('Cancelled.'));
-      return;
+      error('Cancelled.');
     }
   }
 
@@ -233,8 +224,8 @@ export async function cleanup(network: Network): Promise<void> {
       await deleteKey(key.accountId, network);
       console.log(kleur.green(`✓ Removed: ${key.accountId}`));
       removed++;
-    } catch (error) {
-      console.log(kleur.red(`Failed to remove ${key.accountId}: ${error}`));
+    } catch (err) {
+      console.log(kleur.red(`Failed to remove ${key.accountId}: ${err}`));
     }
   }
 
@@ -243,9 +234,7 @@ export async function cleanup(network: Network): Promise<void> {
 
 export async function exportKey(accountId: string | undefined, network: Network): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    console.log(kleur.red('This command requires an interactive terminal.'));
-    console.log(kleur.dim('Run directly in your terminal, not via scripts or AI agents.'));
-    return;
+    error('This command requires an interactive terminal.');
   }
   console.log(kleur.cyan('\n📤 Export API Key\n'));
   console.log(kleur.yellow('⚠️  WARNING: This will display your private key on screen.'));
@@ -258,8 +247,7 @@ export async function exportKey(accountId: string | undefined, network: Network)
   const key = await getKey(accId, network);
 
   if (!key) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   console.log(kleur.cyan('Account:'), kleur.white(key.accountId));
@@ -274,8 +262,7 @@ export async function exportKey(accountId: string | undefined, network: Network)
   });
 
   if (!confirm.confirm) {
-    console.log(kleur.red('Cancelled.'));
-    return;
+    error('Cancelled.');
   }
 
   console.log();

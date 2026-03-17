@@ -4,7 +4,7 @@ import { parseUnits } from 'ethers';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey, getWalletKey } from '../lib/keychain.js';
-import { output, OutputFormat } from '../lib/output.js';
+import { output, error, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 import { getContractAddresses, isSupportedChain } from '../lib/contracts.js';
 import { createWalletFromPrivateKey, signWithdraw as signWithdrawEVM } from '../lib/evm.js';
@@ -24,15 +24,11 @@ export async function getChains(network: Network, format: OutputFormat = 'json')
   try {
     const result = await client.get('/v1/public/chain_info?broker_id=demo', false);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.log(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.log(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -43,15 +39,11 @@ export async function getTokens(network: Network, format: OutputFormat = 'json')
   try {
     const result = await client.get('/v1/public/token', false);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.log(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.log(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -63,12 +55,9 @@ export async function depositInfo(
   format: OutputFormat = 'json'
 ): Promise<void> {
   if (!isSupportedChain(chainId, network)) {
-    console.log(
-      kleur.red(
-        `Chain ID ${chainId} is not supported on ${network}. Use 'orderly chains' to see supported chains.`
-      )
+    error(
+      `Chain ID ${chainId} is not supported on ${network}. Use 'orderly chains' to see supported chains.`
     );
-    return;
   }
 
   const addresses = getContractAddresses(chainId, network);
@@ -97,8 +86,7 @@ export async function withdraw(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -116,25 +104,23 @@ export async function withdraw(
       }>('/v1/public/token');
 
       if (!tokensResponse.success || !tokensResponse.data?.rows) {
-        console.log(kleur.red('Failed to fetch token info'));
-        return;
+        error('Failed to fetch token info');
       }
 
       const tokenInfo = tokensResponse.data.rows.find((t) => t.token === token.toUpperCase());
 
       if (!tokenInfo) {
-        console.log(kleur.red(`Token ${token.toUpperCase()} not found`));
-        return;
+        error(`Token ${token.toUpperCase()} not found`);
       }
 
       rawAmountValue = parseUnits(amount, tokenInfo.decimals).toString();
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('fractional component')) {
-        console.log(kleur.red(`Invalid amount: ${amount}`));
-        console.log(kleur.dim('Amount must be a valid number (e.g., 10.5)'));
-        return;
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('fractional component')) {
+        console.error(kleur.red(`Invalid amount: ${amount}`));
+        console.error(kleur.dim('Amount must be a valid number (e.g., 10.5)'));
+        process.exit(1);
       }
-      throw error;
+      throw err;
     }
   }
 
@@ -149,8 +135,7 @@ export async function withdraw(
     );
 
     if (!nonceResponse.success || !nonceResponse.data?.withdraw_nonce) {
-      console.log(kleur.red('Failed to get withdrawal nonce'));
-      return;
+      error('Failed to get withdrawal nonce');
     }
 
     const withdrawNonce = String(nonceResponse.data.withdraw_nonce);
@@ -159,10 +144,9 @@ export async function withdraw(
 
     const walletKey = await getWalletKey(keyPair.address, network);
     if (!walletKey) {
-      console.log(kleur.red(`No wallet key found for address ${keyPair.address}`));
-      console.log(kleur.yellow('Wallet keys are required for withdrawal signing.'));
-      console.log(kleur.yellow('Use `orderly wallet-import` to import your wallet key.'));
-      return;
+      error(
+        `No wallet key found for address ${keyPair.address}. Wallet keys are required for withdrawal signing. Use orderly wallet-import to import your wallet key.`
+      );
     }
 
     const walletType = walletKey.walletType || keyPair.walletType || 'EVM';
@@ -218,18 +202,13 @@ export async function withdraw(
       console.log(kleur.dim('Check status with:'));
       console.log(kleur.cyan(`  orderly asset-history --side WITHDRAW`));
     } else {
-      console.log(kleur.red('Failed to initiate withdrawal'));
-      output(result, 'json');
+      error('Failed to initiate withdrawal');
     }
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.log(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.log(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -249,8 +228,7 @@ export async function withdrawSubmit(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   console.log(kleur.cyan('\n📤 Submit Withdrawal Request\n'));
@@ -290,18 +268,13 @@ export async function withdrawSubmit(
       console.log(kleur.dim('Withdrawal status can be checked with:'));
       console.log(kleur.cyan(`  orderly asset-history --side WITHDRAW`));
     } else {
-      console.log(kleur.red('Failed to initiate withdrawal'));
-      console.log(kleur.dim('Response:'), result);
+      error('Failed to initiate withdrawal');
     }
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.log(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.log(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }
@@ -318,8 +291,7 @@ export async function assetHistory(
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
-    console.log(kleur.red(`No key found for account ${accId} on ${network}`));
-    return;
+    error(`No key found for account ${accId} on ${network}`);
   }
 
   const client = new OrderlyClient(network);
@@ -332,15 +304,11 @@ export async function assetHistory(
 
     const result = await client.get(path);
     output(result, format);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      console.log(
-        kleur.red(
-          `API Error: ${error.response.data.message || JSON.stringify(error.response.data)}`
-        )
-      );
-    } else if (error instanceof Error) {
-      console.log(kleur.red(error.message));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      error(`API Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else if (err instanceof Error) {
+      error(err.message);
     }
   }
 }

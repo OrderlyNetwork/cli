@@ -167,7 +167,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 `market-price`, `market-orderbook`, `market-trades`, `funding-rates`, `kline`, `symbols`
 
 **Assets:**
-`chains`, `tokens`, `deposit-info`, `withdraw`, `withdraw-submit`, `asset-history`, `funding-history`
+`chains`, `tokens`, `deposit-info`, `withdraw`, `asset-history`, `funding-history`
 
 **Testnet:**
 `faucet-usdc`

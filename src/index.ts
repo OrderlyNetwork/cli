@@ -39,6 +39,7 @@ import {
   cancelAlgoOrder,
   cancelAllAlgoOrders,
   listAlgoOrders,
+  editAlgoOrder,
 } from './commands/algo.js';
 import { fundingHistory } from './commands/funding.js';
 import { getDefaultNetwork } from './lib/config.js';
@@ -183,7 +184,7 @@ ${kleur.yellow('Setup & Auth:')}
 ${kleur.yellow('Trading:')}
   order-place, order-cancel, order-edit, order-cancel-all, order-list
   batch-order-place, batch-order-cancel
-  algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-list
+  algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list
   positions-list, positions-close, position-history
   leverage, trades
 
@@ -680,6 +681,36 @@ cli
     void cancelAlgoOrder(
       orderId,
       options.symbol,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
+  .command(
+    'algo-order-edit <order-id>',
+    'Edit a pending algo order (only specify what to change: price, quantity, trigger-price, callback-rate)'
+  )
+  .option('--symbol <symbol>', 'Symbol of the order (auto-fetched if not provided)')
+  .option('--price <price>', 'New order price')
+  .option('--quantity <quantity>', 'New order quantity')
+  .option('--trigger-price <price>', 'New trigger price')
+  .option('--callback-rate <rate>', 'New callback rate as decimal, e.g. 0.05 for 5%')
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly algo-order-edit 123456 --price 2500')
+  .example('orderly algo-order-edit 123456 --quantity 0.02')
+  .example('orderly algo-order-edit 123456 --trigger-price 1500')
+  .example('orderly algo-order-edit 123456 --callback-rate 0.03')
+  .action((orderId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void editAlgoOrder(
+      orderId,
+      options.symbol,
+      options.price,
+      options.quantity,
+      options.triggerPrice,
+      options.callbackRate,
       normalizeAccountId(options.account),
       network,
       getFormat(options)

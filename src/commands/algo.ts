@@ -228,6 +228,70 @@ export async function cancelAllAlgoOrders(
   }
 }
 
+export async function editAlgoOrder(
+  orderId: string,
+  symbol: string | undefined,
+  price: string | undefined,
+  quantity: string | undefined,
+  triggerPrice: string | undefined,
+  callbackRate: string | undefined,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
+
+  if (!price && !quantity && !triggerPrice && !callbackRate) {
+    error('At least one of --price, --quantity, --trigger-price, or --callback-rate is required.', [
+      'Examples:',
+      '  orderly algo-order-edit 123456 --price 2500',
+      '  orderly algo-order-edit 123456 --quantity 0.02',
+      '  orderly algo-order-edit 123456 --trigger-price 1500',
+      '  orderly algo-order-edit 123456 --callback-rate 0.03',
+    ]);
+  }
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    error(`No key found for account ${accId} on ${network}`);
+  }
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  let orderSymbol = symbol;
+  if (!orderSymbol) {
+    try {
+      const orderRes = await client.findAlgoOrderById(orderId);
+      if (!orderRes.success || !orderRes.data) {
+        error(`Algo order ${orderId} not found.`);
+      }
+      orderSymbol = orderRes.data.symbol;
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
+  try {
+    const updates: {
+      price?: number;
+      quantity?: number;
+      trigger_price?: number;
+      callback_rate?: number;
+    } = {};
+    if (price) updates.price = Number(price);
+    if (quantity) updates.quantity = Number(quantity);
+    if (triggerPrice) updates.trigger_price = Number(triggerPrice);
+    if (callbackRate) updates.callback_rate = Number(callbackRate);
+
+    const result = await client.editAlgoOrder(orderId, updates, orderSymbol!);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
 export async function listAlgoOrders(
   symbol: string | undefined,
   page: number | undefined,

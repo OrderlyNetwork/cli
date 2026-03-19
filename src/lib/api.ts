@@ -465,6 +465,27 @@ export class OrderlyClient {
     return this.get(queryString ? `/v1/algo/orders?${queryString}` : '/v1/algo/orders');
   }
 
+  async editAlgoOrder(
+    orderId: string,
+    updates: {
+      price?: number;
+      quantity?: number;
+      trigger_price?: number;
+      callback_rate?: number;
+    },
+    symbol: string
+  ): Promise<unknown> {
+    const body: Record<string, unknown> = {
+      order_id: Number(orderId),
+      symbol,
+    };
+    if (updates.price !== undefined) body.price = updates.price;
+    if (updates.quantity !== undefined) body.quantity = updates.quantity;
+    if (updates.trigger_price !== undefined) body.trigger_price = updates.trigger_price;
+    if (updates.callback_rate !== undefined) body.callback_rate = updates.callback_rate;
+    return this.put('/v1/algo/order', body);
+  }
+
   async findAlgoOrderById(orderId: string): Promise<{
     success: boolean;
     data?: {

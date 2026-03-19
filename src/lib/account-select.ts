@@ -9,13 +9,6 @@ export async function resolveAccountId(
 ): Promise<string | null> {
   if (accountId) return accountId;
 
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    error('--account is required in non-interactive mode.', [
-      'Example: --account <account-id>',
-      'Run `orderly auth-list` to see available accounts.',
-    ]);
-  }
-
   const keys = await listKeys();
   const filteredKeys = keys.filter((k) => k.network === network);
 
@@ -27,11 +20,22 @@ export async function resolveAccountId(
     return filteredKeys[0].accountId;
   }
 
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    error('Multiple accounts found. Specify --account in non-interactive mode.', [
+      'Available accounts:',
+      ...filteredKeys.map((k) => `  ${k.accountId} (${k.walletType})`),
+      'Run `orderly auth-list` to see all accounts.',
+    ]);
+  }
+
   const response = await prompts({
     type: 'select',
     name: 'accountId',
     message: 'Select account',
-    choices: filteredKeys.map((k) => ({ title: k.accountId, value: k.accountId })),
+    choices: filteredKeys.map((k) => ({
+      title: `${k.accountId} (${k.walletType})`,
+      value: k.accountId,
+    })),
   });
 
   return response.accountId ?? null;

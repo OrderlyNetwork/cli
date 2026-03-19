@@ -47,7 +47,19 @@ function toCSV(data: unknown): string {
     'rows' in data &&
     Array.isArray((data as Record<string, unknown>).rows)
   ) {
-    data = (data as Record<string, unknown>).rows;
+    const record = data as Record<string, unknown>;
+    const rows = record.rows as Record<string, unknown>[];
+    const metadata: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(record)) {
+      if (key !== 'rows') {
+        metadata[key] = value;
+      }
+    }
+    if (Object.keys(metadata).length > 0) {
+      data = rows.map((row) => ({ ...metadata, ...row }));
+    } else {
+      data = rows;
+    }
   }
 
   if (!Array.isArray(data)) {

@@ -2,7 +2,7 @@
 import { cac } from 'cac';
 import kleur from 'kleur';
 import { importKey, list, logout, show, exportKey, cleanup } from './commands/auth.js';
-import { info, balance } from './commands/account.js';
+import { info, balance, statistics } from './commands/account.js';
 import {
   place,
   cancel,
@@ -190,7 +190,7 @@ ${kleur.yellow('Trading:')}
   leverage, trades
 
 ${kleur.yellow('Account:')}
-  account-info, account-balance
+  account-info, account-balance, account-statistics
 
 ${kleur.yellow('Market Data:')}
   market-price, market-orderbook, market-trades, funding-rates, kline, symbols
@@ -392,6 +392,19 @@ cli
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void balance(normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command(
+    'account-statistics',
+    'Get account trading statistics (volume, fees, days since registration)'
+  )
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly account-statistics')
+  .example('orderly account-statistics --account 0x1e6b...')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void statistics(normalizeAccountId(options.account), network, getFormat(options));
   });
 
 // Trading commands

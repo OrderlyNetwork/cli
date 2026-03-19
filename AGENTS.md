@@ -80,7 +80,7 @@ src/
 ├── commands/
 │   ├── auth.ts           # API key management (Layer 2)
 │   ├── wallet.ts         # Wallet management (Layer 1)
-│   ├── account.ts        # Account info & balance
+│   ├── account.ts        # Account info, balance & statistics
 │   ├── order.ts          # Place/cancel/list orders
 │   ├── algo.ts           # Algo orders (TP/SL, STOP, etc.)
 │   ├── positions.ts      # List/close positions
@@ -162,7 +162,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 `order-place`, `order-cancel`, `order-edit`, `order-cancel-all`, `order-list`, `batch-order-place`, `batch-order-cancel`, `algo-order-place`, `algo-order-edit`, `algo-order-cancel`, `algo-order-cancel-all`, `algo-order-list`, `positions-list`, `positions-close`, `position-history`, `leverage`, `trades`
 
 **Account:**
-`account-info`, `account-balance`
+`account-info`, `account-balance`, `account-statistics`
 
 **Market Data:**
 `market-price`, `market-orderbook`, `market-trades`, `funding-rates`, `kline`, `symbols`
@@ -187,6 +187,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 - **`algo-order-edit`**: Only requires what you want to change (`--price`, `--quantity`, `--trigger-price`, `--callback-rate`). Symbol auto-fetched from existing order if not provided.
 - **`algo-order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
 - **`trades`**: Supports `--page` and `--size` for pagination.
+- **`account-statistics`**: Returns trading volume (24h, 7d, 30d, YTD, LTD), fees paid, and days since registration. Supports `--pretty` and `--csv`.
 - **`positions-history`**: Supports `--page` and `--limit` for pagination.
 - **`settle-pnl`**: Settles unrealized PnL into account balance. Requires `--broker-id`. Uses the wallet key stored in keychain for EIP-712 (EVM) or Ed25519 (Solana) signing.
 - **`settle-pnl-history`**: Get on-chain PnL settlement history. Not to be confused with trade PnL — this only shows manual/cron PnL settlement events. Supports `--page` and `--size` for pagination.
@@ -363,6 +364,7 @@ Config file management:
 | -------------------------------- | ---- | --------------- |
 | `GET /v1/client/info`            | Yes  | Account info    |
 | `GET /v1/client/holding`         | Yes  | Balances        |
+| `GET /v1/client/statistics`      | Yes  | Account stats   |
 | `POST /v1/order`                 | Yes  | Place order     |
 | `DELETE /v1/order/:id`           | Yes  | Cancel order    |
 | `GET /v1/orders`                 | Yes  | List orders     |

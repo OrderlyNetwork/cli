@@ -104,6 +104,10 @@ export class OrderlyClient {
     return this.get('/v1/client/holding');
   }
 
+  async getStatistics(): Promise<unknown> {
+    return this.get('/v1/client/statistics');
+  }
+
   async getOrders(
     symbol?: string,
     status?: string,

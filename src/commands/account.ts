@@ -51,3 +51,27 @@ export async function balance(
     handleError(err);
   }
 }
+
+export async function statistics(
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    error(`No key found for account ${accId} on ${network}`);
+  }
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  try {
+    const data = await client.getStatistics();
+    output(data, format);
+  } catch (err) {
+    handleError(err);
+  }
+}

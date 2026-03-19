@@ -328,13 +328,9 @@ export async function walletRegister(
   // Check for non-interactive mode
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     if (!brokerId || !address) {
-      console.log(
-        kleur.red('Error: --broker-id and --address are required in non-interactive mode.')
-      );
-      console.log(
-        kleur.dim('Example: orderly wallet-register --broker-id demo --address 0x1234...')
-      );
-      return;
+      error('--broker-id and --address are required in non-interactive mode.', [
+        'Example: orderly wallet-register --broker-id demo --address 0x1234...',
+      ]);
     }
   }
 
@@ -471,13 +467,9 @@ export async function walletAddKey(
   // Check for non-interactive mode
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     if (!brokerId || !address) {
-      console.log(
-        kleur.red('Error: --broker-id and --address are required in non-interactive mode.')
-      );
-      console.log(
-        kleur.dim('Example: orderly wallet-add-key --broker-id demo --address 0x1234...')
-      );
-      return;
+      error('--broker-id and --address are required in non-interactive mode.', [
+        'Example: orderly wallet-add-key --broker-id demo --address 0x1234...',
+      ]);
     }
   }
 

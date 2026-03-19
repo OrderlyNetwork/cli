@@ -33,13 +33,17 @@ import {
 import { OrderlyClient } from '../lib/api.js';
 import { setDefaultNetwork } from '../lib/config.js';
 import { getPublicKeyBase58, generateKeyPair } from '../lib/crypto.js';
-import { error, handleError } from '../lib/output.js';
+import { output, error, handleError } from '../lib/output.js';
 
 export async function walletCreate(
   walletType: WalletType | undefined,
   network: Network
 ): Promise<void> {
-  console.log(kleur.cyan(`\n🔐 Create New Wallet (${network})\n`));
+  const nonInteractive = !!walletType;
+
+  if (!nonInteractive) {
+    console.log(kleur.cyan(`\n🔐 Create New Wallet (${network})\n`));
+  }
 
   let type: WalletType = walletType ?? 'EVM';
   if (!walletType) {
@@ -88,16 +92,20 @@ export async function walletCreate(
     error('Failed to store wallet');
   }
 
-  console.log();
-  console.log(kleur.green('✅ Wallet created successfully!'));
-  console.log(kleur.dim(`Address: ${address}`));
-  console.log(kleur.dim(`Type: ${type}`));
-  console.log(kleur.dim(`Network: ${network}`));
-  console.log();
-  console.log(
-    kleur.yellow('⚠️  Private key is stored in OS keychain and will never be shown again.')
-  );
-  console.log(kleur.dim('Make sure to back up your wallet if needed for external use.'));
+  if (nonInteractive) {
+    output({ address, type, network });
+  } else {
+    console.log();
+    console.log(kleur.green('✅ Wallet created successfully!'));
+    console.log(kleur.dim(`Address: ${address}`));
+    console.log(kleur.dim(`Type: ${type}`));
+    console.log(kleur.dim(`Network: ${network}`));
+    console.log();
+    console.log(
+      kleur.yellow('⚠️  Private key is stored in OS keychain and will never be shown again.')
+    );
+    console.log(kleur.dim('Make sure to back up your wallet if needed for external use.'));
+  }
 }
 
 export async function walletImport(
@@ -323,15 +331,16 @@ export async function walletRegister(
   address: string | undefined,
   network: Network
 ): Promise<void> {
-  console.log(kleur.cyan(`\n📝 Register Account (${network})\n`));
+  const nonInteractive = !!brokerId && !!address;
 
-  // Check for non-interactive mode
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    if (!brokerId || !address) {
-      error('--broker-id and --address are required in non-interactive mode.', [
-        'Example: orderly wallet-register --broker-id demo --address 0x1234...',
-      ]);
-    }
+  if (!nonInteractive && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    error('--broker-id and --address are required in non-interactive mode.', [
+      'Example: orderly wallet-register --broker-id demo --address "0x1234..."',
+    ]);
+  }
+
+  if (!nonInteractive) {
+    console.log(kleur.cyan(`\n📝 Register Account (${network})\n`));
   }
 
   let bId = brokerId;
@@ -393,8 +402,13 @@ export async function walletRegister(
   try {
     const existingAccount = await client.getAccount(addr, bId, walletKey.walletType);
     if (existingAccount.success && existingAccount.data?.account_id) {
-      console.log(kleur.yellow(`Account already exists: ${existingAccount.data.account_id}`));
-      console.log(kleur.dim('Use `orderly wallet-add-key` to add an API key to this account.'));
+      const accountId = existingAccount.data.account_id;
+      if (nonInteractive) {
+        output({ accountId, address: addr, network });
+      } else {
+        console.log(kleur.yellow(`Account already exists: ${accountId}`));
+        console.log(kleur.dim('Use `orderly wallet-add-key` to add an API key to this account.'));
+      }
       return;
     }
   } catch {
@@ -441,13 +455,18 @@ export async function walletRegister(
   try {
     const result = await client.registerAccount(message, signature, addr, walletKey.walletType);
     if (result.success && result.data?.account_id) {
-      console.log();
-      console.log(kleur.cyan('Account ID:'));
-      console.log(kleur.white(result.data.account_id));
-      console.log();
-      console.log(
-        kleur.dim('Next step: Use `orderly wallet-add-key` to add an API key for trading.')
-      );
+      const accountId = result.data.account_id;
+      if (nonInteractive) {
+        output({ accountId, address: addr, network });
+      } else {
+        console.log();
+        console.log(kleur.cyan('Account ID:'));
+        console.log(kleur.white(accountId));
+        console.log();
+        console.log(
+          kleur.dim('Next step: Use `orderly wallet-add-key` to add an API key for trading.')
+        );
+      }
     } else {
       error('Failed to register account');
     }
@@ -462,15 +481,16 @@ export async function walletAddKey(
   scope: string | undefined,
   network: Network
 ): Promise<void> {
-  console.log(kleur.cyan(`\n🔐 Add Orderly API Key (${network})\n`));
+  const nonInteractive = !!brokerId && !!address;
 
-  // Check for non-interactive mode
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    if (!brokerId || !address) {
-      error('--broker-id and --address are required in non-interactive mode.', [
-        'Example: orderly wallet-add-key --broker-id demo --address 0x1234...',
-      ]);
-    }
+  if (!nonInteractive && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    error('--broker-id and --address are required in non-interactive mode.', [
+      'Example: orderly wallet-add-key --broker-id demo --address "0x1234..."',
+    ]);
+  }
+
+  if (!nonInteractive) {
+    console.log(kleur.cyan(`\n🔐 Add Orderly API Key (${network})\n`));
   }
 
   let bId = brokerId;
@@ -621,16 +641,20 @@ export async function walletAddKey(
       await storeKey(accountId, network, keyPair);
       setDefaultNetwork(network);
 
-      console.log();
-      console.log(kleur.green('✅ Setup complete!'));
-      console.log(kleur.dim(`Account ID: ${accountId}`));
-      console.log(kleur.dim(`Orderly Key: ${orderlyKey}`));
-      console.log();
-      console.log(kleur.dim('You can now use trading commands like:'));
-      console.log(kleur.cyan(`  orderly account-info --account ${accountId}`));
-      console.log(
-        kleur.cyan(`  orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account ${accountId}`)
-      );
+      if (nonInteractive) {
+        output({ accountId, address: addr, orderlyKey, network });
+      } else {
+        console.log();
+        console.log(kleur.green('✅ Setup complete!'));
+        console.log(kleur.dim(`Account ID: ${accountId}`));
+        console.log(kleur.dim(`Orderly Key: ${orderlyKey}`));
+        console.log();
+        console.log(kleur.dim('You can now use trading commands like:'));
+        console.log(kleur.cyan(`  orderly account-info --account ${accountId}`));
+        console.log(
+          kleur.cyan(`  orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account ${accountId}`)
+        );
+      }
     } else {
       error('Failed to add Orderly key');
     }

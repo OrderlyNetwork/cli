@@ -42,6 +42,7 @@ import {
   editAlgoOrder,
 } from './commands/algo.js';
 import { fundingHistory } from './commands/funding.js';
+import { settlePnl, settlePnlHistory } from './commands/settle.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
 import { OutputFormat, error } from './lib/output.js';
@@ -196,6 +197,9 @@ ${kleur.yellow('Market Data:')}
 
 ${kleur.yellow('Assets:')}
   chains, tokens, deposit-info, withdraw, asset-history, funding-history
+
+${kleur.yellow('PnL:')}
+  settle-pnl, settle-pnl-history
 
 ${kleur.yellow('Testnet Only:')}
   faucet-usdc
@@ -789,6 +793,42 @@ cli
   });
 
 cli
+  .command('settle-pnl', 'Settle unrealized PnL into account balance')
+  .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly settle-pnl --broker-id demo')
+  .example('orderly settle-pnl --broker-id demo --account 0x1e6b...')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void settlePnl(
+      options.brokerId,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
+  .command('settle-pnl-history', 'Get on-chain PnL settlement history')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25)')
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly settle-pnl-history')
+  .example('orderly settle-pnl-history --page 2 --size 50')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
+    void settlePnlHistory(
+      page,
+      size,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
   .command('market-price <symbol>', 'Get current market price (no auth required)')
   .example('orderly market-price PERP_ETH_USDC')
   .example('orderly market-price PERP_BTC_USDC')
@@ -901,10 +941,8 @@ cli
   });
 
 cli
-  .command(
-    'withdraw <token> <amount> <receiver> <chain-id>',
-    'Withdraw tokens (auto-signs with wallet key)'
-  )
+  .command('withdraw <token> <receiver> <chain-id>', 'Withdraw tokens (auto-signs with wallet key)')
+  .option('--amount <amount>', 'Amount to withdraw (human-readable, e.g. 10.5)')
   .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
   .option('--account <id>', 'Account ID')
   .option('--raw', 'Amount is in smallest units (default: false, use human-readable like 10.5)')
@@ -913,27 +951,30 @@ cli
     'Allow cross-chain withdrawal (required when destination chain differs from deposit chain)'
   )
   .example('# Withdraw 10 USDC (human-readable amount)')
-  .example('orderly withdraw USDC 10 0x1234... 421614 --broker-id demo')
+  .example('orderly withdraw USDC 0x1234... 421614 --amount 10 --broker-id demo')
   .example('# Withdraw 0.5 USDC')
-  .example('orderly withdraw USDC 0.5 0x1234... 421614')
+  .example('orderly withdraw USDC 0x1234... 421614 --amount 0.5')
   .example('# Withdraw to Solana (50 USDC)')
-  .example('orderly withdraw USDC 50 <sol-address> 901901901')
+  .example('orderly withdraw USDC <sol-address> 901901901 --amount 50')
   .example('# Use raw amount (10000000 = 10 USDC with 6 decimals)')
-  .example('orderly withdraw USDC 10000000 0x1234... 421614 --raw')
+  .example('orderly withdraw USDC 0x1234... 421614 --amount 10000000 --raw')
   .example('# Withdraw to different chain (cross-chain)')
-  .example('orderly withdraw USDC 10 0x1234... 84532 --allow-cross-chain')
-  .action((token, amount, receiver, chainId, options) => {
+  .example('orderly withdraw USDC 0x1234... 84532 --amount 10 --allow-cross-chain')
+  .action((token, receiver, chainId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
+    if (!options.amount) {
+      error('Missing required option: --amount');
+    }
     void withdraw(
       token,
-      amount,
+      String(options.amount),
       receiver,
-      Number(chainId),
+      parseInt(chainId, 10),
       options.brokerId,
       normalizeAccountId(options.account),
       network,
-      options.raw || false,
-      options.allowCrossChain || false,
+      options.raw,
+      options.allowCrossChain,
       getFormat(options)
     );
   });

@@ -89,6 +89,7 @@ src/
 │   ├── leverage.ts       # Leverage management
 │   ├── trades.ts         # Trade history
 │   ├── funding.ts        # Funding rate history
+│   ├── settle.ts         # PnL settlement & history
 │   └── faucet.ts         # Testnet faucet
 └── lib/
     ├── keychain.ts       # OS keychain (keytar)
@@ -169,6 +170,9 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 **Assets:**
 `chains`, `tokens`, `deposit-info`, `withdraw`, `asset-history`, `funding-history`
 
+**PnL:**
+`settle-pnl`, `settle-pnl-history`
+
 **Testnet:**
 `faucet-usdc`
 
@@ -184,6 +188,9 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 - **`algo-order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
 - **`trades`**: Supports `--page` and `--size` for pagination.
 - **`positions-history`**: Supports `--page` and `--limit` for pagination.
+- **`settle-pnl`**: Settles unrealized PnL into account balance. Requires `--broker-id`. Uses the wallet key stored in keychain for EIP-712 (EVM) or Ed25519 (Solana) signing.
+- **`settle-pnl-history`**: Get on-chain PnL settlement history. Not to be confused with trade PnL — this only shows manual/cron PnL settlement events. Supports `--page` and `--size` for pagination.
+- **`withdraw`**: Requires `--amount <amount>` option. Automatically settles negative unsettled PnL before submitting the withdrawal if positions have unrealized losses. Outputs `{ auto_settled: true, settle_pnl_id }` when auto-settle is triggered. Uses per-chain token decimals from the API (BSC USDC=18, Solana SOL=9, etc.) — never assumes a fixed decimal count.
 - **`kline`**: Get OHLC data. Intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon, 1y.
 - **`market-trades`**: Get recent public trades for a symbol. No auth required. Use `--limit` to control number of results.
 - **`funding-rates`**: Get public funding rates for all symbols. No auth required. Shows last, 1d, 7d, 30d, 90d, 180d rates.
@@ -255,6 +262,7 @@ EIP-712 signing for EVM wallets:
 - `generateEVMWallet()` - Generate new random EVM wallet
 - `signRegistration(wallet, message)` - Sign account registration
 - `signAddKey(wallet, message)` - Sign add API key
+- `signSettlePnl(wallet, message)` - Sign PnL settlement
 - `isValidEVMAddress(address)` - Validate EVM address
 - `isValidPrivateKey(key)` - Validate private key format
 
@@ -266,6 +274,7 @@ Ed25519 signing for Solana wallets:
 - `generateSolanaWallet()` - Generate new random Solana wallet
 - `signRegistration(wallet, message)` - Sign account registration
 - `signAddKey(wallet, message)` - Sign add API key
+- `signSettlePnl(wallet, params)` - Sign PnL settlement
 - `isValidSolanaAddress(address)` - Validate Solana address
 
 ### `src/lib/crypto.ts`
@@ -350,19 +359,23 @@ Config file management:
 
 ### Key Endpoints
 
-| Endpoint                         | Auth | Description    |
-| -------------------------------- | ---- | -------------- |
-| `GET /v1/client/info`            | Yes  | Account info   |
-| `GET /v1/client/holding`         | Yes  | Balances       |
-| `POST /v1/order`                 | Yes  | Place order    |
-| `DELETE /v1/order/:id`           | Yes  | Cancel order   |
-| `GET /v1/orders`                 | Yes  | List orders    |
-| `GET /v1/positions`              | Yes  | List positions |
-| `POST /v1/positions/close`       | Yes  | Close position |
-| `GET /v1/orderbook/:symbol`      | Yes  | Orderbook      |
-| `GET /v1/kline`                  | Yes  | Klines/OHLC    |
-| `GET /v1/public/futures/:symbol` | No   | Market price   |
-| `POST /v1/faucet/usdc`           | No   | Testnet faucet |
+| Endpoint                         | Auth | Description     |
+| -------------------------------- | ---- | --------------- |
+| `GET /v1/client/info`            | Yes  | Account info    |
+| `GET /v1/client/holding`         | Yes  | Balances        |
+| `POST /v1/order`                 | Yes  | Place order     |
+| `DELETE /v1/order/:id`           | Yes  | Cancel order    |
+| `GET /v1/orders`                 | Yes  | List orders     |
+| `GET /v1/positions`              | Yes  | List positions  |
+| `POST /v1/positions/close`       | Yes  | Close position  |
+| `GET /v1/orderbook/:symbol`      | Yes  | Orderbook       |
+| `GET /v1/kline`                  | Yes  | Klines/OHLC     |
+| `GET /v1/public/futures/:symbol` | No   | Market price    |
+| `POST /v1/faucet/usdc`           | No   | Testnet faucet  |
+| `GET /v1/settle_nonce`           | Yes  | Settle nonce    |
+| `POST /v1/settle_pnl`            | Yes  | Settle PnL      |
+| `GET /v1/pnl_settlement/history` | Yes  | PnL settlements |
+| `POST /v1/withdraw_request`      | Yes  | Withdraw        |
 
 ### Signature Format
 

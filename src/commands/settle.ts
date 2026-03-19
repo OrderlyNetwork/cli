@@ -1,0 +1,155 @@
+import { OrderlyClient } from '../lib/api.js';
+import { resolveAccountId } from '../lib/account-select.js';
+import { getKey, getWalletKey } from '../lib/keychain.js';
+import { output, error, handleError, OutputFormat } from '../lib/output.js';
+import { KeyPair, Network } from '../types.js';
+import { createWalletFromPrivateKey, signSettlePnl as signSettlePnlEVM } from '../lib/evm.js';
+import {
+  createSolanaWalletFromPrivateKey,
+  signSettlePnl as signSettlePnlSolana,
+  getSolanaChainId,
+} from '../lib/solana.js';
+
+const VERIFYING_CONTRACTS: Record<string, string> = {
+  mainnet: '0x6F7a338F2aA472838dEFD3283eB360d4Dff5D203',
+  testnet: '0x1826B75e2ef249173FC735149AE4B8e9ea10abff',
+};
+
+export interface SettleResult {
+  settle_pnl_id: number;
+}
+
+export async function performSettlePnl(
+  client: OrderlyClient,
+  keyPair: KeyPair,
+  brokerId: string,
+  network: Network
+): Promise<SettleResult | null> {
+  const nonceResponse = await client.getSettleNonce();
+  if (!nonceResponse.success || nonceResponse.data?.settle_nonce === undefined) {
+    return null;
+  }
+
+  const settleNonce = String(nonceResponse.data.settle_nonce);
+
+  const walletKey = await getWalletKey(keyPair.address, network);
+  if (!walletKey) {
+    return null;
+  }
+
+  const walletType = walletKey.walletType || keyPair.walletType || 'EVM';
+  const chainId =
+    walletType === 'SOL' ? getSolanaChainId(network) : network === 'mainnet' ? 42161 : 421614;
+
+  let signature: string;
+  let message: Record<string, unknown>;
+
+  if (walletType === 'SOL') {
+    const solanaWallet = createSolanaWalletFromPrivateKey(walletKey.privateKey, network);
+    const result = await signSettlePnlSolana(solanaWallet, {
+      brokerId,
+      chainId,
+      settleNonce,
+    });
+    signature = result.signature;
+    message = result.message;
+  } else {
+    const evmWallet = createWalletFromPrivateKey(walletKey.privateKey);
+    const timestamp = Date.now();
+    const settleMessage = {
+      brokerId,
+      chainId,
+      settleNonce,
+      timestamp,
+    };
+    signature = await signSettlePnlEVM(evmWallet, settleMessage, network);
+    message = settleMessage;
+  }
+
+  const result = await client.post<{
+    success: boolean;
+    data?: { settle_pnl_id: number };
+    message?: string;
+  }>('/v1/settle_pnl', {
+    message,
+    signature,
+    userAddress: keyPair.address,
+    verifyingContract: VERIFYING_CONTRACTS[network],
+  });
+
+  if (result.success && result.data?.settle_pnl_id) {
+    return result.data;
+  }
+
+  return null;
+}
+
+export async function hasNegativeUnsettledPnl(client: OrderlyClient): Promise<boolean> {
+  try {
+    const positions = (await client.get('/v1/positions')) as {
+      data?: {
+        rows?: Array<{ unsettled_pnl?: number }>;
+      };
+    };
+    const rows = positions?.data?.rows;
+    if (!rows || rows.length === 0) return false;
+    return rows.some((row) => row.unsettled_pnl !== undefined && row.unsettled_pnl < 0);
+  } catch {
+    return false;
+  }
+}
+
+export async function settlePnl(
+  brokerId: string,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    error(`No key found for account ${accId} on ${network}`);
+  }
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  try {
+    const result = await performSettlePnl(client, keyPair, brokerId, network);
+    if (result) {
+      output(result, format);
+    } else {
+      error('Failed to settle PnL');
+    }
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function settlePnlHistory(
+  page: number | undefined,
+  size: number | undefined,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) return;
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    error(`No key found for account ${accId} on ${network}`);
+  }
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  try {
+    const result = await client.getPnlSettlementHistory(page, size);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}

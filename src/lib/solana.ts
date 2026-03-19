@@ -249,3 +249,41 @@ export async function signWithdraw(
 
   return { message, signature };
 }
+
+export interface SettlePnlMessage {
+  brokerId: string;
+  chainId: number;
+  settleNonce: string;
+}
+
+export async function signSettlePnl(
+  wallet: SolanaWallet,
+  params: SettlePnlMessage
+): Promise<{ message: Record<string, unknown>; signature: string }> {
+  const timestamp = Date.now();
+
+  const message = {
+    brokerId: params.brokerId,
+    chainId: params.chainId,
+    settleNonce: params.settleNonce,
+    timestamp,
+    chainType: 'SOL' as const,
+  };
+
+  const brokerIdHash = solidityPackedKeccak256(['string'], [message.brokerId]);
+
+  const abicoder = AbiCoder.defaultAbiCoder();
+  const encodedData = abicoder.encode(
+    ['bytes32', 'uint256', 'uint64', 'uint64'],
+    [brokerIdHash, message.chainId, message.settleNonce, message.timestamp]
+  );
+
+  const msgToSign = keccak256(getBytes(encodedData));
+  const msgToSignHex = msgToSign.slice(2);
+  const msgToSignTextEncoded: Uint8Array = new TextEncoder().encode(msgToSignHex);
+
+  const signatureBytes = ed25519.sign(msgToSignTextEncoded, wallet.privateKeyBytes);
+  const signature = `0x${bytesToHex(signatureBytes)}`;
+
+  return { message, signature };
+}

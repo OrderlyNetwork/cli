@@ -171,3 +171,38 @@ export async function signWithdraw(
     message as unknown as Record<string, unknown>
   );
 }
+
+export interface SettlePnlMessage {
+  brokerId: string;
+  chainId: number;
+  settleNonce: string;
+  timestamp: number;
+}
+
+const SETTLE_PNL_TYPES = {
+  SettlePnl: [
+    { name: 'brokerId', type: 'string' },
+    { name: 'chainId', type: 'uint256' },
+    { name: 'settleNonce', type: 'uint64' },
+    { name: 'timestamp', type: 'uint64' },
+  ],
+};
+
+export async function signSettlePnl(
+  wallet: EVMWallet,
+  message: SettlePnlMessage,
+  network: Network
+): Promise<string> {
+  const domain: EIP712Domain = {
+    name: 'Orderly',
+    version: '1',
+    chainId: message.chainId,
+    verifyingContract: VERIFYING_CONTRACTS[network],
+  };
+
+  return wallet.signTypedData(
+    domain,
+    SETTLE_PNL_TYPES,
+    message as unknown as Record<string, unknown>
+  );
+}

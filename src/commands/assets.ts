@@ -10,6 +10,7 @@ import {
   createSolanaWalletFromPrivateKey,
   signWithdraw as signWithdrawSolana,
 } from '../lib/solana.js';
+import { hasNegativeUnsettledPnl, performSettlePnl } from './settle.js';
 
 const VERIFYING_CONTRACTS = {
   mainnet: '0x6F7a338F2aA472838dEFD3283eB360d4Dff5D203',
@@ -87,12 +88,24 @@ export async function withdraw(
   let rawAmountValue: string;
 
   if (rawAmount) {
+    if (!amount || isNaN(Number(amount))) {
+      error(`Invalid amount: ${amount}`, ['Amount must be a valid positive number.']);
+    }
     rawAmountValue = amount;
   } else {
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      error(`Invalid amount: ${amount}`, ['Amount must be a valid positive number (e.g., 10.5)']);
+    }
     try {
       const tokensResponse = await client.get<{
         success: boolean;
-        data?: { rows: Array<{ token: string; decimals: number }> };
+        data?: {
+          rows: Array<{
+            token: string;
+            decimals: number;
+            chain_details: Array<{ chain_id: number | string; decimals: number }>;
+          }>;
+        };
       }>('/v1/public/token');
 
       if (!tokensResponse.success || !tokensResponse.data?.rows) {
@@ -105,16 +118,25 @@ export async function withdraw(
         error(`Token ${token.toUpperCase()} not found`);
       }
 
-      rawAmountValue = parseUnits(amount, tokenInfo.decimals).toString();
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('fractional component')) {
-        error(`Invalid amount: ${amount}`, ['Amount must be a valid number (e.g., 10.5)']);
-      }
-      throw err;
+      const chainDetail = tokenInfo.chain_details.find(
+        (c) => String(c.chain_id) === String(chainId)
+      );
+      const decimals = chainDetail?.decimals ?? tokenInfo.decimals;
+
+      rawAmountValue = parseUnits(amount, decimals).toString();
+    } catch {
+      error(`Invalid amount: ${amount}`, ['Amount must be a valid number (e.g., 10.5)']);
     }
   }
 
   try {
+    if (await hasNegativeUnsettledPnl(client)) {
+      const settleResult = await performSettlePnl(client, keyPair!, brokerId, network);
+      if (settleResult) {
+        output({ auto_settled: true, settle_pnl_id: settleResult.settle_pnl_id }, format);
+      }
+    }
+
     const nonceResponse = await client.get<{ success: boolean; data?: { withdraw_nonce: string } }>(
       '/v1/withdraw_nonce'
     );

@@ -509,4 +509,21 @@ export class OrderlyClient {
       };
     }>;
   }
+
+  async getSettleNonce(): Promise<{
+    success: boolean;
+    data?: { settle_nonce: number };
+  }> {
+    return this.get('/v1/settle_nonce') as Promise<{
+      success: boolean;
+      data?: { settle_nonce: number };
+    }>;
+  }
+
+  async getPnlSettlementHistory(page?: number, size?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    params.append('page', (page ?? 1).toString());
+    params.append('size', (size ?? 25).toString());
+    return this.get(`/v1/pnl_settlement/history?${params.toString()}`);
+  }
 }

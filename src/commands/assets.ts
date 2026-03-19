@@ -1,4 +1,3 @@
-import kleur from 'kleur';
 import { parseUnits } from 'ethers';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
@@ -71,7 +70,8 @@ export async function withdraw(
   accountId: string | undefined,
   network: Network,
   rawAmount: boolean = false,
-  allowCrossChain: boolean = false
+  allowCrossChain: boolean = false,
+  format: OutputFormat = 'json'
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -112,11 +112,6 @@ export async function withdraw(
       }
       throw err;
     }
-  }
-
-  console.log(kleur.cyan(`\n💸 Withdraw ${amount} ${token} to ${receiver}\n`));
-  if (!rawAmount) {
-    console.log(kleur.dim(`Raw amount: ${rawAmountValue}`));
   }
 
   try {
@@ -172,8 +167,6 @@ export async function withdraw(
       message = withdrawMessage;
     }
 
-    console.log(kleur.dim('Signing withdrawal with stored wallet key...'));
-
     const requestBody: Record<string, unknown> = {
       message,
       signature,
@@ -195,11 +188,7 @@ export async function withdraw(
     };
 
     if (result.success && result.data?.withdraw_id) {
-      console.log(kleur.green('Withdrawal initiated successfully!'));
-      console.log(kleur.dim(`Withdrawal ID: ${result.data.withdraw_id}`));
-      console.log();
-      console.log(kleur.dim('Check status with:'));
-      console.log(kleur.cyan(`  orderly asset-history --side WITHDRAW`));
+      output(result.data, format);
     } else {
       const apiMsg = (result as Record<string, unknown>).message as string | undefined;
       error(`Failed to initiate withdrawal${apiMsg ? `: ${apiMsg}` : ''}`, [

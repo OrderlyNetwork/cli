@@ -902,7 +902,8 @@ cli
       normalizeAccountId(options.account),
       network,
       options.raw || false,
-      options.allowCrossChain || false
+      options.allowCrossChain || false,
+      getFormat(options)
     );
   });
 

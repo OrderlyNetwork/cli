@@ -198,68 +198,6 @@ export async function withdraw(
   }
 }
 
-export async function withdrawSubmit(
-  token: string,
-  amount: string,
-  receiver: string,
-  chainId: number,
-  brokerId: string,
-  signature: string,
-  accountId: string | undefined,
-  network: Network
-): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  console.log(kleur.cyan('\n📤 Submit Withdrawal Request\n'));
-  console.log(
-    kleur.yellow('Note: withdraw-submit is deprecated. Use `withdraw` which auto-signs.')
-  );
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
-
-  const timestamp = Date.now();
-  const message = {
-    brokerId,
-    chainId,
-    receiver,
-    token: token.toUpperCase(),
-    amount,
-    timestamp,
-  };
-
-  try {
-    const result = await client.post<{
-      success: boolean;
-      data?: { withdraw_id: number };
-      message?: string;
-    }>('/v1/withdraw_request', {
-      message,
-      signature,
-      userAddress: keyPair.accountId,
-      verifyingContract: VERIFYING_CONTRACTS[network],
-    });
-
-    if (result.success && result.data?.withdraw_id) {
-      console.log(kleur.green('✅ Withdrawal initiated successfully!'));
-      console.log(kleur.dim(`Withdrawal ID: ${result.data.withdraw_id}`));
-      console.log();
-      console.log(kleur.dim('Withdrawal status can be checked with:'));
-      console.log(kleur.cyan(`  orderly asset-history --side WITHDRAW`));
-    } else {
-      error('Failed to initiate withdrawal');
-    }
-  } catch (err) {
-    handleError(err);
-  }
-}
-
 export async function assetHistory(
   token: string | undefined,
   side: string | undefined,

@@ -31,14 +31,7 @@ import {
   walletAddKey,
   walletCreate,
 } from './commands/wallet.js';
-import {
-  getChains,
-  getTokens,
-  depositInfo,
-  withdraw,
-  withdrawSubmit,
-  assetHistory,
-} from './commands/assets.js';
+import { getChains, getTokens, depositInfo, withdraw, assetHistory } from './commands/assets.js';
 import { getOrSetLeverage } from './commands/leverage.js';
 import { listTrades } from './commands/trades.js';
 import {
@@ -201,7 +194,7 @@ ${kleur.yellow('Market Data:')}
   market-price, market-orderbook, market-trades, funding-rates, kline, symbols
 
 ${kleur.yellow('Assets:')}
-  chains, tokens, deposit-info, withdraw, withdraw-submit, asset-history, funding-history
+  chains, tokens, deposit-info, withdraw, asset-history, funding-history
 
 ${kleur.yellow('Testnet Only:')}
   faucet-usdc
@@ -895,32 +888,6 @@ cli
       normalizeAccountId(options.account),
       network,
       options.raw || false
-    );
-  });
-
-cli
-  .command(
-    'withdraw-submit <token> <amount> <receiver> <chain-id> <signature>',
-    '[DEPRECATED] Submit signed withdrawal - use `withdraw` instead which auto-signs'
-  )
-  .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
-  .option('--account <id>', 'Account ID')
-  .action((token, amount, receiver, chainId, signature, options) => {
-    console.log(
-      kleur.yellow(
-        'Note: withdraw-submit is deprecated. Use `withdraw` which auto-signs with stored wallet key.'
-      )
-    );
-    const network = (options.network as Network) || getDefaultNetwork();
-    void withdrawSubmit(
-      token,
-      amount,
-      receiver,
-      Number(chainId),
-      options.brokerId,
-      signature,
-      normalizeAccountId(options.account),
-      network
     );
   });
 

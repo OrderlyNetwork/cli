@@ -70,7 +70,8 @@ export async function withdraw(
   brokerId: string,
   accountId: string | undefined,
   network: Network,
-  rawAmount: boolean = false
+  rawAmount: boolean = false,
+  allowCrossChain: boolean = false
 ): Promise<void> {
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
@@ -173,25 +174,37 @@ export async function withdraw(
 
     console.log(kleur.dim('Signing withdrawal with stored wallet key...'));
 
-    const result = await client.post<{
-      success: boolean;
-      data?: { withdraw_id: number };
-      message?: string;
-    }>('/v1/withdraw_request', {
+    const requestBody: Record<string, unknown> = {
       message,
       signature,
       userAddress: keyPair.address,
       verifyingContract: VERIFYING_CONTRACTS[network],
-    });
+    };
+    if (allowCrossChain) {
+      requestBody.allow_cross_chain_withdrawal = true;
+    }
+
+    const result = (await client.post<{
+      success: boolean;
+      data?: { withdraw_id: number };
+      message?: string;
+    }>('/v1/withdraw_request', requestBody)) as {
+      success?: boolean;
+      data?: { withdraw_id: number };
+      message?: string;
+    };
 
     if (result.success && result.data?.withdraw_id) {
-      console.log(kleur.green('✅ Withdrawal initiated successfully!'));
+      console.log(kleur.green('Withdrawal initiated successfully!'));
       console.log(kleur.dim(`Withdrawal ID: ${result.data.withdraw_id}`));
       console.log();
       console.log(kleur.dim('Check status with:'));
       console.log(kleur.cyan(`  orderly asset-history --side WITHDRAW`));
     } else {
-      error('Failed to initiate withdrawal');
+      const apiMsg = (result as Record<string, unknown>).message as string | undefined;
+      error(`Failed to initiate withdrawal${apiMsg ? `: ${apiMsg}` : ''}`, [
+        'If the error mentions cross-chain, use --allow-cross-chain flag.',
+      ]);
     }
   } catch (err) {
     handleError(err);

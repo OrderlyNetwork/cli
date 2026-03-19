@@ -877,6 +877,10 @@ cli
   .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
   .option('--account <id>', 'Account ID')
   .option('--raw', 'Amount is in smallest units (default: false, use human-readable like 10.5)')
+  .option(
+    '--allow-cross-chain',
+    'Allow cross-chain withdrawal (required when destination chain differs from deposit chain)'
+  )
   .example('# Withdraw 10 USDC (human-readable amount)')
   .example('orderly withdraw USDC 10 0x1234... 421614 --broker-id demo')
   .example('# Withdraw 0.5 USDC')
@@ -885,6 +889,8 @@ cli
   .example('orderly withdraw USDC 50 <sol-address> 901901901')
   .example('# Use raw amount (10000000 = 10 USDC with 6 decimals)')
   .example('orderly withdraw USDC 10000000 0x1234... 421614 --raw')
+  .example('# Withdraw to different chain (cross-chain)')
+  .example('orderly withdraw USDC 10 0x1234... 84532 --allow-cross-chain')
   .action((token, amount, receiver, chainId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void withdraw(
@@ -895,7 +901,8 @@ cli
       options.brokerId,
       normalizeAccountId(options.account),
       network,
-      options.raw || false
+      options.raw || false,
+      options.allowCrossChain || false
     );
   });
 

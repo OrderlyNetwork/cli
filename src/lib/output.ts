@@ -9,6 +9,10 @@ interface ApiResponse {
   [key: string]: unknown;
 }
 
+export function isPrettyJson(): boolean {
+  return process.argv.includes('--pretty');
+}
+
 function unwrapResponse(response: unknown): unknown {
   if (response !== null && typeof response === 'object' && 'data' in response) {
     return (response as ApiResponse).data;
@@ -99,7 +103,7 @@ export function output(data: unknown, format: OutputFormat = 'json'): void {
   if (format === 'csv') {
     console.log(toCSV(unwrapped));
   } else {
-    console.log(JSON.stringify(unwrapped));
+    console.log(JSON.stringify(unwrapped, null, isPrettyJson() ? 2 : 0));
   }
 }
 

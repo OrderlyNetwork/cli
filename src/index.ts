@@ -214,7 +214,8 @@ cli
   .option('--network <network>', 'Network: mainnet or testnet (default: testnet)', {
     default: getDefaultNetwork(),
   })
-  .option('--csv', 'Output as CSV instead of JSON (for list data)');
+  .option('--csv', 'Output as CSV instead of JSON (for list data)')
+  .option('--pretty', 'Pretty-print JSON output (2-space indent)');
 
 function getFormat(options: { csv?: boolean }): OutputFormat {
   return options.csv ? 'csv' : 'json';

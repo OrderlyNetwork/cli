@@ -767,9 +767,16 @@ cli
   });
 
 cli
-  .command('symbols', 'List all available trading symbols (no auth required)')
-  .option('--info', 'Show detailed order rules')
+  .command(
+    'symbols',
+    'List trading symbols. Default: compact list (symbol, pair, prices). Use --info for full order rules (lot size, min notional, price tick, etc.)'
+  )
+  .option(
+    '--info',
+    'Show detailed per-symbol order rules instead of compact list (calls /v1/public/info instead of /v1/public/futures)'
+  )
   .example('orderly symbols')
+  .example('orderly symbols --csv')
   .example('orderly symbols --info')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();

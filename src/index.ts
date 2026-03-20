@@ -332,10 +332,13 @@ cli
 
 cli
   .command('auth-list', 'List all stored API keys (public keys only)')
+  .option('--ids', 'Output only account IDs, one per line (for scripting/piping)')
   .example('orderly auth-list')
+  .example('orderly auth-list --ids')
+  .example('orderly auth-list --network testnet --ids')
   .action((options) => {
     const network = options.network as Network | undefined;
-    void list(network, getFormat(options));
+    void list(network, getFormat(options), options.ids || false);
   });
 
 cli

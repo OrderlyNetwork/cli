@@ -74,15 +74,23 @@ function getWalletType(key: { accountId: string; walletType?: string }): string 
 
 export async function list(
   network: Network | undefined,
-  format: OutputFormat = 'json'
+  format: OutputFormat = 'json',
+  idsOnly: boolean = false
 ): Promise<void> {
   const keys = await listKeys();
 
   const filteredKeys = network ? keys.filter((k) => k.network === network) : keys;
 
   if (filteredKeys.length === 0) {
-    if (format === 'json') {
+    if (!idsOnly) {
       console.log(kleur.yellow('No keys stored. Run `orderly wallet-add-key` to get started.'));
+    }
+    return;
+  }
+
+  if (idsOnly) {
+    for (const key of filteredKeys) {
+      console.log(key.accountId);
     }
     return;
   }

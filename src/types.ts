@@ -102,14 +102,16 @@ export interface ApiConfig {
   baseUrl: string;
 }
 
+export const ORDERLY_APP_ID = 'OqdphuyCtYWxwzhxyLLjOWNdFP7sQt8RPWzmb5xY';
+
 export const NETWORK_URLS: Record<Network, { api: string; ws: string }> = {
   mainnet: {
     api: 'https://api.orderly.org',
-    ws: 'wss://ws-api.orderly.org',
+    ws: `wss://ws-evm.orderly.org/ws/stream/${ORDERLY_APP_ID}`,
   },
   testnet: {
     api: 'https://testnet-api.orderly.org',
-    ws: 'wss://testnet-ws-api.orderly.org',
+    ws: `wss://testnet-ws-evm.orderly.org/ws/stream/${ORDERLY_APP_ID}`,
   },
 };
 

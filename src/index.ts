@@ -561,12 +561,11 @@ cli
   });
 
 cli
-  .command('market-orderbook <symbol>', 'Get orderbook')
-  .option('--account <id>', 'Account ID (required)')
+  .command('market-orderbook <symbol>', 'Get orderbook snapshot')
   .example('orderly market-orderbook PERP_ETH_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getOrderbook(symbol, normalizeAccountId(options.account), network, getFormat(options));
+    void getOrderbook(symbol, network, getFormat(options));
   });
 
 cli
@@ -870,20 +869,12 @@ cli
 cli
   .command('kline <symbol> <type>', 'Get candlestick/kline data')
   .option('--limit <n>', 'Number of candles (max 1000)')
-  .option('--account <id>', 'Account ID (required)')
   .example('orderly kline PERP_ETH_USDC 1h')
   .example('orderly kline PERP_BTC_USDC 1d --limit 30')
   .action((symbol, type, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const limit = options.limit ? parseInt(options.limit, 10) : 100;
-    void getKline(
-      symbol,
-      type,
-      limit,
-      normalizeAccountId(options.account),
-      network,
-      getFormat(options)
-    );
+    void getKline(symbol, type, limit, network, getFormat(options));
   });
 
 cli

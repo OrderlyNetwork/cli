@@ -225,6 +225,7 @@ export async function withdraw(
 export async function assetHistory(
   token: string | undefined,
   side: string | undefined,
+  status: string | undefined,
   page: number | undefined,
   size: number | undefined,
   accountId: string | undefined,
@@ -246,8 +247,9 @@ export async function assetHistory(
     const params = new URLSearchParams();
     if (token) params.append('token', token.toUpperCase());
     if (side) params.append('side', side.toUpperCase());
+    if (status) params.append('status', status.toUpperCase());
     params.append('page', (page ?? 1).toString());
-    params.append('size', (size ?? 20).toString());
+    params.append('size', (size ?? 25).toString());
 
     const result = await client.get(`/v1/asset/history?${params.toString()}`);
     output(result, format);

@@ -460,9 +460,15 @@ export class OrderlyClient {
     return this.delete(queryString ? `/v1/algo/orders?${queryString}` : '/v1/algo/orders');
   }
 
-  async getAlgoOrders(symbol?: string, page?: number, size?: number): Promise<unknown> {
+  async getAlgoOrders(
+    symbol?: string,
+    status?: string,
+    page?: number,
+    size?: number
+  ): Promise<unknown> {
     const params = new URLSearchParams();
     if (symbol) params.append('symbol', symbol);
+    if (status) params.append('status', status);
     if (page) params.append('page', page.toString());
     if (size) params.append('size', size.toString());
     const queryString = params.toString();

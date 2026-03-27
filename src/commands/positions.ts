@@ -58,7 +58,7 @@ export async function positionHistory(
   startT: number | undefined,
   endT: number | undefined,
   page: number | undefined,
-  limit: number | undefined,
+  size: number | undefined,
   accountId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -75,7 +75,7 @@ export async function positionHistory(
   client.setKeyPair(keyPair);
 
   try {
-    const result = await client.getPositionHistory(symbol, startT, endT, page, limit);
+    const result = await client.getPositionHistory(symbol, startT, endT, page, size);
     output(result, format);
   } catch (err) {
     handleError(err);

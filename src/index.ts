@@ -577,23 +577,23 @@ cli
   .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
   .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
   .option('--page <n>', 'Page number (default: 1)')
-  .option('--limit <n>', 'Page size (default: 25)')
+  .option('--size <n>', 'Page size (default: 25)')
   .option('--account <id>', 'Account ID (required)')
   .example('orderly positions-history')
   .example('orderly positions-history --symbol PERP_ETH_USDC')
-  .example('orderly positions-history --page 2 --limit 50')
+  .example('orderly positions-history --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const startT = options.startT ? parseInt(options.startT, 10) : undefined;
     const endT = options.endT ? parseInt(options.endT, 10) : undefined;
     const page = options.page ? parseInt(options.page, 10) : undefined;
-    const limit = options.limit ? parseInt(options.limit, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
     void positionHistory(
       options.symbol,
       startT,
       endT,
       page,
-      limit,
+      size,
       normalizeAccountId(options.account),
       network,
       getFormat(options)
@@ -758,11 +758,13 @@ cli
 cli
   .command('algo-order-list', 'List algo orders')
   .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--status <status>', 'Filter by status: NEW, CANCELLED, INCOMPLETE, COMPLETED')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25, max: 500)')
   .option('--account <id>', 'Account ID (required)')
   .example('orderly algo-order-list')
   .example('orderly algo-order-list --symbol PERP_ETH_USDC')
+  .example('orderly algo-order-list --status INCOMPLETE')
   .example('orderly algo-order-list --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -770,6 +772,7 @@ cli
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void listAlgoOrders(
       options.symbol,
+      options.status,
       page,
       size,
       normalizeAccountId(options.account),
@@ -844,7 +847,7 @@ cli
   });
 
 cli
-  .command('market-price <symbol>', 'Get current market price (no auth required)')
+  .command('market-price <symbol>', 'Get current market price')
   .example('orderly market-price PERP_ETH_USDC')
   .example('orderly market-price PERP_BTC_USDC')
   .action((symbol, options) => {
@@ -881,7 +884,7 @@ cli
   });
 
 cli
-  .command('market-trades <symbol>', 'Get recent public trades (no auth required)')
+  .command('market-trades <symbol>', 'Get recent public trades')
   .option('--limit <n>', 'Number of trades (default: 50)')
   .example('orderly market-trades PERP_ETH_USDC')
   .example('orderly market-trades PERP_BTC_USDC --limit 20')
@@ -990,11 +993,16 @@ cli
   .command('asset-history', 'Get asset deposit/withdraw history')
   .option('--token <token>', 'Filter by token')
   .option('--side <side>', 'Filter by side: DEPOSIT or WITHDRAW')
+  .option(
+    '--status <status>',
+    'Filter by status: NEW, CONFIRM, PROCESSING, COMPLETED, FAILED, PENDING_REBALANCE'
+  )
   .option('--page <n>', 'Page number (default: 1)')
-  .option('--size <n>', 'Page size (default: 20)')
+  .option('--size <n>', 'Page size (default: 25)')
   .option('--account <id>', 'Account ID')
   .example('orderly asset-history')
   .example('orderly asset-history --side DEPOSIT')
+  .example('orderly asset-history --status PROCESSING')
   .example('orderly asset-history --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -1003,6 +1011,7 @@ cli
     void assetHistory(
       options.token,
       options.side,
+      options.status,
       page,
       size,
       normalizeAccountId(options.account),

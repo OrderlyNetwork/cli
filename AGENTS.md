@@ -188,7 +188,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 - **`algo-order-cancel`**: `--symbol` optional - auto-fetched from order if not provided.
 - **`trades`**: Supports `--page` and `--size` for pagination.
 - **`account-statistics`**: Returns trading volume (24h, 7d, 30d, YTD, LTD), fees paid, and days since registration. Supports `--pretty` and `--csv`.
-- **`positions-history`**: Supports `--page` and `--limit` for pagination.
+- **`positions-history`**: Supports `--page` and `--size` for pagination.
 - **`settle-pnl`**: Settles unrealized PnL into account balance. Requires `--broker-id`. Uses the wallet key stored in keychain for EIP-712 (EVM) or Ed25519 (Solana) signing.
 - **`settle-pnl-history`**: Get on-chain PnL settlement history. Not to be confused with trade PnL — this only shows manual/cron PnL settlement events. Supports `--page` and `--size` for pagination.
 - **`withdraw`**: Requires `--amount <amount>` option. Automatically settles negative unsettled PnL before submitting the withdrawal if positions have unrealized losses. Outputs `{ auto_settled: true, settle_pnl_id }` when auto-settle is triggered. Uses per-chain token decimals from the API (BSC USDC=18, Solana SOL=9, etc.) — never assumes a fixed decimal count.

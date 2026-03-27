@@ -294,6 +294,7 @@ export async function editAlgoOrder(
 
 export async function listAlgoOrders(
   symbol: string | undefined,
+  status: string | undefined,
   page: number | undefined,
   size: number | undefined,
   accountId: string | undefined,
@@ -312,7 +313,7 @@ export async function listAlgoOrders(
   client.setKeyPair(keyPair);
 
   try {
-    const result = await client.getAlgoOrders(symbol, page, size);
+    const result = await client.getAlgoOrders(symbol, status, page, size);
     output(result, format);
   } catch (err) {
     handleError(err);

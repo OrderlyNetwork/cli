@@ -259,7 +259,7 @@ cli
   .example('orderly wallet-list --network testnet')
   .action((options) => {
     const network = options.network as Network | undefined;
-    void walletList(network);
+    void walletList(network, getFormat(options));
   });
 
 cli
@@ -342,12 +342,17 @@ cli
   });
 
 cli
-  .command('auth-show [account-id]', 'Show public key for an account')
+  .command('auth-show', 'Show public key for an account')
+  .option('--account <id>', 'Account ID (optional, auto-resolves if single account)')
   .example('orderly auth-show')
-  .example('orderly auth-show 12345')
-  .action((accountId, options) => {
+  .example('orderly auth-show --account 0x1e6b...')
+  .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void show(accountId, network, getFormat(options));
+    void show(
+      options.account ? normalizeAccountId(options.account) : undefined,
+      network,
+      getFormat(options)
+    );
   });
 
 cli

@@ -33,7 +33,7 @@ import {
 import { OrderlyClient } from '../lib/api.js';
 import { setDefaultNetwork } from '../lib/config.js';
 import { getPublicKeyBase58, generateKeyPair } from '../lib/crypto.js';
-import { output, error, handleError } from '../lib/output.js';
+import { output, error, handleError, type OutputFormat } from '../lib/output.js';
 
 export async function walletCreate(
   walletType: WalletType | undefined,
@@ -206,23 +206,26 @@ export async function walletImport(
   console.log(kleur.dim(`Type: ${type}`));
 }
 
-export async function walletList(network: Network | undefined): Promise<void> {
-  console.log(kleur.cyan('\n📋 Stored Wallets\n'));
-
+export async function walletList(
+  network: Network | undefined,
+  format: OutputFormat = 'json'
+): Promise<void> {
   const wallets = await listWalletKeys();
 
   const filteredWallets = network ? wallets.filter((w) => w.network === network) : wallets;
 
   if (filteredWallets.length === 0) {
-    console.log(kleur.yellow('No wallets stored. Run `orderly wallet-import` to get started.'));
-    return;
+    if (format === 'csv') return;
+    error('No wallets stored. Run `orderly wallet-import` to get started.');
   }
 
-  for (const wallet of filteredWallets) {
-    console.log(
-      `${kleur.cyan(wallet.address)} ${kleur.dim(`[${wallet.network}]`)} ${kleur.dim(`(${wallet.walletType})`)}`
-    );
-  }
+  const result = filteredWallets.map((wallet) => ({
+    address: wallet.address,
+    network: wallet.network,
+    walletType: wallet.walletType,
+  }));
+
+  output(result, format);
 }
 
 export async function walletShow(address: string | undefined, network: Network): Promise<void> {

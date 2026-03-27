@@ -4,18 +4,19 @@ import { resolveAccountId } from '../lib/account-select.js';
 import { getKey, getWalletKey } from '../lib/keychain.js';
 import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
-import { getContractAddresses, isSupportedChain } from '../lib/contracts.js';
+import {
+  getChainInfo,
+  getChainName,
+  getTokenAddress,
+  isSupportedChain,
+  getVerifyingContract,
+} from '../lib/contracts.js';
 import { createWalletFromPrivateKey, signWithdraw as signWithdrawEVM } from '../lib/evm.js';
 import {
   createSolanaWalletFromPrivateKey,
   signWithdraw as signWithdrawSolana,
 } from '../lib/solana.js';
 import { hasNegativeUnsettledPnl, performSettlePnl } from './settle.js';
-
-const VERIFYING_CONTRACTS = {
-  mainnet: '0x6F7a338F2aA472838dEFD3283eB360d4Dff5D203',
-  testnet: '0x1826B75e2ef249173FC735149AE4B8e9ea10abff',
-};
 
 export async function getChains(network: Network, format: OutputFormat = 'json'): Promise<void> {
   const client = new OrderlyClient(network);
@@ -45,19 +46,23 @@ export async function depositInfo(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  if (!isSupportedChain(chainId, network)) {
+  const supported = await isSupportedChain(chainId, network);
+  if (!supported) {
     error(
       `Chain ID ${chainId} is not supported on ${network}. Use 'orderly chains' to see supported chains.`
     );
   }
 
-  const addresses = getContractAddresses(chainId, network);
+  const chainName = await getChainName(chainId, network);
+  const chainVault = await getChainInfo(chainId, network);
+  const tokenAddress = await getTokenAddress(token, chainId, network);
+
   const result = {
-    chain: addresses.name,
+    chain: chainName,
     chainId,
     token: token.toUpperCase(),
-    tokenAddress: addresses.usdc,
-    vaultAddress: addresses.vault,
+    tokenAddress: tokenAddress ?? null,
+    vaultAddress: chainVault?.vault_address ?? null,
   };
   output(result, format);
 }
@@ -193,7 +198,7 @@ export async function withdraw(
       message,
       signature,
       userAddress: keyPair.address,
-      verifyingContract: VERIFYING_CONTRACTS[network],
+      verifyingContract: getVerifyingContract(network),
     };
     if (allowCrossChain) {
       requestBody.allow_cross_chain_withdrawal = true;

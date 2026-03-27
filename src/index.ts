@@ -417,7 +417,10 @@ cli
 
 // Trading commands
 cli
-  .command('order-place <symbol> <side> <type> <quantity>', 'Place a new order')
+  .command(
+    'order-place <symbol> <side> <type> <quantity>',
+    'Place a new order. Types: MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK (market sell), BID (market buy)'
+  )
   .option('--price <price>', 'Order price (required for LIMIT, IOC, FOK, POST_ONLY)')
   .option('--client-order-id <id>', 'Custom client order ID (optional)')
   .option('--account <id>', 'Account ID (required)')

@@ -535,7 +535,11 @@ cli
 cli
   .command('batch-order-place <orders>', 'Place multiple orders (max 10)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
-  .example('# From JSON string:')
+  .example('# Using CLI-style field names (recommended):')
+  .example(
+    'orderly batch-order-place \'[{"symbol":"PERP_ETH_USDC","type":"LIMIT","side":"BUY","quantity":"0.01","price":"2000"}]\''
+  )
+  .example('# Using API field names (also accepted):')
   .example(
     'orderly batch-order-place \'[{"symbol":"PERP_ETH_USDC","order_type":"LIMIT","side":"BUY","order_quantity":"0.01","order_price":"2000"}]\''
   )

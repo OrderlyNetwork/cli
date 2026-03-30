@@ -236,6 +236,80 @@ export async function listOrders(
   }
 }
 
+type RawBatchOrder = Record<string, unknown>;
+
+interface NormalizedBatchOrder {
+  symbol: string;
+  order_type: string;
+  side: string;
+  order_quantity: string;
+  order_price?: string;
+  client_order_id?: string;
+}
+
+function normalizeBatchOrder(order: RawBatchOrder, index: number): NormalizedBatchOrder {
+  const idx = `[${index}]`;
+
+  if (typeof order !== 'object' || order === null) {
+    error(`Order ${idx} must be an object.`);
+  }
+
+  const symbol = (order.symbol ?? order.s) as string | undefined;
+  if (!symbol || typeof symbol !== 'string') {
+    error(`Order ${idx}: "symbol" is required.`);
+  }
+
+  const rawType = (order.type ?? order.order_type ?? order.t) as string | undefined;
+  if (!rawType || typeof rawType !== 'string') {
+    error(`Order ${idx}: "type" is required.`);
+  }
+  const upperType = rawType.toUpperCase();
+  if (!VALID_ORDER_TYPES.includes(upperType)) {
+    error(`Order ${idx}: invalid type "${rawType}". Use one of: ${VALID_ORDER_TYPES.join(', ')}.`);
+  }
+
+  const side = (order.side ?? order.s) as string | undefined;
+  if (!side || typeof side !== 'string') {
+    error(`Order ${idx}: "side" is required (BUY or SELL).`);
+  }
+  if (side.toUpperCase() !== 'BUY' && side.toUpperCase() !== 'SELL') {
+    error(`Order ${idx}: invalid side "${side}". Use BUY or SELL.`);
+  }
+
+  const rawQty = (order.quantity ?? order.order_quantity ?? order.qty ?? order.q) as
+    | string
+    | number
+    | undefined;
+  if (rawQty === undefined || rawQty === null) {
+    error(`Order ${idx}: "quantity" is required.`);
+  }
+  const qtyStr = String(rawQty);
+  if (isNaN(Number(qtyStr)) || Number(qtyStr) <= 0) {
+    error(`Order ${idx}: "quantity" must be a positive number.`);
+  }
+
+  const rawPrice = order.price ?? order.order_price ?? order.p;
+  if (PRICE_REQUIRED_TYPES.includes(upperType)) {
+    if (rawPrice === undefined || rawPrice === null) {
+      error(`Order ${idx}: "price" is required for ${upperType} orders.`);
+    }
+    if (isNaN(Number(rawPrice)) || Number(rawPrice) <= 0) {
+      error(`Order ${idx}: "price" must be a positive number.`);
+    }
+  }
+
+  const rawClientId = order.client_order_id ?? order.clientOrderId;
+
+  return {
+    symbol: symbol.toUpperCase(),
+    order_type: upperType,
+    side: side.toUpperCase(),
+    order_quantity: qtyStr,
+    ...(rawPrice !== undefined && rawPrice !== null ? { order_price: String(rawPrice) } : {}),
+    ...(rawClientId !== undefined ? { client_order_id: String(rawClientId) } : {}),
+  };
+}
+
 export async function batchPlace(
   ordersInput: string,
   accountId: string | undefined,
@@ -245,93 +319,28 @@ export async function batchPlace(
   const accId = await resolveAccountId(accountId, network);
   if (!accId) return;
 
-  let orders: Array<{
-    symbol: string;
-    order_type: string;
-    side: string;
-    order_quantity: string;
-    order_price?: string;
-    client_order_id?: string;
-  }>;
+  let rawOrders: RawBatchOrder[];
 
   try {
     if (existsSync(ordersInput)) {
       const content = readFileSync(ordersInput, 'utf-8');
-      orders = JSON.parse(content);
+      rawOrders = JSON.parse(content);
     } else {
-      orders = JSON.parse(ordersInput);
+      rawOrders = JSON.parse(ordersInput);
     }
   } catch {
     error('Invalid JSON. Provide a valid JSON array or a path to a JSON file.');
   }
 
-  if (!Array.isArray(orders) || orders.length === 0) {
+  if (!Array.isArray(rawOrders) || rawOrders.length === 0) {
     error('Orders must be a non-empty array.');
   }
 
-  if (orders.length > 10) {
+  if (rawOrders.length > 10) {
     error('Maximum 10 orders allowed per batch.');
   }
 
-  for (let i = 0; i < orders.length; i++) {
-    const order = orders[i];
-    const idx = `[${i}]`;
-
-    if (typeof order !== 'object' || order === null) {
-      error(`Order ${idx} must be an object.`);
-    }
-
-    if (!order.symbol || typeof order.symbol !== 'string') {
-      error(`Order ${idx}: "symbol" is required (string).`);
-    }
-
-    if (!order.order_type || typeof order.order_type !== 'string') {
-      error(`Order ${idx}: "order_type" is required (string).`);
-    }
-
-    const upperType = order.order_type.toUpperCase();
-    if (!VALID_ORDER_TYPES.includes(upperType)) {
-      error(
-        `Order ${idx}: invalid "order_type" "${order.order_type}". Use one of: ${VALID_ORDER_TYPES.join(', ')}.`
-      );
-    }
-
-    if (!order.side || typeof order.side !== 'string') {
-      error(`Order ${idx}: "side" is required (BUY or SELL).`);
-    }
-
-    if (order.side.toUpperCase() !== 'BUY' && order.side.toUpperCase() !== 'SELL') {
-      error(`Order ${idx}: invalid "side" "${order.side}". Use BUY or SELL.`);
-    }
-
-    if (!order.order_quantity || typeof order.order_quantity !== 'string') {
-      error(`Order ${idx}: "order_quantity" is required (string, e.g. "0.01").`);
-    }
-
-    if (isNaN(Number(order.order_quantity)) || Number(order.order_quantity) <= 0) {
-      error(`Order ${idx}: "order_quantity" must be a positive number.`);
-    }
-
-    if (PRICE_REQUIRED_TYPES.includes(upperType)) {
-      if (order.order_price === undefined || order.order_price === null) {
-        error(`Order ${idx}: "order_price" is required for ${upperType} orders.`);
-      }
-      if (isNaN(Number(order.order_price)) || Number(order.order_price) <= 0) {
-        error(`Order ${idx}: "order_price" must be a positive number.`);
-      }
-    }
-  }
-
-  const normalizedOrders = orders.map((order) => ({
-    symbol: order.symbol.toUpperCase(),
-    order_type: order.order_type.toUpperCase(),
-    side: order.side.toUpperCase(),
-    order_quantity: order.order_quantity,
-    ...(order.order_price !== undefined && order.order_price !== null
-      ? { order_price: order.order_price }
-      : {}),
-    ...(order.client_order_id !== undefined ? { client_order_id: order.client_order_id } : {}),
-  }));
+  const normalizedOrders = rawOrders.map((order, i) => normalizeBatchOrder(order, i));
 
   const keyPair = await getKey(accId, network);
   if (!keyPair) {

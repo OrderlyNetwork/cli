@@ -43,6 +43,9 @@ import {
 } from './commands/algo.js';
 import { fundingHistory } from './commands/funding.js';
 import { settlePnl, settlePnlHistory } from './commands/settle.js';
+import { info as referralInfo } from './commands/referral.js';
+import { distributionHistory, volumeStats } from './commands/stats.js';
+import { inbox, inboxUnread } from './commands/notification.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
 import { OutputFormat, error } from './lib/output.js';
@@ -200,6 +203,12 @@ ${kleur.yellow('Assets:')}
 
 ${kleur.yellow('PnL:')}
   settle-pnl, settle-pnl-history
+
+${kleur.yellow('Referral:')}
+  referral-info
+
+${kleur.yellow('Stats & Notifications:')}
+  distribution-history, volume-stats, notification-inbox, notification-unread
 
 ${kleur.yellow('Testnet Only:')}
   faucet-usdc
@@ -852,6 +861,90 @@ cli
       network,
       getFormat(options)
     );
+  });
+
+cli
+  .command('referral-info', 'Get referral information (referrer/referee stats and codes)')
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly referral-info')
+  .example('orderly referral-info --account 0x1e6b...')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void referralInfo(normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command('distribution-history', 'Get broker fee and referral rebate history')
+  .option('--status <status>', 'Filter by status: CREATED, SPLIT, COMPLETED')
+  .option('--type <type>', 'Filter by type: BROKER_FEE, REFEREE_REBATE, REFERRER_REBATE')
+  .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
+  .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25)')
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly distribution-history')
+  .example('orderly distribution-history --type REFERRER_REBATE')
+  .example('orderly distribution-history --status COMPLETED --page 2 --size 50')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const startT = options.startT ? parseInt(options.startT, 10) : undefined;
+    const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
+    void distributionHistory(
+      options.status,
+      options.type,
+      startT,
+      endT,
+      page,
+      size,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
+  .command('volume-stats', 'Get perp trading volume statistics (today, 1d, 7d, 30d, YTD, LTD)')
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly volume-stats')
+  .example('orderly volume-stats --account 0x1e6b...')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void volumeStats(normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command('notification-inbox', 'List notification inbox messages')
+  .option('--type <type>', 'Filter by type: TRADE or SYSTEM')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25)')
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly notification-inbox')
+  .example('orderly notification-inbox --type TRADE')
+  .example('orderly notification-inbox --page 2 --size 50')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
+    void inbox(
+      options.type,
+      page,
+      size,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
+  .command('notification-unread', 'Get unread notification count and messages')
+  .option('--account <id>', 'Account ID (required)')
+  .example('orderly notification-unread')
+  .example('orderly notification-unread --account 0x1e6b...')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void inboxUnread(normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli

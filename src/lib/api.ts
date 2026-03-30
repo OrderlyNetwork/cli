@@ -536,4 +536,47 @@ export class OrderlyClient {
     params.append('size', (size ?? 25).toString());
     return this.get(`/v1/pnl_settlement/history?${params.toString()}`);
   }
+
+  async getReferralInfo(): Promise<unknown> {
+    return this.get('/v1/referral/info');
+  }
+
+  async getDistributionHistory(
+    status?: string,
+    type?: string,
+    startT?: number,
+    endT?: number,
+    page?: number,
+    size?: number
+  ): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (type) params.append('type', type);
+    if (startT) params.append('start_t', startT.toString());
+    if (endT) params.append('end_t', endT.toString());
+    params.append('page', (page ?? 1).toString());
+    params.append('size', (size ?? 25).toString());
+    const queryString = params.toString();
+    return this.get(
+      queryString
+        ? `/v1/client/distribution_history?${queryString}`
+        : '/v1/client/distribution_history'
+    );
+  }
+
+  async getVolumeStats(): Promise<unknown> {
+    return this.get('/v1/volume/user/stats');
+  }
+
+  async getNotificationInbox(type?: string, page?: number, size?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (type) params.append('type', type);
+    params.append('page', (page ?? 1).toString());
+    params.append('size', (size ?? 25).toString());
+    return this.get(`/v1/notification/inbox/notifications?${params.toString()}`);
+  }
+
+  async getNotificationInboxUnread(): Promise<unknown> {
+    return this.get('/v1/notification/inbox/unread');
+  }
 }

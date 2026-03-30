@@ -22,7 +22,7 @@ export async function getChains(network: Network, format: OutputFormat = 'json')
   const client = new OrderlyClient(network);
 
   try {
-    const result = await client.get('/v1/public/chain_info?broker_id=demo', false);
+    const result = await client.get('/v1/public/chain_info', false);
     output(result, format);
   } catch (err) {
     handleError(err);
@@ -72,7 +72,6 @@ export async function withdraw(
   amount: string,
   receiver: string,
   chainId: number,
-  brokerId: string,
   accountId: string | undefined,
   network: Network,
   rawAmount: boolean = false,
@@ -89,6 +88,8 @@ export async function withdraw(
 
   const client = new OrderlyClient(network);
   client.setKeyPair(keyPair);
+
+  const brokerId = await client.getBrokerId(keyPair!.accountId);
 
   let rawAmountValue: string;
 
@@ -136,7 +137,7 @@ export async function withdraw(
 
   try {
     if (await hasNegativeUnsettledPnl(client)) {
-      const settleResult = await performSettlePnl(client, keyPair!, brokerId, network);
+      const settleResult = await performSettlePnl(client, keyPair!, network);
       if (settleResult) {
         output({ auto_settled: true, settle_pnl_id: settleResult.settle_pnl_id }, format);
       }

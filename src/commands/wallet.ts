@@ -14,6 +14,7 @@ import {
   listWalletKeys,
   hasWalletKey,
   storeKey,
+  listKeys,
 } from '../lib/keychain.js';
 import {
   createWalletFromPrivateKey,
@@ -479,35 +480,20 @@ export async function walletRegister(
 }
 
 export async function walletAddKey(
-  brokerId: string | undefined,
   address: string | undefined,
   scope: string | undefined,
   network: Network
 ): Promise<void> {
-  const nonInteractive = !!brokerId && !!address;
+  const nonInteractive = !!address;
 
   if (!nonInteractive && (!process.stdin.isTTY || !process.stdout.isTTY)) {
-    error('--broker-id and --address are required in non-interactive mode.', [
-      'Example: orderly wallet-add-key --broker-id demo --address "0x1234..."',
+    error('--address is required in non-interactive mode.', [
+      'Example: orderly wallet-add-key --address "0x1234..."',
     ]);
   }
 
   if (!nonInteractive) {
     console.log(kleur.cyan(`\n🔐 Add Orderly API Key (${network})\n`));
-  }
-
-  let bId = brokerId;
-  if (!bId) {
-    const response = await prompts({
-      type: 'text',
-      name: 'brokerId',
-      message: 'Enter your Broker ID',
-      validate: (value: string) => (value.length > 0 ? true : 'Broker ID is required'),
-    });
-    if (!response.brokerId) {
-      error('Cancelled.');
-    }
-    bId = response.brokerId.trim();
   }
 
   let addr = address;
@@ -541,10 +527,6 @@ export async function walletAddKey(
     error('No address selected.');
   }
 
-  if (!bId) {
-    error('Broker ID is required.');
-  }
-
   walletKey = await getWalletKey(addr, network);
   if (!walletKey) {
     error(`No wallet found for ${addr} on ${network}`);
@@ -552,11 +534,38 @@ export async function walletAddKey(
 
   const client = new OrderlyClient(network);
 
-  const accountInfo = await client.getAccount(addr, bId, walletKey.walletType);
-  if (!accountInfo.success || !accountInfo.data?.account_id) {
-    error('Account not found. Run `orderly wallet-register` first.');
+  const storedKeys = await listKeys();
+  const matchingKey = storedKeys.find((k) => k.address === addr && k.network === network);
+
+  let accountId: string;
+  let brokerId: string;
+
+  if (matchingKey) {
+    accountId = matchingKey.accountId;
+    try {
+      brokerId = await client.getBrokerId(accountId);
+    } catch {
+      error('Failed to resolve broker_id for account. Register the account first.');
+    }
+  } else {
+    const response = await prompts({
+      type: 'text',
+      name: 'brokerId',
+      message: 'Enter your Broker ID',
+      validate: (value: string) => (value.length > 0 ? true : 'Broker ID is required'),
+    });
+    if (!response.brokerId) {
+      error('Cancelled.');
+    }
+    const bId = response.brokerId.trim();
+
+    const accountInfo = await client.getAccount(addr, bId, walletKey.walletType);
+    if (!accountInfo.success || !accountInfo.data?.account_id) {
+      error('Account not found. Run `orderly wallet-register` first.');
+    }
+    accountId = accountInfo.data.account_id;
+    brokerId = bId;
   }
-  const accountId = accountInfo.data.account_id;
 
   let keyScope = scope;
   if (!keyScope && (!process.stdin.isTTY || !process.stdout.isTTY)) {
@@ -602,7 +611,7 @@ export async function walletAddKey(
   try {
     if (walletKey.walletType === 'EVM') {
       const evmMessage: AddKeyMessage = {
-        brokerId: bId,
+        brokerId,
         chainId,
         orderlyKey,
         scope: keyScope,
@@ -615,7 +624,7 @@ export async function walletAddKey(
     } else {
       const wallet = createSolanaWalletFromPrivateKey(walletKey.privateKey, network);
       const result = await signSolanaAddKey(wallet, {
-        brokerId: bId,
+        brokerId,
         publicKey: orderlyKey,
         scope: keyScope,
         timestamp,

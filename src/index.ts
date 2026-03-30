@@ -147,10 +147,10 @@ ${kleur.dim('─'.repeat(50))}
    ${kleur.green('orderly wallet-register --broker-id demo')}
 
 3. Get test USDC (wait a few minutes for delivery):
-   ${kleur.green('orderly faucet-usdc <address> --broker-id demo --chain-id 421614')}
+   ${kleur.green('orderly faucet-usdc <address> --chain-id 421614')}
 
 4. Add API key for trading:
-   ${kleur.green('orderly wallet-add-key --broker-id demo')}
+   ${kleur.green('orderly wallet-add-key')}
 
 5. Check balance:
    ${kleur.green('orderly account-balance')}
@@ -311,19 +311,13 @@ cli
 
 cli
   .command('wallet-add-key', 'Add Orderly API key for trading (Step 3 of setup)')
-  .option('--broker-id <id>', 'Broker ID (required for AI/scripts, prompts if omitted)')
   .option('--address <address>', 'Wallet address (required for AI/scripts, prompts if omitted)')
   .option('--scope <scope>', 'Key scopes: read,trading,asset (default: read,trading)')
-  .example('orderly wallet-add-key --broker-id demo')
-  .example('orderly wallet-add-key --broker-id demo --scope read,trading')
+  .example('orderly wallet-add-key')
+  .example('orderly wallet-add-key --scope read,trading')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void walletAddKey(
-      options.brokerId,
-      normalizeAddress(options.address),
-      normalizeScope(options.scope),
-      network
-    );
+    void walletAddKey(normalizeAddress(options.address), normalizeScope(options.scope), network);
   });
 
 // Auth commands - For users with existing API keys
@@ -829,18 +823,11 @@ cli
 
 cli
   .command('settle-pnl', 'Settle unrealized PnL into account balance')
-  .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
   .option('--account <id>', 'Account ID (required)')
-  .example('orderly settle-pnl --broker-id demo')
-  .example('orderly settle-pnl --broker-id demo --account 0x1e6b...')
+  .example('orderly settle-pnl --account 0x1e6b...')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void settlePnl(
-      options.brokerId,
-      normalizeAccountId(options.account),
-      network,
-      getFormat(options)
-    );
+    void settlePnl(normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli
@@ -1007,22 +994,15 @@ cli
 // Testnet faucet
 cli
   .command('faucet-usdc <address>', 'Get test USDC from faucet (testnet only)')
-  .option('--broker-id <id>', 'Broker ID (required)')
   .option('--chain-id <id>', 'Chain ID for EVM: 421614 (Arbitrum Sepolia), 84532 (Base Sepolia)')
   .example('# EVM (Arbitrum Sepolia):')
-  .example('orderly faucet-usdc 0x1234... --broker-id demo --chain-id 421614')
+  .example('orderly faucet-usdc 0x1234... --chain-id 421614')
   .example('# Solana:')
-  .example('orderly faucet-usdc <sol-address> --broker-id demo')
+  .example('orderly faucet-usdc <sol-address>')
   .action((address, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const chainId = options.chainId ? String(options.chainId) : undefined;
-    void faucetUsdc(
-      requireAddress(address),
-      options.brokerId,
-      chainId,
-      network,
-      getFormat(options)
-    );
+    void faucetUsdc(requireAddress(address), chainId, network, getFormat(options));
   });
 
 // Asset commands
@@ -1054,7 +1034,6 @@ cli
 cli
   .command('withdraw <token> <receiver> <chain-id>', 'Withdraw tokens (auto-signs with wallet key)')
   .option('--amount <amount>', 'Amount to withdraw (human-readable, e.g. 10.5)')
-  .option('--broker-id <id>', 'Broker ID', { default: 'demo' })
   .option('--account <id>', 'Account ID')
   .option('--raw', 'Amount is in smallest units (default: false, use human-readable like 10.5)')
   .option(
@@ -1062,7 +1041,7 @@ cli
     'Allow cross-chain withdrawal (required when destination chain differs from deposit chain)'
   )
   .example('# Withdraw 10 USDC (human-readable amount)')
-  .example('orderly withdraw USDC 0x1234... 421614 --amount 10 --broker-id demo')
+  .example('orderly withdraw USDC 0x1234... 421614 --amount 10')
   .example('# Withdraw 0.5 USDC')
   .example('orderly withdraw USDC 0x1234... 421614 --amount 0.5')
   .example('# Withdraw to Solana (50 USDC)')
@@ -1081,7 +1060,6 @@ cli
       String(options.amount),
       receiver,
       parseInt(chainId, 10),
-      options.brokerId,
       normalizeAccountId(options.account),
       network,
       options.raw,

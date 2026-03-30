@@ -39,7 +39,7 @@ async function fetchChainInfo(network: Network): Promise<ChainInfo[]> {
     return chainCache.get(network)!;
   }
   const baseUrl = getApiBaseUrl(network);
-  const response = await axios.get(`${baseUrl}/v1/public/chain_info?broker_id=demo`);
+  const response = await axios.get(`${baseUrl}/v1/public/chain_info`);
   const rows = response.data?.data?.rows ?? response.data?.rows ?? [];
   chainCache.set(network, rows);
   return rows;

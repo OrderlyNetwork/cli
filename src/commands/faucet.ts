@@ -12,7 +12,6 @@ interface FaucetResponse {
 
 export async function faucetUsdc(
   address: string,
-  brokerId: string,
   chainId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -23,7 +22,7 @@ export async function faucetUsdc(
 
   try {
     const client = new OrderlyClient(network);
-    const result = (await client.faucetUsdc(address, brokerId, chainId)) as FaucetResponse;
+    const result = (await client.faucetUsdc(address, 'demo', chainId)) as FaucetResponse;
 
     if (result && result.success === false) {
       error(result.message || `Faucet request failed (code: ${result.code})`);

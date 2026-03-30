@@ -22,9 +22,10 @@ export interface SettleResult {
 export async function performSettlePnl(
   client: OrderlyClient,
   keyPair: KeyPair,
-  brokerId: string,
   network: Network
 ): Promise<SettleResult | null> {
+  const brokerId = await client.getBrokerId(keyPair.accountId);
+
   const nonceResponse = await client.getSettleNonce();
   if (!nonceResponse.success || nonceResponse.data?.settle_nonce === undefined) {
     throw new Error('Failed to get settle nonce from API');
@@ -106,7 +107,6 @@ export async function hasNegativeUnsettledPnl(client: OrderlyClient): Promise<bo
 }
 
 export async function settlePnl(
-  brokerId: string,
   accountId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -123,7 +123,7 @@ export async function settlePnl(
   client.setKeyPair(keyPair);
 
   try {
-    const result = await performSettlePnl(client, keyPair, brokerId, network);
+    const result = await performSettlePnl(client, keyPair, network);
     if (result) {
       output(result, format);
     } else {

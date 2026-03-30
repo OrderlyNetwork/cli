@@ -100,6 +100,16 @@ export class OrderlyClient {
     return this.get('/v1/client/info');
   }
 
+  async getBrokerId(accountId: string): Promise<string> {
+    const result = (await this.get(`/v1/public/account?account_id=${accountId}`, false)) as {
+      data?: { broker_id?: string };
+    };
+    if (!result.data?.broker_id) {
+      throw new Error(`Could not resolve broker_id for account ${accountId}`);
+    }
+    return result.data.broker_id;
+  }
+
   async getBalances(): Promise<unknown> {
     return this.get('/v1/client/holding');
   }
@@ -353,10 +363,11 @@ export class OrderlyClient {
     return this.post('/v1/orderly_key', body, false);
   }
 
-  async getSupportedChains(
-    brokerId: string
-  ): Promise<{ success: boolean; data?: { chains: Array<{ chain_id: number }> } }> {
-    return this.get(`/v1/public/chain_info?broker_id=${brokerId}`, false);
+  async getSupportedChains(): Promise<{
+    success: boolean;
+    data?: { chains: Array<{ chain_id: number }> };
+  }> {
+    return this.get('/v1/public/chain_info', false);
   }
 
   async getLeverage(symbol: string): Promise<unknown> {

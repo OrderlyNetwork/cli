@@ -217,7 +217,8 @@ export async function walletList(
 
   if (filteredWallets.length === 0) {
     if (format === 'csv') return;
-    error('No wallets stored. Run `orderly wallet-import` to get started.');
+    console.log(kleur.yellow('No wallets stored. Run `orderly wallet-import` to get started.'));
+    return;
   }
 
   const result = filteredWallets.map((wallet) => ({

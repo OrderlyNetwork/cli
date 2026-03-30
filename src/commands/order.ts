@@ -36,6 +36,11 @@ export async function place(
     error(`Price is required for ${validType} orders.`);
   }
 
+  const numQty = Number(quantity);
+  if (isNaN(numQty) || numQty <= 0) {
+    error('Quantity must be a positive number.');
+  }
+
   const keyPair = await getKey(accId, network);
   if (!keyPair) {
     error(`No key found for account ${accId} on ${network}`);

@@ -1110,6 +1110,16 @@ cli
 
 const rawArgs = process.argv.slice(2);
 
+for (let i = 2; i < rawArgs.length; i++) {
+  if (/^-\d+(\.\d+)?$/.test(rawArgs[i])) {
+    console.error(
+      `Error: Invalid argument "${rawArgs[i]}". Negative numbers look like CLI flags.\n` +
+        `Use a positive value, or quote the value to avoid shell parsing issues.`
+    );
+    process.exit(1);
+  }
+}
+
 try {
   cli.parse();
 

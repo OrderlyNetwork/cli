@@ -2,7 +2,7 @@
 import { cac } from 'cac';
 import kleur from 'kleur';
 import { importKey, list, logout, show, exportKey, cleanup } from './commands/auth.js';
-import { info, balance, statistics } from './commands/account.js';
+import { info, balance, statistics, limits } from './commands/account.js';
 import {
   place,
   cancel,
@@ -193,7 +193,7 @@ ${kleur.yellow('Trading:')}
   leverage, trades, funding-history
 
 ${kleur.yellow('Account:')}
-  account-info, account-balance, account-statistics
+  account-info, account-balance, account-statistics, account-limits
 
 ${kleur.yellow('Market Data:')}
   market-price, market-orderbook, market-trades, funding-rates, kline, symbols
@@ -416,6 +416,29 @@ cli
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void statistics(normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command(
+    'account-limits',
+    'Get margin requirements and position limits.\n' +
+      '  imr_factor: per-symbol factor used in initial margin calculation — IMR_i = max(1/max_leverage, base_imr, imr_factor * |notional|^0.8)\n' +
+      '  max_notional: max position size in USD per symbol\n' +
+      '  base_imr / base_mmr: minimum initial/maintenance margin ratios (shown with --symbol)\n' +
+      '  base_mmr: threshold for liquidation — MMR_i = max(base_mmr, (base_mmr/base_imr) * imr_factor * |notional|^0.8)'
+  )
+  .option(
+    '--symbol <symbol>',
+    'Show limits for one symbol (includes base_imr, base_mmr, order rules)'
+  )
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly account-limits')
+  .example('orderly account-limits --symbol PERP_ETH_USDC')
+  .example('orderly account-limits --account 0x1e6b...')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const sym = options.symbol ? normalizeOptionalSymbol(options.symbol as string) : undefined;
+    void limits(normalizeAccountId(options.account), sym, network, getFormat(options));
   });
 
 // Trading commands

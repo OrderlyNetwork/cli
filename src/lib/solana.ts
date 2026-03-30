@@ -206,7 +206,7 @@ export async function signWithdraw(
   wallet: SolanaWallet,
   params: WithdrawMessage
 ): Promise<{ message: Record<string, unknown>; signature: string }> {
-  const timestamp = Date.now();
+  const timestamp = params.timestamp ?? Date.now();
 
   const message = {
     brokerId: params.brokerId,
@@ -254,13 +254,14 @@ export interface SettlePnlMessage {
   brokerId: string;
   chainId: number;
   settleNonce: string;
+  timestamp?: number;
 }
 
 export async function signSettlePnl(
   wallet: SolanaWallet,
   params: SettlePnlMessage
 ): Promise<{ message: Record<string, unknown>; signature: string }> {
-  const timestamp = Date.now();
+  const timestamp = params.timestamp ?? Date.now();
 
   const message = {
     brokerId: params.brokerId,

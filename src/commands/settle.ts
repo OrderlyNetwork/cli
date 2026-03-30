@@ -27,14 +27,14 @@ export async function performSettlePnl(
 ): Promise<SettleResult | null> {
   const nonceResponse = await client.getSettleNonce();
   if (!nonceResponse.success || nonceResponse.data?.settle_nonce === undefined) {
-    return null;
+    throw new Error('Failed to get settle nonce from API');
   }
 
   const settleNonce = String(nonceResponse.data.settle_nonce);
 
   const walletKey = await getWalletKey(keyPair.address, network);
   if (!walletKey) {
-    return null;
+    throw new Error(`No wallet key found for ${keyPair.address}`);
   }
 
   const walletType = walletKey.walletType || keyPair.walletType || 'EVM';
@@ -44,24 +44,26 @@ export async function performSettlePnl(
   let signature: string;
   let message: Record<string, unknown>;
 
+  const timestamp = Date.now();
+
   if (walletType === 'SOL') {
     const solanaWallet = createSolanaWalletFromPrivateKey(walletKey.privateKey, network);
     const result = await signSettlePnlSolana(solanaWallet, {
       brokerId,
       chainId,
       settleNonce,
+      timestamp,
     });
     signature = result.signature;
     message = result.message;
   } else {
-    const evmWallet = createWalletFromPrivateKey(walletKey.privateKey);
-    const timestamp = Date.now();
     const settleMessage = {
       brokerId,
       chainId,
       settleNonce,
       timestamp,
     };
+    const evmWallet = createWalletFromPrivateKey(walletKey.privateKey);
     signature = await signSettlePnlEVM(evmWallet, settleMessage, network);
     message = settleMessage;
   }
@@ -81,7 +83,11 @@ export async function performSettlePnl(
     return result.data;
   }
 
-  return null;
+  const msg =
+    (result as { message?: string }).message ||
+    (result as { code?: number }).code?.toString() ||
+    'Unknown error';
+  throw new Error(`Settle PnL failed: ${msg}`);
 }
 
 export async function hasNegativeUnsettledPnl(client: OrderlyClient): Promise<boolean> {

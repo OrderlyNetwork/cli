@@ -189,7 +189,7 @@ ${kleur.yellow('Trading:')}
   order-place, order-cancel, order-edit, order-cancel-all, order-list
   batch-order-place, batch-order-cancel
   algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list
-  positions-list, positions-close, position-history
+  positions-list, positions-close, positions-history
   leverage, trades
 
 ${kleur.yellow('Account:')}

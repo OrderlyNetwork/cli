@@ -630,7 +630,12 @@ export async function walletAddKey(
   }
 
   try {
-    const result = await client.addOrderlyKey(message, signature, addr);
+    const result = await client.addOrderlyKey(
+      message,
+      signature,
+      addr,
+      walletKey.walletType === 'SOL' ? 'SOL' : undefined
+    );
     if (result.success && result.data?.orderly_key) {
       const keyPair = {
         accountId,

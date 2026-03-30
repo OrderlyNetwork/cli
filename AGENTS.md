@@ -159,7 +159,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 `wallet-create`, `wallet-import`, `wallet-list`, `wallet-show`, `wallet-logout`, `wallet-register`, `wallet-add-key`, `auth-import`, `auth-list`, `auth-show`, `auth-logout`, `auth-cleanup`, `auth-export-key`
 
 **Trading:**
-`order-place`, `order-cancel`, `order-edit`, `order-cancel-all`, `order-list`, `batch-order-place`, `batch-order-cancel`, `algo-order-place`, `algo-order-edit`, `algo-order-cancel`, `algo-order-cancel-all`, `algo-order-list`, `positions-list`, `positions-close`, `position-history`, `leverage`, `trades`
+`order-place`, `order-cancel`, `order-edit`, `order-cancel-all`, `order-list`, `batch-order-place`, `batch-order-cancel`, `algo-order-place`, `algo-order-edit`, `algo-order-cancel`, `algo-order-cancel-all`, `algo-order-list`, `positions-list`, `positions-close`, `positions-history`, `leverage`, `trades`
 
 **Account:**
 `account-info`, `account-balance`, `account-statistics`

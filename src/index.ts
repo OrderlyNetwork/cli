@@ -326,7 +326,7 @@ cli
     'auth-import [private-key]',
     'Import existing Ed25519 API key (for users who already have one)'
   )
-  .option('--account <id>', 'Orderly account ID')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly auth-import <base64-key> --account 12345')
   .action((privateKey, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -346,7 +346,7 @@ cli
 
 cli
   .command('auth-show', 'Show public key for an account')
-  .option('--account <id>', 'Account ID (optional, auto-resolves if single account)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly auth-show')
   .example('orderly auth-show --account 0x1e6b...')
   .action((options) => {
@@ -387,7 +387,7 @@ cli
 // Account commands
 cli
   .command('account-info', 'Get account information')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly account-info')
   .example('orderly account-info --account 0x1e6b...')
   .action((options) => {
@@ -397,7 +397,7 @@ cli
 
 cli
   .command('account-balance', 'Get account balances')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly account-balance')
   .example('orderly account-balance --account 0x1e6b...')
   .action((options) => {
@@ -410,7 +410,7 @@ cli
     'account-statistics',
     'Get account trading statistics (volume, fees, days since registration)'
   )
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly account-statistics')
   .example('orderly account-statistics --account 0x1e6b...')
   .action((options) => {
@@ -426,7 +426,7 @@ cli
   )
   .option('--price <price>', 'Order price (required for LIMIT, IOC, FOK, POST_ONLY)')
   .option('--client-order-id <id>', 'Custom client order ID (optional)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01')
   .example('orderly order-place PERP_ETH_USDC SELL LIMIT 0.01 --price 3500')
   .example('orderly order-place PERP_ETH_USDC BUY IOC 0.01 --price 2100')
@@ -453,7 +453,7 @@ cli
 cli
   .command('order-cancel <order-id>', 'Cancel an order')
   .option('--symbol <symbol>', 'Symbol of the order (auto-fetched if not provided)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly order-cancel 123456')
   .example('orderly order-cancel 123456 --symbol PERP_ETH_USDC')
   .action((orderId, options) => {
@@ -472,7 +472,7 @@ cli
   .option('--symbol <symbol>', 'Symbol of the order (auto-fetched if not provided)')
   .option('--price <price>', 'New order price')
   .option('--quantity <quantity>', 'New order quantity')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly order-edit 123456 --price 3500')
   .example('orderly order-edit 123456 --quantity 0.02')
   .example('orderly order-edit 123456 --price 3500 --quantity 0.01')
@@ -492,7 +492,7 @@ cli
 cli
   .command('order-cancel-all', 'Cancel all orders')
   .option('--symbol <symbol>', 'Filter by symbol (optional)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly order-cancel-all')
   .example('orderly order-cancel-all --symbol PERP_ETH_USDC')
   .action((options) => {
@@ -511,7 +511,7 @@ cli
   .option('--status <status>', 'Filter by status: NEW, FILLED, CANCELLED, INCOMPLETE, COMPLETED')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25, max: 500)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly order-list')
   .example('orderly order-list --symbol PERP_ETH_USDC')
   .example('orderly order-list --status INCOMPLETE')
@@ -534,7 +534,7 @@ cli
 
 cli
   .command('batch-order-place <orders>', 'Place multiple orders (max 10)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('# From JSON string:')
   .example(
     'orderly batch-order-place \'[{"symbol":"PERP_ETH_USDC","order_type":"LIMIT","side":"BUY","order_quantity":"0.01","order_price":"2000"}]\''
@@ -548,7 +548,7 @@ cli
 
 cli
   .command('batch-order-cancel <order-ids...>', 'Cancel multiple orders by IDs')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly batch-order-cancel 123 456 789')
   .action((orderIds, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -558,7 +558,7 @@ cli
 
 cli
   .command('positions-list', 'List open positions')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly positions-list')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -567,7 +567,7 @@ cli
 
 cli
   .command('positions-close <symbol>', 'Close a position')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly positions-close PERP_ETH_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -589,7 +589,7 @@ cli
   .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly positions-history')
   .example('orderly positions-history --symbol PERP_ETH_USDC')
   .example('orderly positions-history --page 2 --size 50')
@@ -612,7 +612,7 @@ cli
   });
 cli
   .command('leverage <symbol> [value]', 'Get or set leverage for a symbol')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly leverage PERP_ETH_USDC')
   .example('orderly leverage PERP_ETH_USDC 10')
   .action((symbol, value, options) => {
@@ -634,7 +634,7 @@ cli
   .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25, max: 500)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly trades')
   .example('orderly trades --symbol PERP_ETH_USDC')
   .example('orderly trades --page 2 --size 50')
@@ -671,7 +671,7 @@ cli
   .option('--tp-price <price>', 'Take-profit order price (optional, MARKET if not set)')
   .option('--sl-trigger-price <price>', 'Stop-loss trigger price (for TP_SL/POSITIONAL_TP_SL)')
   .option('--sl-price <price>', 'Stop-loss order price (optional, MARKET if not set)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-place PERP_ETH_USDC SELL STOP 0.01 --trigger-price 2000')
   .example(
     'orderly algo-order-place PERP_ETH_USDC SELL TP_SL 0.01 --tp-trigger-price 2500 --sl-trigger-price 1500'
@@ -703,7 +703,7 @@ cli
 cli
   .command('algo-order-cancel <order-id>', 'Cancel an algo order')
   .option('--symbol <symbol>', 'Symbol of the order (auto-fetched if not provided)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-cancel 123456')
   .example('orderly algo-order-cancel 123456 --symbol PERP_ETH_USDC')
   .action((orderId, options) => {
@@ -727,7 +727,7 @@ cli
   .option('--quantity <quantity>', 'New order quantity')
   .option('--trigger-price <price>', 'New trigger price')
   .option('--callback-rate <rate>', 'New callback rate as decimal, e.g. 0.05 for 5%')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-edit 123456 --price 2500')
   .example('orderly algo-order-edit 123456 --quantity 0.02')
   .example('orderly algo-order-edit 123456 --trigger-price 1500')
@@ -751,7 +751,7 @@ cli
   .command('algo-order-cancel-all', 'Cancel all algo orders')
   .option('--symbol <symbol>', 'Filter by symbol (optional)')
   .option('--algo-type <type>', 'Filter by algo type: STOP, TP_SL, TRAILING_STOP, BRACKET')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-cancel-all')
   .example('orderly algo-order-cancel-all --symbol PERP_ETH_USDC')
   .example('orderly algo-order-cancel-all --algo-type STOP')
@@ -772,7 +772,7 @@ cli
   .option('--status <status>', 'Filter by status: NEW, CANCELLED, INCOMPLETE, COMPLETED')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25, max: 500)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-list')
   .example('orderly algo-order-list --symbol PERP_ETH_USDC')
   .example('orderly algo-order-list --status INCOMPLETE')
@@ -799,7 +799,7 @@ cli
   .option('--end-t <timestamp>', 'End timestamp (ms)')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly funding-history')
   .example('orderly funding-history --symbol PERP_ETH_USDC')
   .example('orderly funding-history --page 2 --size 50')
@@ -823,7 +823,7 @@ cli
 
 cli
   .command('settle-pnl', 'Settle unrealized PnL into account balance')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly settle-pnl --account 0x1e6b...')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -834,7 +834,7 @@ cli
   .command('settle-pnl-history', 'Get on-chain PnL settlement history')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly settle-pnl-history')
   .example('orderly settle-pnl-history --page 2 --size 50')
   .action((options) => {
@@ -852,7 +852,7 @@ cli
 
 cli
   .command('referral-info', 'Get referral information (referrer/referee stats and codes)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly referral-info')
   .example('orderly referral-info --account 0x1e6b...')
   .action((options) => {
@@ -868,7 +868,7 @@ cli
   .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly distribution-history')
   .example('orderly distribution-history --type REFERRER_REBATE')
   .example('orderly distribution-history --status COMPLETED --page 2 --size 50')
@@ -893,7 +893,7 @@ cli
 
 cli
   .command('volume-stats', 'Get perp trading volume statistics (today, 1d, 7d, 30d, YTD, LTD)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly volume-stats')
   .example('orderly volume-stats --account 0x1e6b...')
   .action((options) => {
@@ -906,7 +906,7 @@ cli
   .option('--type <type>', 'Filter by type: TRADE or SYSTEM')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly notification-inbox')
   .example('orderly notification-inbox --type TRADE')
   .example('orderly notification-inbox --page 2 --size 50')
@@ -926,7 +926,7 @@ cli
 
 cli
   .command('notification-unread', 'Get unread notification count and messages')
-  .option('--account <id>', 'Account ID (required)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly notification-unread')
   .example('orderly notification-unread --account 0x1e6b...')
   .action((options) => {
@@ -1034,7 +1034,7 @@ cli
 cli
   .command('withdraw <token> <receiver> <chain-id>', 'Withdraw tokens (auto-signs with wallet key)')
   .option('--amount <amount>', 'Amount to withdraw (human-readable, e.g. 10.5)')
-  .option('--account <id>', 'Account ID')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .option('--raw', 'Amount is in smallest units (default: false, use human-readable like 10.5)')
   .option(
     '--allow-cross-chain',
@@ -1078,7 +1078,7 @@ cli
   )
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
-  .option('--account <id>', 'Account ID')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly asset-history')
   .example('orderly asset-history --side DEPOSIT')
   .example('orderly asset-history --status PROCESSING')

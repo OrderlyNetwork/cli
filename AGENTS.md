@@ -192,7 +192,7 @@ orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --netwo
 - **`settle-pnl`**: Settles unrealized PnL into account balance. Requires `--broker-id`. Uses the wallet key stored in keychain for EIP-712 (EVM) or Ed25519 (Solana) signing.
 - **`settle-pnl-history`**: Get on-chain PnL settlement history. Not to be confused with trade PnL — this only shows manual/cron PnL settlement events. Supports `--page` and `--size` for pagination.
 - **`withdraw`**: Requires `--amount <amount>` option. Automatically settles negative unsettled PnL before submitting the withdrawal if positions have unrealized losses. Outputs `{ auto_settled: true, settle_pnl_id }` when auto-settle is triggered. Uses per-chain token decimals from the API (BSC USDC=18, Solana SOL=9, etc.) — never assumes a fixed decimal count.
-- **`kline`**: Get OHLC data. Intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon, 1y.
+- **`kline`**: Get OHLC data. Intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon.
 - **`market-trades`**: Get recent public trades for a symbol. No auth required. Use `--limit` to control number of results.
 - **`funding-rates`**: Get public funding rates for all symbols. No auth required. Shows last, 1d, 7d, 30d, 90d, 180d rates.
 - **Symbol names**: Must be uppercase (e.g., `PERP_ETH_USDC`, not `PERP_ETH_usdc`)

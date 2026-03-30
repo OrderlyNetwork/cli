@@ -48,7 +48,7 @@ import { distributionHistory, volumeStats } from './commands/stats.js';
 import { inbox, inboxUnread } from './commands/notification.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
-import { OutputFormat, error } from './lib/output.js';
+import { OutputFormat, error, normalizeSymbol, normalizeOptionalSymbol } from './lib/output.js';
 
 function findRawAddress(optionName: string): string | undefined {
   for (let i = 0; i < process.argv.length - 1; i++) {
@@ -438,7 +438,7 @@ cli
   .action((symbol, side, type, quantity, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void place(
-      symbol,
+      normalizeSymbol(symbol),
       side,
       type,
       quantity,
@@ -460,7 +460,7 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     void cancel(
       orderId,
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       normalizeAccountId(options.account),
       network,
       getFormat(options)
@@ -480,7 +480,7 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     void edit(
       orderId,
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       options.price,
       options.quantity,
       normalizeAccountId(options.account),
@@ -498,7 +498,7 @@ cli
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void cancelAll(
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       normalizeAccountId(options.account),
       network,
       getFormat(options)
@@ -522,7 +522,7 @@ cli
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void listOrders(
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       options.status,
       page,
       size,
@@ -575,7 +575,12 @@ cli
   .example('orderly positions-close PERP_ETH_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void closePosition(symbol, normalizeAccountId(options.account), network, getFormat(options));
+    void closePosition(
+      normalizeSymbol(symbol),
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli
@@ -583,7 +588,7 @@ cli
   .example('orderly market-orderbook PERP_ETH_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getOrderbook(symbol, network, getFormat(options));
+    void getOrderbook(normalizeSymbol(symbol), network, getFormat(options));
   });
 
 cli
@@ -604,7 +609,7 @@ cli
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void positionHistory(
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       startT,
       endT,
       page,
@@ -623,7 +628,7 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     const leverageValue = value !== undefined ? parseFloat(value) : undefined;
     void getOrSetLeverage(
-      symbol,
+      normalizeSymbol(symbol),
       leverageValue,
       normalizeAccountId(options.account),
       network,
@@ -649,7 +654,7 @@ cli
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void listTrades(
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       startT,
       endT,
       page,
@@ -687,7 +692,7 @@ cli
   .action((symbol, side, algoType, quantity, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void placeAlgoOrder(
-      symbol,
+      normalizeSymbol(symbol),
       side,
       algoType,
       quantity,
@@ -714,7 +719,7 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     void cancelAlgoOrder(
       orderId,
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       normalizeAccountId(options.account),
       network,
       getFormat(options)
@@ -740,7 +745,7 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     void editAlgoOrder(
       orderId,
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       options.price,
       options.quantity,
       options.triggerPrice,
@@ -762,7 +767,7 @@ cli
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void cancelAllAlgoOrders(
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       options.algoType,
       normalizeAccountId(options.account),
       network,
@@ -786,7 +791,7 @@ cli
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void listAlgoOrders(
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       options.status,
       page,
       size,
@@ -814,7 +819,7 @@ cli
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void fundingHistory(
-      options.symbol,
+      normalizeOptionalSymbol(options.symbol),
       startT,
       endT,
       page,
@@ -944,7 +949,7 @@ cli
   .example('orderly market-price PERP_BTC_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getPrice(symbol, network, getFormat(options));
+    void getPrice(normalizeSymbol(symbol), network, getFormat(options));
   });
 
 cli
@@ -972,7 +977,7 @@ cli
   .action((symbol, type, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const limit = options.limit ? parseInt(options.limit, 10) : 100;
-    void getKline(symbol, type, limit, network, getFormat(options));
+    void getKline(normalizeSymbol(symbol), type, limit, network, getFormat(options));
   });
 
 cli
@@ -983,7 +988,7 @@ cli
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const limit = options.limit ? parseInt(options.limit, 10) : undefined;
-    void getMarketTrades(symbol, limit, network, getFormat(options));
+    void getMarketTrades(normalizeSymbol(symbol), limit, network, getFormat(options));
   });
 
 cli

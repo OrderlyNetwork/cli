@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { OrderlyClient } from '../lib/api.js';
 import { resolveAccountId } from '../lib/account-select.js';
 import { getKey } from '../lib/keychain.js';
-import { output, error, handleError, OutputFormat } from '../lib/output.js';
+import { output, error, handleError, OutputFormat, normalizeSymbol } from '../lib/output.js';
 import { Network } from '../types.js';
 
 const VALID_ORDER_TYPES = ['LIMIT', 'MARKET', 'IOC', 'FOK', 'POST_ONLY', 'ASK', 'BID'];
@@ -301,7 +301,7 @@ function normalizeBatchOrder(order: RawBatchOrder, index: number): NormalizedBat
   const rawClientId = order.client_order_id ?? order.clientOrderId;
 
   return {
-    symbol: symbol.toUpperCase(),
+    symbol: normalizeSymbol(symbol),
     order_type: upperType,
     side: side.toUpperCase(),
     order_quantity: qtyStr,

@@ -119,6 +119,37 @@ export function output(data: unknown, format: OutputFormat = 'json'): void {
   }
 }
 
+const SYMBOL_PATTERN = /^[A-Z0-9]+_[A-Z0-9]+(_[A-Z0-9]+)*$/;
+
+export function normalizeSymbol(symbol: string): string {
+  let s = symbol.trim().toUpperCase().replace(/\/|-/g, '_');
+
+  if (!s.includes('_') && s.length >= 3) {
+    error(
+      `Invalid symbol: "${symbol}". Expected format: PERP_<BASE>_<QUOTE> (e.g. PERP_ETH_USDC).`,
+      ['Run `orderly symbols` to see available symbols.']
+    );
+  }
+
+  if (!s.startsWith('PERP_')) {
+    s = `PERP_${s}`;
+  }
+
+  if (!SYMBOL_PATTERN.test(s.slice(5))) {
+    error(
+      `Invalid symbol: "${symbol}". Expected format: PERP_<BASE>_<QUOTE> (e.g. PERP_ETH_USDC).`,
+      ['Run `orderly symbols` to see available symbols.']
+    );
+  }
+
+  return s;
+}
+
+export function normalizeOptionalSymbol(symbol: string | undefined): string | undefined {
+  if (!symbol) return undefined;
+  return normalizeSymbol(symbol);
+}
+
 export function error(message: string, hints?: string[]): never {
   console.error(kleur.red(message));
   if (hints?.length) {

@@ -190,7 +190,7 @@ ${kleur.yellow('Trading:')}
   batch-order-place, batch-order-cancel
   algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list
   positions-list, positions-close, positions-history
-  leverage, trades
+  leverage, trades, funding-history
 
 ${kleur.yellow('Account:')}
   account-info, account-balance, account-statistics
@@ -199,7 +199,7 @@ ${kleur.yellow('Market Data:')}
   market-price, market-orderbook, market-trades, funding-rates, kline, symbols
 
 ${kleur.yellow('Assets:')}
-  chains, tokens, deposit-info, withdraw, asset-history, funding-history
+  chains, tokens, deposit-info, withdraw, asset-history
 
 ${kleur.yellow('PnL:')}
   settle-pnl, settle-pnl-history

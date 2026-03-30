@@ -1103,8 +1103,33 @@ cli
     );
   });
 
+const rawArgs = process.argv.slice(2);
+
 try {
   cli.parse();
+
+  if (rawArgs.length > 0 && !rawArgs[0].startsWith('-')) {
+    const commandPart = rawArgs[0];
+    const matched = cli.commands.some(
+      (c) =>
+        c.name === commandPart ||
+        (Array.isArray(c.aliasNames) && c.aliasNames.includes(commandPart))
+    );
+    if (
+      !matched &&
+      commandPart !== 'help' &&
+      !rawArgs.includes('--help') &&
+      !rawArgs.includes('-h') &&
+      !rawArgs.includes('--version') &&
+      !rawArgs.includes('-v')
+    ) {
+      const { error: outputError } = await import('./lib/output.js');
+      outputError(`Unknown command: ${commandPart}`, [
+        `Run ${kleur.cyan('orderly --help')} to see available commands.`,
+      ]);
+      process.exit(1);
+    }
+  }
 } catch (err) {
   if (err instanceof Error && err.name === 'CACError') {
     const message = err.message;

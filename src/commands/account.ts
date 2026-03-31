@@ -117,3 +117,36 @@ export async function statistics(
     handleError(err);
   }
 }
+
+export async function keyInfo(
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const data = await client.getKeyInfo();
+    output(data, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function liquidations(
+  symbol: string | undefined,
+  page: number | undefined,
+  size: number | undefined,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const result = await client.getLiquidations(symbol, page, size);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}

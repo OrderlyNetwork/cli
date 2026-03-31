@@ -205,3 +205,58 @@ export async function getFundingRates(
     handleError(err);
   }
 }
+
+export async function getPriceChanges(
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  try {
+    const client = new OrderlyClient(network);
+    const result = await client.getPriceChanges();
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function getOpenInterest(
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  try {
+    const client = new OrderlyClient(network);
+    const result = await client.getOpenInterest();
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function getLiquidatedPositions(
+  symbol: string | undefined,
+  page: number | undefined,
+  size: number | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  try {
+    const client = new OrderlyClient(network);
+    const result = await client.getLiquidatedPositions(symbol, page, size);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function getSystemStatus(
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  try {
+    const client = new OrderlyClient(network);
+    const result = await client.getSystemInfo();
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}

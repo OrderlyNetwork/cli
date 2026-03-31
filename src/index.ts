@@ -15,7 +15,7 @@ function getVersion(): string {
   }
 }
 import { importKey, list, logout, show, exportKey, cleanup } from './commands/auth.js';
-import { info, balance, statistics, limits } from './commands/account.js';
+import { info, balance, statistics, limits, keyInfo, liquidations } from './commands/account.js';
 import {
   place,
   cancel,
@@ -24,6 +24,10 @@ import {
   listOrders,
   batchPlace,
   batchCancel,
+  cancelByClientId,
+  getOrder,
+  orderTrades,
+  cancelAllAfter,
 } from './commands/order.js';
 import { listPositions, closePosition, positionHistory } from './commands/positions.js';
 import {
@@ -33,6 +37,10 @@ import {
   getKline,
   getMarketTrades,
   getFundingRates,
+  getPriceChanges,
+  getOpenInterest,
+  getLiquidatedPositions,
+  getSystemStatus,
 } from './commands/market.js';
 import { faucetUsdc } from './commands/faucet.js';
 import {
@@ -174,6 +182,8 @@ ${kleur.yellow('Setup & Auth:')}
 
 ${kleur.yellow('Trading:')}
   order-place, order-cancel, order-edit, order-cancel-all, order-list
+  order-get, order-cancel-by-client-id, order-trades
+  cancel-all-after
   batch-order-place, batch-order-cancel
   algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list
   positions-list, positions-close, positions-history
@@ -181,9 +191,11 @@ ${kleur.yellow('Trading:')}
 
 ${kleur.yellow('Account:')}
   account-info, account-balance, account-statistics, account-limits
+  key-info, account-liquidations
 
 ${kleur.yellow('Market Data:')}
   market-price, market-orderbook, market-trades, funding-rates, kline, symbols
+  price-changes, open-interest, liquidated-positions, system-status
 
 ${kleur.yellow('Assets:')}
   chains, tokens, deposit-info, withdraw, asset-history
@@ -428,6 +440,39 @@ cli
     void limits(normalizeAccountId(options.account), sym, network, getFormat(options));
   });
 
+cli
+  .command('key-info', 'Get registered API key info and scopes')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly key-info')
+  .example('orderly key-info --account 0x1e6b...')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void keyInfo(normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command('account-liquidations', 'Get account liquidation history')
+  .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly account-liquidations')
+  .example('orderly account-liquidations --symbol PERP_ETH_USDC')
+  .example('orderly account-liquidations --page 2 --size 50')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
+    void liquidations(
+      normalizeOptionalSymbol(options.symbol),
+      page,
+      size,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
+  });
+
 // Trading commands
 cli
   .command(
@@ -568,6 +613,63 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     const ids = Array.isArray(orderIds) ? orderIds : [orderIds];
     void batchCancel(ids, normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command('order-get [order-id]', 'Get order details by order ID or client order ID')
+  .option('--client-order-id <id>', 'Look up order by client order ID instead of order ID')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly order-get 123456')
+  .example('orderly order-get --client-order-id my-order-123')
+  .action((orderId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getOrder(
+      orderId,
+      options.clientOrderId,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
+  .command(
+    'order-cancel-by-client-id <client-order-id> <symbol>',
+    'Cancel an order by client order ID'
+  )
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly order-cancel-by-client-id my-order-123 PERP_ETH_USDC')
+  .action((clientOrderId, symbol, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void cancelByClientId(
+      clientOrderId,
+      normalizeSymbol(symbol),
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
+  .command('order-trades <order-id>', 'Get trades for a specific order')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly order-trades 123456')
+  .action((orderId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void orderTrades(orderId, normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command(
+    'cancel-all-after <timeout>',
+    'Set dead man switch: cancel all orders after timeout (ms). Use 0 to disable.'
+  )
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly cancel-all-after 60000')
+  .example('orderly cancel-all-after 0')
+  .action((timeout, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void cancelAllAfter(timeout, normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli
@@ -1008,6 +1110,56 @@ cli
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void getFundingRates(network, getFormat(options));
+  });
+
+cli
+  .command(
+    'price-changes',
+    'Get price changes for all symbols (5m, 30m, 1h, 24h, 7d, 30d) (no auth required)'
+  )
+  .example('orderly price-changes')
+  .example('orderly price-changes --network mainnet')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getPriceChanges(network, getFormat(options));
+  });
+
+cli
+  .command('open-interest', 'Get long/short open interest for all symbols (no auth required)')
+  .example('orderly open-interest')
+  .example('orderly open-interest --network mainnet')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getOpenInterest(network, getFormat(options));
+  });
+
+cli
+  .command('liquidated-positions', 'Get public liquidated positions (no auth required)')
+  .option('--symbol <symbol>', 'Filter by symbol')
+  .option('--page <n>', 'Page number (default: 1)')
+  .option('--size <n>', 'Page size (default: 25)')
+  .example('orderly liquidated-positions')
+  .example('orderly liquidated-positions --symbol PERP_ETH_USDC')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const page = options.page ? parseInt(options.page, 10) : undefined;
+    const size = options.size ? parseInt(options.size, 10) : undefined;
+    void getLiquidatedPositions(
+      normalizeOptionalSymbol(options.symbol),
+      page,
+      size,
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
+  .command('system-status', 'Get Orderly system maintenance status (no auth required)')
+  .example('orderly system-status')
+  .example('orderly system-status --network mainnet')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getSystemStatus(network, getFormat(options));
   });
 
 // Testnet faucet

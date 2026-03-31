@@ -590,4 +590,69 @@ export class OrderlyClient {
   async getNotificationInboxUnread(): Promise<unknown> {
     return this.get('/v1/notification/inbox/unread');
   }
+
+  async cancelAllAfter(timeout: number): Promise<unknown> {
+    return this.post('/v1/order/cancel_all_after', { timeout });
+  }
+
+  async cancelOrderByClientId(clientOrderId: string, symbol: string): Promise<unknown> {
+    return this.delete(
+      `/v1/client/order?client_order_id=${encodeURIComponent(clientOrderId)}&symbol=${symbol}`
+    );
+  }
+
+  async getOrderByOrderId(orderId: string): Promise<unknown> {
+    return this.get(`/v1/order/${orderId}`);
+  }
+
+  async getOrderByClientId(clientOrderId: string): Promise<unknown> {
+    return this.get(`/v1/client/order/${encodeURIComponent(clientOrderId)}`);
+  }
+
+  async getOrderTrades(orderId: string): Promise<unknown> {
+    return this.get(`/v1/order/${orderId}/trades`);
+  }
+
+  async getAlgoOrderTrades(orderId: string): Promise<unknown> {
+    return this.get(`/v1/algo/order/${orderId}/trades`);
+  }
+
+  async getLiquidations(symbol?: string, page?: number, size?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    if (page) params.append('page', page.toString());
+    if (size) params.append('size', size.toString());
+    const queryString = params.toString();
+    return this.get(queryString ? `/v1/liquidations?${queryString}` : '/v1/liquidations');
+  }
+
+  async getPriceChanges(): Promise<unknown> {
+    return this.get('/v1/public/market_info/price_changes', false);
+  }
+
+  async getOpenInterest(): Promise<unknown> {
+    return this.get('/v1/public/market_info/traders_open_interests', false);
+  }
+
+  async getLiquidatedPositions(symbol?: string, page?: number, size?: number): Promise<unknown> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    if (page) params.append('page', page.toString());
+    if (size) params.append('size', size.toString());
+    const queryString = params.toString();
+    return this.get(
+      queryString
+        ? `/v1/public/liquidated_positions?${queryString}`
+        : '/v1/public/liquidated_positions',
+      false
+    );
+  }
+
+  async getSystemInfo(): Promise<unknown> {
+    return this.get('/v1/public/system_info', false);
+  }
+
+  async getKeyInfo(): Promise<unknown> {
+    return this.get('/v1/client/key_info');
+  }
 }

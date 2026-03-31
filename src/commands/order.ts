@@ -326,3 +326,83 @@ export async function batchCancel(
     handleError(err);
   }
 }
+
+export async function cancelByClientId(
+  clientOrderId: string,
+  symbol: string,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const result = await client.cancelOrderByClientId(clientOrderId, symbol);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function getOrder(
+  orderId: string | undefined,
+  clientOrderId: string | undefined,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  if (!orderId && !clientOrderId) {
+    error('Provide either an order ID (positional) or --client-order-id.');
+  }
+
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    if (clientOrderId) {
+      const result = await client.getOrderByClientId(clientOrderId);
+      output(result, format);
+    } else {
+      const result = await client.getOrderByOrderId(orderId!);
+      output(result, format);
+    }
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function orderTrades(
+  orderId: string,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const result = await client.getOrderTrades(orderId);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function cancelAllAfter(
+  timeout: string,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const timeoutMs = parseInt(timeout, 10);
+  if (isNaN(timeoutMs) || timeoutMs < 0) {
+    error('Timeout must be a non-negative integer (milliseconds).');
+  }
+
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const result = await client.cancelAllAfter(timeoutMs);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}

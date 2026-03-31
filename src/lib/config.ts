@@ -41,7 +41,7 @@ export function getWsBaseUrl(network: Network): string {
 }
 
 export function getDefaultNetwork(): Network {
-  return loadConfig().defaultNetwork ?? 'mainnet';
+  return loadConfig().defaultNetwork ?? 'testnet';
 }
 
 export function setDefaultNetwork(network: Network): void {

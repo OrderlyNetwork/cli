@@ -18,11 +18,22 @@ import {
 } from '../lib/solana.js';
 import { hasNegativeUnsettledPnl, performSettlePnl } from './settle.js';
 
-export async function getChains(network: Network, format: OutputFormat = 'json'): Promise<void> {
+export async function getChains(
+  network: Network,
+  format: OutputFormat = 'json',
+  brokerId?: string
+): Promise<void> {
   const client = new OrderlyClient(network);
 
   try {
-    const result = await client.get('/v1/public/chain_info', false);
+    const result = await client.get<{
+      data?: { rows?: Array<{ broker_ids?: string[]; [k: string]: unknown }> };
+    }>('/v1/public/chain_info', false);
+    if (brokerId && result?.data?.rows) {
+      result.data.rows = result.data.rows.filter(
+        (chain) => chain.broker_ids && chain.broker_ids.includes(brokerId)
+      );
+    }
     output(result, format);
   } catch (err) {
     handleError(err);

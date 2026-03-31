@@ -1027,10 +1027,12 @@ cli
 // Asset commands
 cli
   .command('chains', 'List supported chains (no auth required)')
+  .option('--broker-id <id>', 'Filter chains by broker ID')
   .example('orderly chains')
+  .example('orderly chains --broker-id demo')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getChains(network, getFormat(options));
+    void getChains(network, getFormat(options), options.brokerId);
   });
 
 cli

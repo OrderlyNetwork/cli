@@ -3,6 +3,7 @@ import { OrderlyClient } from '../lib/api.js';
 import { fetchWsSnapshot } from '../lib/ws.js';
 import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
+import { getApiBaseUrl } from '../lib/config.js';
 
 const VALID_KLINE_TYPES = ['1m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w', '1mon'];
 
@@ -83,8 +84,7 @@ export async function getKline(
   const from = to - count * resolutionSeconds;
 
   try {
-    const baseUrl =
-      network === 'mainnet' ? 'https://api.orderly.org' : 'https://testnet-api.orderly.org';
+    const baseUrl = getApiBaseUrl(network);
 
     const { data } = await axios.get<TvHistoryResponse>(`${baseUrl}/v1/tv/history`, {
       params: {

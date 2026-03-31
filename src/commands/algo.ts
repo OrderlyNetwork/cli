@@ -1,6 +1,4 @@
-import { OrderlyClient } from '../lib/api.js';
-import { resolveAccountId } from '../lib/account-select.js';
-import { getKey } from '../lib/keychain.js';
+import { createAuthenticatedClient } from '../lib/account-select.js';
 import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
@@ -23,9 +21,6 @@ export async function placeAlgoOrder(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
   const validSide = side.toUpperCase();
   if (!VALID_SIDES.includes(validSide)) {
     error(`Invalid side. Use ${VALID_SIDES.join(' or ')}.`);
@@ -52,13 +47,7 @@ export async function placeAlgoOrder(
     }
   }
 
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     let result;
@@ -170,16 +159,7 @@ export async function cancelAlgoOrder(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   let orderSymbol = symbol;
   if (!orderSymbol) {
@@ -209,16 +189,7 @@ export async function cancelAllAlgoOrders(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const result = await client.cancelAllAlgoOrders(symbol, algoType);
@@ -239,9 +210,6 @@ export async function editAlgoOrder(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
   if (!price && !quantity && !triggerPrice && !callbackRate) {
     error('At least one of --price, --quantity, --trigger-price, or --callback-rate is required.', [
       'Examples:',
@@ -252,13 +220,7 @@ export async function editAlgoOrder(
     ]);
   }
 
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   let orderSymbol = symbol;
   if (!orderSymbol) {
@@ -301,16 +263,7 @@ export async function listAlgoOrders(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const result = await client.getAlgoOrders(symbol, status, page, size);

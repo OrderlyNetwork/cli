@@ -1,7 +1,8 @@
 import prompts from 'prompts';
-import { listKeys } from './keychain.js';
+import { listKeys, getKey } from './keychain.js';
 import { error } from './output.js';
-import { Network } from '../types.js';
+import { OrderlyClient } from './api.js';
+import { KeyPair, Network } from '../types.js';
 
 export async function resolveAccountId(
   accountId: string | undefined,
@@ -39,4 +40,33 @@ export async function resolveAccountId(
   });
 
   return response.accountId ?? null;
+}
+
+export async function resolveKeyPair(
+  accountId: string | undefined,
+  network: Network
+): Promise<{ accId: string; keyPair: KeyPair }> {
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) {
+    error('No account resolved.');
+  }
+
+  const keyPair = await getKey(accId, network);
+  if (!keyPair) {
+    error(`No key found for account ${accId} on ${network}`);
+  }
+
+  return { accId, keyPair };
+}
+
+export async function createAuthenticatedClient(
+  accountId: string | undefined,
+  network: Network
+): Promise<{ accId: string; keyPair: KeyPair; client: OrderlyClient }> {
+  const { accId, keyPair } = await resolveKeyPair(accountId, network);
+
+  const client = new OrderlyClient(network);
+  client.setKeyPair(keyPair);
+
+  return { accId, keyPair, client };
 }

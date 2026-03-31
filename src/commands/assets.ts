@@ -1,7 +1,7 @@
 import { parseUnits } from 'ethers';
+import { createAuthenticatedClient } from '../lib/account-select.js';
 import { OrderlyClient } from '../lib/api.js';
-import { resolveAccountId } from '../lib/account-select.js';
-import { getKey, getWalletKey } from '../lib/keychain.js';
+import { getWalletKey } from '../lib/keychain.js';
 import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 import {
@@ -78,16 +78,7 @@ export async function withdraw(
   allowCrossChain: boolean = false,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { keyPair, client } = await createAuthenticatedClient(accountId, network);
 
   const brokerId = await client.getBrokerId(keyPair!.accountId);
 
@@ -238,16 +229,7 @@ export async function assetHistory(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const params = new URLSearchParams();

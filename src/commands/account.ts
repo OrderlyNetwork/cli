@@ -1,6 +1,4 @@
-import { OrderlyClient } from '../lib/api.js';
-import { resolveAccountId } from '../lib/account-select.js';
-import { getKey } from '../lib/keychain.js';
+import { createAuthenticatedClient } from '../lib/account-select.js';
 import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
@@ -17,16 +15,7 @@ export async function info(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const raw = await client.getAccountInfo();
@@ -43,16 +32,7 @@ export async function limits(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const raw = await client.getAccountInfo();
@@ -81,17 +61,17 @@ export async function limits(
         account_id: info.account_id,
         max_leverage: info.max_leverage,
         symbol,
-        base_imr: symbolInfo.base_imr,
-        base_mmr: symbolInfo.base_mmr,
+        base_imr: symbolInfo!.base_imr,
+        base_mmr: symbolInfo!.base_mmr,
         account_imr_factor: imrMap[symbol] ?? null,
         account_max_notional: notionalMap[symbol] ?? null,
-        min_notional: symbolInfo.min_notional,
-        price_range: symbolInfo.price_range,
-        base_min: symbolInfo.base_min,
-        base_max: symbolInfo.base_max,
-        base_tick: symbolInfo.base_tick,
-        quote_tick: symbolInfo.quote_tick,
-        liquidation_tier: symbolInfo.liquidation_tier,
+        min_notional: symbolInfo!.min_notional,
+        price_range: symbolInfo!.price_range,
+        base_min: symbolInfo!.base_min,
+        base_max: symbolInfo!.base_max,
+        base_tick: symbolInfo!.base_tick,
+        quote_tick: symbolInfo!.quote_tick,
+        liquidation_tier: symbolInfo!.liquidation_tier,
       };
       output(result, format);
     } else {
@@ -113,16 +93,7 @@ export async function balance(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const data = await client.getBalances();
@@ -137,16 +108,7 @@ export async function statistics(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const data = await client.getStatistics();

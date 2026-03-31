@@ -1,7 +1,5 @@
-import { OrderlyClient } from '../lib/api.js';
-import { resolveAccountId } from '../lib/account-select.js';
-import { getKey } from '../lib/keychain.js';
-import { output, error, handleError, OutputFormat } from '../lib/output.js';
+import { createAuthenticatedClient } from '../lib/account-select.js';
+import { output, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 
 export async function inbox(
@@ -12,16 +10,7 @@ export async function inbox(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const data = await client.getNotificationInbox(type, page, size);
@@ -36,16 +25,7 @@ export async function inboxUnread(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const data = await client.getNotificationInboxUnread();

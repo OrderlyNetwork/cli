@@ -1,7 +1,5 @@
 import { existsSync, readFileSync } from 'fs';
-import { OrderlyClient } from '../lib/api.js';
-import { resolveAccountId } from '../lib/account-select.js';
-import { getKey } from '../lib/keychain.js';
+import { createAuthenticatedClient } from '../lib/account-select.js';
 import { output, error, handleError, OutputFormat, normalizeSymbol } from '../lib/output.js';
 import { Network } from '../types.js';
 
@@ -19,9 +17,6 @@ export async function place(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
   const validSide = side.toUpperCase();
   if (validSide !== 'BUY' && validSide !== 'SELL') {
     error('Invalid side. Use BUY or SELL.');
@@ -41,13 +36,7 @@ export async function place(
     error('Quantity must be a positive number.');
   }
 
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   const orderPayload: {
     symbol: string;
@@ -86,16 +75,7 @@ export async function cancel(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   let orderSymbol = symbol;
   if (!orderSymbol) {
@@ -127,9 +107,6 @@ export async function edit(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
   if (!price && !quantity) {
     error('At least one of --price or --quantity is required to edit an order.', [
       'Examples:',
@@ -139,13 +116,7 @@ export async function edit(
     ]);
   }
 
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   let orderSymbol = symbol;
   let orderType: string | undefined;
@@ -194,16 +165,7 @@ export async function cancelAll(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const result = await client.cancelAllOrders(symbol);
@@ -222,16 +184,7 @@ export async function listOrders(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const result = await client.getOrders(symbol, status?.toUpperCase(), page, size);
@@ -321,9 +274,6 @@ export async function batchPlace(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
   let rawOrders: RawBatchOrder[];
 
   try {
@@ -347,13 +297,7 @@ export async function batchPlace(
 
   const normalizedOrders = rawOrders.map((order, i) => normalizeBatchOrder(order, i));
 
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const result = await client.placeBatchOrder(normalizedOrders);
@@ -369,20 +313,11 @@ export async function batchCancel(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
   if (orderIds.length === 0) {
     error('At least one order ID is required.');
   }
 
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const result = await client.cancelBatchOrders(orderIds);

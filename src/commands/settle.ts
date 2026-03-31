@@ -1,6 +1,6 @@
 import { OrderlyClient } from '../lib/api.js';
-import { resolveAccountId } from '../lib/account-select.js';
-import { getKey, getWalletKey } from '../lib/keychain.js';
+import { createAuthenticatedClient } from '../lib/account-select.js';
+import { getWalletKey } from '../lib/keychain.js';
 import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { KeyPair, Network } from '../types.js';
 import { createWalletFromPrivateKey, signSettlePnl as signSettlePnlEVM } from '../lib/evm.js';
@@ -23,7 +23,7 @@ export async function performSettlePnl(
   client: OrderlyClient,
   keyPair: KeyPair,
   network: Network
-): Promise<SettleResult | null> {
+): Promise<SettleResult> {
   const brokerId = await client.getBrokerId(keyPair.accountId);
 
   const nonceResponse = await client.getSettleNonce();
@@ -111,16 +111,7 @@ export async function settlePnl(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { keyPair, client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const result = await performSettlePnl(client, keyPair, network);
@@ -141,16 +132,7 @@ export async function settlePnlHistory(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const keyPair = await getKey(accId, network);
-  if (!keyPair) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
-
-  const client = new OrderlyClient(network);
-  client.setKeyPair(keyPair);
+  const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
     const result = await client.getPnlSettlementHistory(page, size);

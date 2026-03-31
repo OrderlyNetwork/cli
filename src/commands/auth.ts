@@ -1,9 +1,9 @@
 import kleur from 'kleur';
 import prompts from 'prompts';
 import { publicKeyFromPrivateKey, base64ToBase58 } from '../lib/crypto.js';
-import { storeKey, getKey, deleteKey, listKeys } from '../lib/keychain.js';
+import { storeKey, deleteKey, listKeys } from '../lib/keychain.js';
 import { setDefaultNetwork } from '../lib/config.js';
-import { resolveAccountId } from '../lib/account-select.js';
+import { resolveKeyPair } from '../lib/account-select.js';
 import { KeyPair, Network } from '../types.js';
 import { error, output, type OutputFormat } from '../lib/output.js';
 
@@ -178,14 +178,7 @@ export async function show(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const key = await getKey(accId, network);
-
-  if (!key) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
+  const { keyPair: key } = await resolveKeyPair(accountId, network);
 
   const result = {
     accountId: key.accountId,
@@ -251,14 +244,7 @@ export async function exportKey(accountId: string | undefined, network: Network)
   console.log(kleur.yellow('   Make sure no one is watching your screen.'));
   console.log();
 
-  const accId = await resolveAccountId(accountId, network);
-  if (!accId) return;
-
-  const key = await getKey(accId, network);
-
-  if (!key) {
-    error(`No key found for account ${accId} on ${network}`);
-  }
+  const { keyPair: key } = await resolveKeyPair(accountId, network);
 
   console.log(kleur.cyan('Account:'), kleur.white(key.accountId));
   console.log(kleur.cyan('Network:'), kleur.white(key.network));

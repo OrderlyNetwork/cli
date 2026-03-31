@@ -59,8 +59,21 @@ export async function limits(
     const info = unwrap(raw);
 
     if (symbol) {
-      const symbolRaw = await client.get(`/v1/public/info/${symbol}`, false);
-      const symbolInfo = unwrap(symbolRaw);
+      let symbolInfo: Record<string, unknown> | undefined;
+      try {
+        const symbolRaw = await client.get(`/v1/public/info/${symbol}`, false);
+        const resp = symbolRaw as Record<string, unknown> | undefined;
+        if (resp && typeof resp === 'object' && resp.success) {
+          symbolInfo = resp.data as Record<string, unknown>;
+        }
+      } catch {
+        // error handled below via symbolInfo check
+      }
+
+      if (!symbolInfo) {
+        error(`Symbol ${symbol} not found.`, ['Use "orderly symbols" to list available symbols.']);
+      }
+
       const imrMap = (info.imr_factor || {}) as Record<string, unknown>;
       const notionalMap = (info.max_notional || {}) as Record<string, unknown>;
 

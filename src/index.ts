@@ -1,6 +1,19 @@
 #!/usr/bin/env node
 import { cac } from 'cac';
 import kleur from 'kleur';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+function getVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+    return pkg.version || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
 import { importKey, list, logout, show, exportKey, cleanup } from './commands/auth.js';
 import { info, balance, statistics, limits } from './commands/account.js';
 import {
@@ -191,7 +204,7 @@ ${kleur.yellow('Testnet Only:')}
 const cli = cac('orderly');
 
 cli
-  .version('0.1.0')
+  .version(getVersion())
   .help(() => {
     console.log(DESCRIPTION);
     console.log(QUICK_START);

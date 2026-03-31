@@ -267,7 +267,7 @@ cli
   .example('orderly wallet-show 0x1234...')
   .action((address, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void walletShow(normalizeAddress(address), network);
+    void walletShow(normalizeAddress(address), network, getFormat(options));
   });
 
 cli

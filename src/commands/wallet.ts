@@ -230,7 +230,11 @@ export async function walletList(
   output(result, format);
 }
 
-export async function walletShow(address: string | undefined, network: Network): Promise<void> {
+export async function walletShow(
+  address: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
   let addr = address;
 
   if (!addr) {
@@ -267,11 +271,14 @@ export async function walletShow(address: string | undefined, network: Network):
     error(`No wallet found for ${addr} on ${network}`);
   }
 
-  console.log(kleur.cyan('\n🔑 Wallet Info\n'));
-  console.log(`Address:    ${kleur.white(wallet.address)}`);
-  console.log(`Network:    ${kleur.white(wallet.network)}`);
-  console.log(`Type:       ${kleur.white(wallet.walletType)}`);
-  console.log(kleur.dim('\n(Private key is stored securely and cannot be displayed)'));
+  output(
+    {
+      address: wallet.address,
+      network: wallet.network,
+      walletType: wallet.walletType,
+    },
+    format
+  );
 }
 
 export async function walletLogout(address: string | undefined, network: Network): Promise<void> {

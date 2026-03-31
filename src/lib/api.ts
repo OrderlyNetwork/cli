@@ -135,15 +135,7 @@ export class OrderlyClient {
 
   async getOrder(orderId: string): Promise<{
     success: boolean;
-    data?: {
-      order_id: number;
-      symbol: string;
-      price: number;
-      quantity: number;
-      side: string;
-      status: string;
-      type: string;
-    };
+    data?: Record<string, unknown>;
   }> {
     return this.get(`/v1/order/${orderId}`);
   }
@@ -169,21 +161,13 @@ export class OrderlyClient {
 
   async editOrder(
     orderId: string,
-    updates: {
-      order_price: number;
-      order_quantity: number;
-      order_type: string;
-      side: string;
-    },
+    updates: Record<string, unknown>,
     symbol: string
   ): Promise<unknown> {
     const body: Record<string, unknown> = {
       order_id: Number(orderId),
       symbol,
-      order_type: updates.order_type,
-      side: updates.side,
-      order_price: updates.order_price,
-      order_quantity: updates.order_quantity,
+      ...updates,
     };
     return this.put('/v1/order', body);
   }

@@ -84,7 +84,7 @@ export async function cancel(
       if (!orderRes.success || !orderRes.data) {
         error(`Order ${orderId} not found.`);
       }
-      orderSymbol = orderRes.data.symbol;
+      orderSymbol = orderRes.data.symbol as string;
     } catch (err) {
       handleError(err);
     }
@@ -123,33 +123,55 @@ export async function edit(
   let orderSide: string | undefined;
   let existingPrice: string | undefined;
   let existingQuantity: string | undefined;
+  let existingVisibleQty: number | undefined;
+  let existingClientOrderId: string | undefined;
 
   try {
     const orderRes = await client.getOrder(orderId);
     if (!orderRes.success || !orderRes.data) {
       error(`Order ${orderId} not found.`);
     }
+    const d = orderRes.data;
     if (!orderSymbol) {
-      orderSymbol = orderRes.data.symbol;
+      orderSymbol = d.symbol as string;
     }
-    orderType = orderRes.data.type;
-    orderSide = orderRes.data.side;
-    if (orderRes.data.price !== undefined && orderRes.data.price !== null) {
-      existingPrice = String(orderRes.data.price);
+    orderType = d.type as string;
+    orderSide = d.side as string;
+    if (d.price !== undefined && d.price !== null) {
+      existingPrice = String(d.price);
     }
-    if (orderRes.data.quantity !== undefined && orderRes.data.quantity !== null) {
-      existingQuantity = String(orderRes.data.quantity);
+    if (d.quantity !== undefined && d.quantity !== null) {
+      existingQuantity = String(d.quantity);
+    }
+    if (d.visible_quantity !== undefined && d.visible_quantity !== null) {
+      existingVisibleQty = d.visible_quantity as number;
+    }
+    if (d.client_order_id) {
+      existingClientOrderId = d.client_order_id as string;
     }
   } catch (err) {
     handleError(err);
   }
 
-  const updates = {
+  if (price !== undefined && isNaN(Number(price))) {
+    error('Invalid price value.');
+  }
+  if (quantity !== undefined && isNaN(Number(quantity))) {
+    error('Invalid quantity value.');
+  }
+
+  const updates: Record<string, unknown> = {
     order_type: orderType!,
     side: orderSide!,
-    order_price: Number(price ?? existingPrice),
-    order_quantity: Number(quantity ?? existingQuantity),
+    order_price: price !== undefined ? Number(price) : Number(existingPrice),
+    order_quantity: quantity !== undefined ? Number(quantity) : Number(existingQuantity),
   };
+  if (existingVisibleQty !== undefined) {
+    updates.visible_quantity = existingVisibleQty;
+  }
+  if (existingClientOrderId !== undefined) {
+    updates.client_order_id = existingClientOrderId;
+  }
 
   try {
     const result = await client.editOrder(orderId, updates, orderSymbol!);

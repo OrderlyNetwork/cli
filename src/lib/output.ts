@@ -165,8 +165,9 @@ export type { OutputFormat };
 export function handleError(err: unknown): never {
   if (axios.isAxiosError(err) && err.response?.data) {
     const data = err.response.data;
+    const status = err.response.status;
     const message = data?.message || JSON.stringify(data);
-    error(`API Error: ${message}`);
+    error(`API Error [${status}]: ${message}`);
   } else if (err instanceof Error) {
     error(err.message);
   } else {

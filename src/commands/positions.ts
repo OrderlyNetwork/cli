@@ -21,12 +21,13 @@ export async function closePosition(
   symbol: string,
   accountId: string | undefined,
   network: Network,
-  format: OutputFormat = 'json'
+  format: OutputFormat = 'json',
+  quantity?: number
 ): Promise<void> {
   const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
-    const result = await client.closePosition(symbol.toUpperCase());
+    const result = await client.closePosition(symbol.toUpperCase(), quantity);
     output(result, format);
   } catch (err) {
     handleError(err);

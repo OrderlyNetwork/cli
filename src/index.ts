@@ -681,14 +681,18 @@ cli
 cli
   .command('positions-close <symbol>', 'Close a position')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .option('--quantity <n>', 'Partial close quantity (default: full position)')
   .example('orderly positions-close PERP_ETH_USDC')
+  .example('orderly positions-close PERP_ETH_USDC --quantity 0.005')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
+    const quantity = options.quantity !== undefined ? parseFloat(options.quantity) : undefined;
     void closePosition(
       normalizeSymbol(symbol),
       normalizeAccountId(options.account),
       network,
-      getFormat(options)
+      getFormat(options),
+      quantity
     );
   });
 

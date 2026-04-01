@@ -208,7 +208,7 @@ export class OrderlyClient {
     return this.get(`/v1/position/${symbol}`);
   }
 
-  async closePosition(symbol: string): Promise<unknown> {
+  async closePosition(symbol: string, partialQuantity?: number): Promise<unknown> {
     const positionResponse = await this.getPosition(symbol);
     if (!positionResponse.success || !positionResponse.data) {
       throw new Error(`No open position found for ${symbol}`);
@@ -220,7 +220,18 @@ export class OrderlyClient {
     }
 
     const side = position_qty > 0 ? 'SELL' : 'BUY';
-    const quantity = Math.abs(position_qty).toString();
+    const absQty = Math.abs(position_qty);
+
+    if (partialQuantity !== undefined) {
+      if (partialQuantity <= 0) {
+        throw new Error('Quantity must be positive');
+      }
+      if (partialQuantity > absQty) {
+        throw new Error(`Quantity ${partialQuantity} exceeds position size ${absQty}`);
+      }
+    }
+
+    const quantity = partialQuantity !== undefined ? partialQuantity.toString() : absQty.toString();
 
     return this.placeOrder({
       symbol,

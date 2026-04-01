@@ -6,7 +6,6 @@ import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
 import {
   getChainInfo,
-  getChainName,
   getTokenAddress,
   isSupportedChain,
   getVerifyingContract,
@@ -64,16 +63,20 @@ export async function depositInfo(
     );
   }
 
-  const chainName = await getChainName(chainId, network);
   const chainVault = await getChainInfo(chainId, network);
   const tokenAddress = await getTokenAddress(token, chainId, network);
 
-  const result = {
-    chain: chainName,
+  if (!chainVault) {
+    error(`Chain ID ${chainId} not found in chain info.`);
+  }
+
+  const { vault_address, ...chainRest } = chainVault;
+  const result: Record<string, unknown> = {
+    ...chainRest,
     chainId,
     token: token.toUpperCase(),
     tokenAddress: tokenAddress ?? null,
-    vaultAddress: chainVault?.vault_address ?? null,
+    vaultAddress: vault_address ?? null,
   };
   output(result, format);
 }

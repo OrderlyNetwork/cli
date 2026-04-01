@@ -12,7 +12,7 @@ export async function placeAlgoOrder(
   quantity: string,
   triggerPrice: string | undefined,
   callbackRate: string | undefined,
-  orderPrice: string | undefined,
+  price: string | undefined,
   tpTriggerPrice: string | undefined,
   tpPrice: string | undefined,
   slTriggerPrice: string | undefined,
@@ -127,7 +127,7 @@ export async function placeAlgoOrder(
         callbackRate?: string;
       } = {
         symbol: symbol.toUpperCase(),
-        type: orderPrice ? 'LIMIT' : 'MARKET',
+        type: price ? 'LIMIT' : 'MARKET',
         algoType: validAlgoType,
         side: validSide,
         quantity,
@@ -136,8 +136,8 @@ export async function placeAlgoOrder(
       if (triggerPrice) {
         orderPayload.triggerPrice = triggerPrice;
       }
-      if (orderPrice) {
-        orderPayload.price = orderPrice;
+      if (price) {
+        orderPayload.price = price;
       }
       if (callbackRate) {
         orderPayload.callbackRate = callbackRate;

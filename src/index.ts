@@ -780,7 +780,7 @@ cli
     '--callback-rate <rate>',
     'Callback rate as decimal, e.g. 0.05 for 5% (required for TRAILING_STOP)'
   )
-  .option('--order-price <price>', 'Order price (for limit orders)')
+  .option('--price <price>', 'Order price (for limit orders)')
   .option('--tp-trigger-price <price>', 'Take-profit trigger price (for TP_SL/POSITIONAL_TP_SL)')
   .option('--tp-price <price>', 'Take-profit order price (optional, MARKET if not set)')
   .option('--sl-trigger-price <price>', 'Stop-loss trigger price (for TP_SL/POSITIONAL_TP_SL)')
@@ -803,7 +803,7 @@ cli
       quantity,
       options.triggerPrice,
       options.callbackRate,
-      options.orderPrice,
+      options.price,
       options.tpTriggerPrice,
       options.tpPrice,
       options.slTriggerPrice,

@@ -15,7 +15,11 @@ export function isPrettyJson(): boolean {
 
 function unwrapResponse(response: unknown): unknown {
   if (response !== null && typeof response === 'object' && 'data' in response) {
-    return (response as ApiResponse).data;
+    const api = response as ApiResponse;
+    if (api.success === false) {
+      return api;
+    }
+    return api.data;
   }
   return response;
 }

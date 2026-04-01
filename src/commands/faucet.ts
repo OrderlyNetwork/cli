@@ -14,7 +14,8 @@ export async function faucetUsdc(
   address: string,
   chainId: string | undefined,
   network: Network,
-  format: OutputFormat = 'json'
+  format: OutputFormat = 'json',
+  brokerId?: string
 ): Promise<void> {
   if (network !== 'testnet') {
     error('Faucet is only available on testnet. Use --network testnet');
@@ -22,7 +23,11 @@ export async function faucetUsdc(
 
   try {
     const client = new OrderlyClient(network);
-    const result = (await client.faucetUsdc(address, 'demo', chainId)) as FaucetResponse;
+    const result = (await client.faucetUsdc(
+      address,
+      brokerId || 'demo',
+      chainId
+    )) as FaucetResponse;
 
     if (result && result.success === false) {
       error(result.message || `Faucet request failed (code: ${result.code})`);

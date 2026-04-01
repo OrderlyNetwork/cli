@@ -311,11 +311,18 @@ cli
   .command('wallet-add-key', 'Add Orderly API key for trading (Step 3 of setup)')
   .option('--address <address>', 'Wallet address (required for AI/scripts, prompts if omitted)')
   .option('--scope <scope>', 'Key scopes: read,trading,asset (default: read,trading)')
+  .option('--broker-id <id>', 'Broker ID (required when no API key stored for wallet)')
   .example('orderly wallet-add-key')
   .example('orderly wallet-add-key --scope read,trading')
+  .example('orderly wallet-add-key --address "0x1234..." --broker-id demo --scope read,trading')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void walletAddKey(normalizeAddress(options.address), normalizeScope(options.scope), network);
+    void walletAddKey(
+      normalizeAddress(options.address),
+      normalizeScope(options.scope),
+      network,
+      options.brokerId
+    );
   });
 
 // Auth commands - For users with existing API keys

@@ -153,11 +153,17 @@ export async function edit(
     handleError(err);
   }
 
-  if (price !== undefined && isNaN(Number(price))) {
-    error('Invalid price value.');
+  if (price !== undefined) {
+    const numPrice = Number(price);
+    if (isNaN(numPrice) || numPrice <= 0) {
+      error('Price must be a positive number.');
+    }
   }
-  if (quantity !== undefined && isNaN(Number(quantity))) {
-    error('Invalid quantity value.');
+  if (quantity !== undefined) {
+    const numQty = Number(quantity);
+    if (isNaN(numQty) || numQty <= 0) {
+      error('Quantity must be a positive number.');
+    }
   }
 
   const updates: Record<string, unknown> = {

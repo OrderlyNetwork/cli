@@ -380,3 +380,19 @@ export async function listAlgoOrders(
     handleError(err);
   }
 }
+
+export async function algoOrderTrades(
+  orderId: string,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const result = await client.getAlgoOrderTrades(orderId);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}

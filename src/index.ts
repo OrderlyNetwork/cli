@@ -60,6 +60,7 @@ import {
   cancelAllAlgoOrders,
   listAlgoOrders,
   editAlgoOrder,
+  algoOrderTrades,
 } from './commands/algo.js';
 import { fundingHistory } from './commands/funding.js';
 import { settlePnl, settlePnlHistory } from './commands/settle.js';
@@ -184,7 +185,7 @@ ${kleur.yellow('Trading:')}
   order-get, order-cancel-by-client-id, order-trades
   cancel-all-after
   batch-order-place, batch-order-cancel
-  algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list
+  algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list, algo-order-trades
   positions-list, positions-close, positions-history
   leverage, trades, funding-history
 
@@ -921,6 +922,15 @@ cli
       network,
       getFormat(options)
     );
+  });
+
+cli
+  .command('algo-order-trades <order-id>', 'Get trades for a specific algo order')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly algo-order-trades 123456')
+  .action((orderId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void algoOrderTrades(orderId, normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli

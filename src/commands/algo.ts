@@ -58,6 +58,51 @@ export async function placeAlgoOrder(
 
   const { client } = await createAuthenticatedClient(accountId, network);
 
+  if (
+    (validAlgoType === 'TP_SL' ||
+      validAlgoType === 'POSITIONAL_TP_SL' ||
+      validAlgoType === 'BRACKET') &&
+    (tpTriggerPrice || slTriggerPrice)
+  ) {
+    let markPrice: number | undefined;
+    try {
+      const raw = (await client.getMarketPrice(symbol.toUpperCase())) as Record<string, unknown>;
+      const marketData = (raw?.data as Record<string, unknown>) || raw;
+      markPrice = marketData?.mark_price as number | undefined;
+    } catch {
+      // skip validation if mark price unavailable
+    }
+
+    if (markPrice !== undefined) {
+      const tp = tpTriggerPrice ? Number(tpTriggerPrice) : undefined;
+      const sl = slTriggerPrice ? Number(slTriggerPrice) : undefined;
+
+      if (validSide === 'BUY') {
+        if (tp !== undefined && tp <= markPrice) {
+          error(
+            `Take-profit trigger price (${tp}) must be above current mark price (${markPrice}) for a BUY/long position.`
+          );
+        }
+        if (sl !== undefined && sl >= markPrice) {
+          error(
+            `Stop-loss trigger price (${sl}) must be below current mark price (${markPrice}) for a BUY/long position.`
+          );
+        }
+      } else {
+        if (tp !== undefined && tp >= markPrice) {
+          error(
+            `Take-profit trigger price (${tp}) must be below current mark price (${markPrice}) for a SELL/short position.`
+          );
+        }
+        if (sl !== undefined && sl <= markPrice) {
+          error(
+            `Stop-loss trigger price (${sl}) must be above current mark price (${markPrice}) for a SELL/short position.`
+          );
+        }
+      }
+    }
+  }
+
   try {
     let result;
 

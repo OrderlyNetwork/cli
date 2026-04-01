@@ -13,6 +13,7 @@ export async function place(
   quantity: string,
   price: string | undefined,
   clientOrderId: string | undefined,
+  reduceOnly: boolean,
   accountId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -45,6 +46,7 @@ export async function place(
     order_quantity: string;
     order_price?: string;
     client_order_id?: string;
+    reduce_only?: boolean;
   } = {
     symbol: symbol.toUpperCase(),
     order_type: validType,
@@ -58,6 +60,10 @@ export async function place(
 
   if (clientOrderId) {
     orderPayload.client_order_id = clientOrderId;
+  }
+
+  if (reduceOnly) {
+    orderPayload.reduce_only = true;
   }
 
   try {

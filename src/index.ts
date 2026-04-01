@@ -488,6 +488,7 @@ cli
   )
   .option('--price <price>', 'Order price (required for LIMIT, IOC, FOK, POST_ONLY)')
   .option('--client-order-id <id>', 'Custom client order ID (optional)')
+  .option('--reduce-only', 'Reduce-only order (can only reduce existing position, not open new)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01')
   .example('orderly order-place PERP_ETH_USDC SELL LIMIT 0.01 --price 3500')
@@ -497,6 +498,7 @@ cli
   .example('orderly order-place PERP_ETH_USDC SELL ASK 0.01')
   .example('orderly order-place PERP_ETH_USDC BUY BID 0.01')
   .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --client-order-id my-order-123')
+  .example('orderly order-place PERP_ETH_USDC SELL LIMIT 0.01 --price 3500 --reduce-only')
   .action((symbol, side, type, quantity, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void place(
@@ -506,6 +508,7 @@ cli
       quantity,
       options.price,
       options.clientOrderId,
+      options.reduceOnly === true,
       normalizeAccountId(options.account),
       network,
       getFormat(options)

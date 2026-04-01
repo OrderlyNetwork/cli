@@ -803,6 +803,7 @@ cli
     'Stop-loss trigger price (for TP_SL/POSITIONAL_TP_SL/BRACKET)'
   )
   .option('--sl-price <price>', 'Stop-loss order price (optional, MARKET if not set)')
+  .option('--reduce-only', 'Reduce-only order (can only reduce existing position, not open new)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-place PERP_ETH_USDC SELL STOP 0.01 --trigger-price 2000')
   .example(
@@ -829,6 +830,7 @@ cli
       options.tpPrice,
       options.slTriggerPrice,
       options.slPrice,
+      options.reduceOnly,
       normalizeAccountId(options.account),
       network,
       getFormat(options)

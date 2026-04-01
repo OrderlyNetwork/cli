@@ -17,6 +17,7 @@ export async function placeAlgoOrder(
   tpPrice: string | undefined,
   slTriggerPrice: string | undefined,
   slPrice: string | undefined,
+  reduceOnly: boolean | undefined,
   accountId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -278,6 +279,7 @@ export async function placeAlgoOrder(
         triggerPrice?: string;
         price?: string;
         callbackRate?: string;
+        reduceOnly?: boolean;
       } = {
         symbol: symbol.toUpperCase(),
         type: price ? 'LIMIT' : 'MARKET',
@@ -294,6 +296,9 @@ export async function placeAlgoOrder(
       }
       if (callbackRate) {
         orderPayload.callbackRate = callbackRate;
+      }
+      if (reduceOnly) {
+        orderPayload.reduceOnly = true;
       }
 
       result = await client.placeAlgoOrder(orderPayload);

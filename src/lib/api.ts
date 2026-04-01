@@ -416,6 +416,7 @@ export class OrderlyClient {
     triggerPrice?: string;
     price?: string;
     callbackRate?: string;
+    reduceOnly?: boolean;
     childOrders?: Array<Record<string, unknown>>;
   }): Promise<unknown> {
     const body: Record<string, unknown> = {
@@ -439,6 +440,9 @@ export class OrderlyClient {
     }
     if (order.callbackRate !== undefined) {
       body.callback_rate = order.callbackRate;
+    }
+    if (order.reduceOnly) {
+      body.reduce_only = true;
     }
     if (order.childOrders !== undefined) {
       body.child_orders = order.childOrders;

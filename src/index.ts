@@ -622,10 +622,14 @@ cli
   });
 
 cli
-  .command('order-get [order-id]', 'Get order details by order ID or client order ID')
-  .option('--client-order-id <id>', 'Look up order by client order ID instead of order ID')
+  .command(
+    'order-get [order-id]',
+    'Get order details. Auto-detects numeric order ID vs client order ID'
+  )
+  .option('--client-order-id <id>', 'Explicitly look up by client order ID')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly order-get 123456')
+  .example('orderly order-get my-order-123')
   .example('orderly order-get --client-order-id my-order-123')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();

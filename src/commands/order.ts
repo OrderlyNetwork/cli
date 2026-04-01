@@ -385,13 +385,20 @@ export async function getOrder(
 
   const { client } = await createAuthenticatedClient(accountId, network);
 
+  const resolvedClientOrderId = clientOrderId ?? (/^\d+$/.test(orderId!) ? undefined : orderId);
+  const resolvedOrderId = /^\d+$/.test(orderId!) ? orderId : undefined;
+
   try {
-    if (clientOrderId) {
-      const result = await client.getOrderByClientId(clientOrderId);
+    if (resolvedClientOrderId) {
+      const result = await client.getOrderByClientId(resolvedClientOrderId);
+      output(result, format);
+    } else if (resolvedOrderId) {
+      const result = await client.getOrderByOrderId(resolvedOrderId);
       output(result, format);
     } else {
-      const result = await client.getOrderByOrderId(orderId!);
-      output(result, format);
+      error(
+        'Could not resolve order identifier. Provide a numeric order ID or use --client-order-id.'
+      );
     }
   } catch (err) {
     handleError(err);

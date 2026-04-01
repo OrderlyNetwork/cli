@@ -416,15 +416,7 @@ export class OrderlyClient {
     triggerPrice?: string;
     price?: string;
     callbackRate?: string;
-    childOrders?: Array<{
-      symbol: string;
-      algo_type: string;
-      side: string;
-      type: string;
-      trigger_price: string;
-      price?: string;
-      reduce_only: boolean;
-    }>;
+    childOrders?: Array<Record<string, unknown>>;
   }): Promise<unknown> {
     const body: Record<string, unknown> = {
       symbol: order.symbol,

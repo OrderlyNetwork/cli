@@ -45,6 +45,15 @@ export async function placeAlgoOrder(
     if (!triggerPrice) {
       error('--trigger-price is required for STOP orders.');
     }
+  } else if (validAlgoType === 'BRACKET') {
+    if (!triggerPrice) {
+      error('--trigger-price is required for BRACKET orders.');
+    }
+    if (!tpTriggerPrice && !slTriggerPrice) {
+      error(
+        'At least one of --tp-trigger-price or --sl-trigger-price is required for BRACKET orders.'
+      );
+    }
   }
 
   const { client } = await createAuthenticatedClient(accountId, network);
@@ -115,6 +124,105 @@ export async function placeAlgoOrder(
         quantity: validAlgoType === 'POSITIONAL_TP_SL' ? undefined : quantity,
         childOrders,
       });
+    } else if (validAlgoType === 'BRACKET') {
+      const oppositeSide = validSide === 'BUY' ? 'SELL' : 'BUY';
+
+      const tpslChildOrders: Array<{
+        symbol: string;
+        algo_type: string;
+        side: string;
+        type: string;
+        trigger_price: string;
+        price?: string;
+        reduce_only: boolean;
+      }> = [];
+
+      if (tpTriggerPrice) {
+        const tpOrder: {
+          symbol: string;
+          algo_type: string;
+          side: string;
+          type: string;
+          trigger_price: string;
+          price?: string;
+          reduce_only: boolean;
+        } = {
+          symbol: symbol.toUpperCase(),
+          algo_type: 'TAKE_PROFIT',
+          side: oppositeSide,
+          type: tpPrice ? 'LIMIT' : 'MARKET',
+          trigger_price: tpTriggerPrice,
+          reduce_only: true,
+        };
+        if (tpPrice) tpOrder.price = tpPrice;
+        tpslChildOrders.push(tpOrder);
+      }
+
+      if (slTriggerPrice) {
+        const slOrder: {
+          symbol: string;
+          algo_type: string;
+          side: string;
+          type: string;
+          trigger_price: string;
+          price?: string;
+          reduce_only: boolean;
+        } = {
+          symbol: symbol.toUpperCase(),
+          algo_type: 'STOP_LOSS',
+          side: oppositeSide,
+          type: slPrice ? 'LIMIT' : 'MARKET',
+          trigger_price: slTriggerPrice,
+          reduce_only: true,
+        };
+        if (slPrice) slOrder.price = slPrice;
+        tpslChildOrders.push(slOrder);
+      }
+
+      const orderPayload: {
+        symbol: string;
+        type: string;
+        algoType: string;
+        side: string;
+        quantity: string;
+        triggerPrice: string;
+        price?: string;
+        childOrders: Array<{
+          symbol: string;
+          algo_type: string;
+          quantity: string;
+          child_orders: Array<{
+            symbol: string;
+            algo_type: string;
+            side: string;
+            type: string;
+            trigger_price: string;
+            price?: string;
+            reduce_only: boolean;
+          }>;
+        }>;
+      } = {
+        symbol: symbol.toUpperCase(),
+        type: price ? 'LIMIT' : 'MARKET',
+        algoType: validAlgoType,
+        side: validSide,
+        quantity,
+        triggerPrice: triggerPrice!,
+        childOrders: [
+          {
+            symbol: symbol.toUpperCase(),
+            algo_type: 'TP_SL',
+            quantity,
+            child_orders: tpslChildOrders,
+          },
+        ],
+      };
+
+      if (price) {
+        orderPayload.price = price;
+      }
+
+      result = await client.placeAlgoOrder(orderPayload);
     } else {
       const orderPayload: {
         symbol: string;

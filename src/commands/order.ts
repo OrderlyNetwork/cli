@@ -407,24 +407,3 @@ export async function orderTrades(
     handleError(err);
   }
 }
-
-export async function cancelAllAfter(
-  timeout: string,
-  accountId: string | undefined,
-  network: Network,
-  format: OutputFormat = 'json'
-): Promise<void> {
-  const timeoutMs = parseInt(timeout, 10);
-  if (isNaN(timeoutMs) || timeoutMs < 0) {
-    error('Timeout must be a non-negative integer (milliseconds).');
-  }
-
-  const { client } = await createAuthenticatedClient(accountId, network);
-
-  try {
-    const result = await client.cancelAllAfter(timeoutMs);
-    output(result, format);
-  } catch (err) {
-    handleError(err);
-  }
-}

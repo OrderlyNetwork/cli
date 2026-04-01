@@ -27,7 +27,6 @@ import {
   cancelByClientId,
   getOrder,
   orderTrades,
-  cancelAllAfter,
 } from './commands/order.js';
 import { listPositions, closePosition, positionHistory } from './commands/positions.js';
 import {
@@ -657,19 +656,6 @@ cli
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void orderTrades(orderId, normalizeAccountId(options.account), network, getFormat(options));
-  });
-
-cli
-  .command(
-    'cancel-all-after <timeout>',
-    'Set dead man switch: cancel all orders after timeout (ms). Use 0 to disable.'
-  )
-  .option('--account <id>', 'Account ID (auto-resolves if single account)')
-  .example('orderly cancel-all-after 60000')
-  .example('orderly cancel-all-after 0')
-  .action((timeout, options) => {
-    const network = (options.network as Network) || getDefaultNetwork();
-    void cancelAllAfter(timeout, normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli

@@ -575,10 +575,6 @@ export class OrderlyClient {
     return this.get('/v1/notification/inbox/unread');
   }
 
-  async cancelAllAfter(timeout: number): Promise<unknown> {
-    return this.post('/v1/order/cancel_all_after', { timeout });
-  }
-
   async cancelOrderByClientId(clientOrderId: string, symbol: string): Promise<unknown> {
     return this.delete(
       `/v1/client/order?client_order_id=${encodeURIComponent(clientOrderId)}&symbol=${symbol}`

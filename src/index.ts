@@ -1291,7 +1291,7 @@ cli
   .example('orderly withdraw USDC 0x1234... 84532 --amount 10 --allow-cross-chain')
   .action((token, receiver, chainId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    if (!options.amount) {
+    if (options.amount === undefined || options.amount === null) {
       error('Missing required option: --amount');
     }
     void withdraw(

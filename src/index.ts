@@ -1162,11 +1162,13 @@ cli
 
 cli
   .command('funding-rates', 'Get public funding rates for all symbols (no auth required)')
+  .option('--symbol <symbol>', 'Filter by symbol')
   .example('orderly funding-rates')
+  .example('orderly funding-rates --symbol PERP_ETH_USDC')
   .example('orderly funding-rates --network mainnet')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getFundingRates(network, getFormat(options));
+    void getFundingRates(normalizeOptionalSymbol(options.symbol), network, getFormat(options));
   });
 
 cli
@@ -1175,19 +1177,23 @@ cli
     'Get price changes for all symbols (5m, 30m, 1h, 24h, 7d, 30d) (no auth required)'
   )
   .example('orderly price-changes')
+  .example('orderly price-changes --symbol PERP_ETH_USDC')
   .example('orderly price-changes --network mainnet')
+  .option('--symbol <symbol>', 'Filter by symbol')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getPriceChanges(network, getFormat(options));
+    void getPriceChanges(normalizeOptionalSymbol(options.symbol), network, getFormat(options));
   });
 
 cli
   .command('open-interest', 'Get long/short open interest for all symbols (no auth required)')
+  .option('--symbol <symbol>', 'Filter by symbol')
   .example('orderly open-interest')
+  .example('orderly open-interest --symbol PERP_ETH_USDC')
   .example('orderly open-interest --network mainnet')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getOpenInterest(network, getFormat(options));
+    void getOpenInterest(normalizeOptionalSymbol(options.symbol), network, getFormat(options));
   });
 
 cli

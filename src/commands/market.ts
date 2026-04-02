@@ -7,6 +7,20 @@ import { getApiBaseUrl } from '../lib/config.js';
 
 const VALID_KLINE_TYPES = ['1m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w', '1mon'];
 
+interface RowWithSymbol {
+  symbol?: string;
+  [key: string]: unknown;
+}
+
+function filterRows(result: Record<string, unknown>, symbol: string | undefined): void {
+  if (!symbol) return;
+  const data = result.data as Record<string, unknown> | undefined;
+  const rows = (data?.rows as RowWithSymbol[] | undefined) ?? [];
+  if (data) {
+    data.rows = rows.filter((r) => r.symbol === symbol);
+  }
+}
+
 const KLINE_TO_TV: Record<string, string> = {
   '1m': '1',
   '5m': '5',
@@ -209,12 +223,14 @@ export async function getMarketTrades(
 }
 
 export async function getFundingRates(
+  symbol: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
   try {
     const client = new OrderlyClient(network);
-    const result = await client.getFundingRates();
+    const result = (await client.getFundingRates()) as Record<string, unknown>;
+    filterRows(result, symbol);
     output(result, format);
   } catch (err) {
     handleError(err);
@@ -222,12 +238,14 @@ export async function getFundingRates(
 }
 
 export async function getPriceChanges(
+  symbol: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
   try {
     const client = new OrderlyClient(network);
-    const result = await client.getPriceChanges();
+    const result = (await client.getPriceChanges()) as Record<string, unknown>;
+    filterRows(result, symbol);
     output(result, format);
   } catch (err) {
     handleError(err);
@@ -235,12 +253,14 @@ export async function getPriceChanges(
 }
 
 export async function getOpenInterest(
+  symbol: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
   try {
     const client = new OrderlyClient(network);
-    const result = await client.getOpenInterest();
+    const result = (await client.getOpenInterest()) as Record<string, unknown>;
+    filterRows(result, symbol);
     output(result, format);
   } catch (err) {
     handleError(err);

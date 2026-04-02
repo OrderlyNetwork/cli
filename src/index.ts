@@ -1245,19 +1245,23 @@ cli
 cli
   .command('chains', 'List supported chains (no auth required)')
   .option('--broker-id <id>', 'Filter chains by broker ID')
+  .option('--verbose', 'Include broker_ids array for each chain')
   .example('orderly chains')
   .example('orderly chains --broker-id demo')
+  .example('orderly chains --verbose')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getChains(network, getFormat(options), options.brokerId);
+    void getChains(network, getFormat(options), options.brokerId, options.verbose);
   });
 
 cli
   .command('tokens', 'List supported tokens (no auth required)')
+  .option('--verbose', 'Include chain_details array for each token')
   .example('orderly tokens')
+  .example('orderly tokens --verbose')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getTokens(network, getFormat(options));
+    void getTokens(network, getFormat(options), options.verbose);
   });
 
 cli

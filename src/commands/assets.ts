@@ -20,7 +20,8 @@ import { hasNegativeUnsettledPnl, performSettlePnl } from './settle.js';
 export async function getChains(
   network: Network,
   format: OutputFormat = 'json',
-  brokerId?: string
+  brokerId?: string,
+  verbose = false
 ): Promise<void> {
   const client = new OrderlyClient(network);
 
@@ -28,10 +29,15 @@ export async function getChains(
     const result = await client.get<{
       data?: { rows?: Array<{ broker_ids?: string[]; [k: string]: unknown }> };
     }>('/v1/public/chain_info', false);
-    if (brokerId && result?.data?.rows) {
-      result.data.rows = result.data.rows.filter(
-        (chain) => chain.broker_ids && chain.broker_ids.includes(brokerId)
-      );
+    if (result?.data?.rows) {
+      if (brokerId) {
+        result.data.rows = result.data.rows.filter(
+          (chain) => chain.broker_ids && chain.broker_ids.includes(brokerId)
+        );
+      }
+      if (!verbose) {
+        result.data.rows = result.data.rows.map(({ broker_ids: _broker_ids, ...rest }) => rest);
+      }
     }
     output(result, format);
   } catch (err) {
@@ -39,11 +45,21 @@ export async function getChains(
   }
 }
 
-export async function getTokens(network: Network, format: OutputFormat = 'json'): Promise<void> {
+export async function getTokens(
+  network: Network,
+  format: OutputFormat = 'json',
+  verbose = false
+): Promise<void> {
   const client = new OrderlyClient(network);
 
   try {
-    const result = await client.get('/v1/public/token', false);
+    const result = await client.get<{
+      success?: boolean;
+      data?: { rows?: Array<{ chain_details?: unknown[]; [k: string]: unknown }> };
+    }>('/v1/public/token', false);
+    if (!verbose && result?.data?.rows) {
+      result.data.rows = result.data.rows.map(({ chain_details: _chain_details, ...rest }) => rest);
+    }
     output(result, format);
   } catch (err) {
     handleError(err);

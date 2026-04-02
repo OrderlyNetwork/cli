@@ -55,6 +55,21 @@ export async function getPrice(
   try {
     const client = new OrderlyClient(network);
     const result = await client.getMarketPrice(symbol.toUpperCase());
+    if (
+      result !== null &&
+      typeof result === 'object' &&
+      'data' in (result as Record<string, unknown>) &&
+      (result as Record<string, unknown>).data === null
+    ) {
+      error(`Symbol not found: "${symbol}".`, ['Run `orderly symbols` to see available symbols.']);
+    }
+    if (
+      result !== null &&
+      typeof result === 'object' &&
+      !('data' in (result as Record<string, unknown>))
+    ) {
+      error(`Symbol not found: "${symbol}".`, ['Run `orderly symbols` to see available symbols.']);
+    }
     output(result, format);
   } catch (err) {
     handleError(err);

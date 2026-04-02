@@ -191,7 +191,6 @@ ${kleur.yellow('Setup & Auth:')}
 ${kleur.yellow('Trading:')}
   order-place, order-cancel, order-edit, order-cancel-all, order-list
   order-get, order-cancel-by-client-id, order-trades
-  cancel-all-after
   batch-order-place, batch-order-cancel
   algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list, algo-order-trades
   positions-list, positions-close, positions-history

@@ -589,24 +589,39 @@ cli
   });
 
 cli
-  .command('order-list', 'List orders')
+  .command('order-list', 'List orders (defaults to open/active orders)')
   .option('--symbol <symbol>', 'Filter by symbol')
-  .option('--status <status>', 'Filter by status: NEW, FILLED, CANCELLED, INCOMPLETE, COMPLETED')
+  .option(
+    '--status <status>',
+    'Filter by status: NEW, FILLED, CANCELLED, PARTIAL_FILLED, REJECTED, INCOMPLETE, COMPLETED'
+  )
+  .option('--side <side>', 'Filter by side: BUY, SELL')
+  .option('--order-type <type>', 'Filter by type: LIMIT, MARKET')
+  .option(
+    '--sort-by <sort>',
+    'Sort: CREATED_TIME_ASC, CREATED_TIME_DESC, UPDATED_TIME_ASC, UPDATED_TIME_DESC'
+  )
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25, max: 500)')
+  .option('--all', 'Show all orders (overrides default INCOMPLETE filter)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly order-list')
+  .example('orderly order-list --all')
   .example('orderly order-list --symbol PERP_ETH_USDC')
-  .example('orderly order-list --status INCOMPLETE')
   .example('orderly order-list --status FILLED --symbol PERP_ETH_USDC')
+  .example('orderly order-list --side BUY --order-type LIMIT')
   .example('orderly order-list --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
+    const status = options.status ?? (options.all ? undefined : 'INCOMPLETE');
     void listOrders(
       normalizeOptionalSymbol(options.symbol),
-      options.status,
+      status,
+      options.side,
+      options.orderType,
+      options.sortBy,
       page,
       size,
       normalizeAccountId(options.account),

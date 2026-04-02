@@ -212,6 +212,9 @@ export async function cancelAll(
 export async function listOrders(
   symbol: string | undefined,
   status: string | undefined,
+  side: string | undefined,
+  orderType: string | undefined,
+  sortBy: string | undefined,
   page: number | undefined,
   size: number | undefined,
   accountId: string | undefined,
@@ -221,7 +224,15 @@ export async function listOrders(
   const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
-    const result = await client.getOrders(symbol, status?.toUpperCase(), page, size);
+    const result = await client.getOrders(
+      symbol,
+      status?.toUpperCase(),
+      side?.toUpperCase(),
+      orderType?.toUpperCase(),
+      sortBy,
+      page,
+      size
+    );
     output(result, format);
   } catch (err) {
     handleError(err);

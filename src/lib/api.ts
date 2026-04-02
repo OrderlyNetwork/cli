@@ -121,12 +121,18 @@ export class OrderlyClient {
   async getOrders(
     symbol?: string,
     status?: string,
+    side?: string,
+    orderType?: string,
+    sortBy?: string,
     page?: number,
     size?: number
   ): Promise<unknown> {
     const params = new URLSearchParams();
     if (symbol) params.append('symbol', symbol);
     if (status) params.append('status', status);
+    if (side) params.append('side', side);
+    if (orderType) params.append('order_type', orderType);
+    if (sortBy) params.append('sort_by', sortBy);
     if (page) params.append('page', page.toString());
     if (size) params.append('size', size.toString());
     const queryString = params.toString();

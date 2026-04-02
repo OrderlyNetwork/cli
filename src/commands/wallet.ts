@@ -7,6 +7,9 @@ import {
   RegistrationMessage,
   AddKeyMessage,
 } from '../types.js';
+
+const VALID_WALLET_TYPES: WalletType[] = ['EVM', 'SOL'];
+
 import {
   storeWalletKey,
   getWalletKey,
@@ -46,8 +49,11 @@ export async function walletCreate(
     console.log(kleur.cyan(`\n🔐 Create New Wallet (${network})\n`));
   }
 
-  let type: WalletType = walletType ?? 'EVM';
-  if (!walletType) {
+  let type: WalletType | undefined = walletType?.toUpperCase() as WalletType;
+  if (walletType && !VALID_WALLET_TYPES.includes(type)) {
+    error(`Invalid wallet type: "${walletType}". Valid types: ${VALID_WALLET_TYPES.join(', ')}`);
+  }
+  if (!type) {
     const response = await prompts({
       type: 'select',
       name: 'type',
@@ -60,7 +66,7 @@ export async function walletCreate(
     if (!response.type) {
       error('Cancelled.');
     }
-    type = response.type;
+    type = response.type as WalletType;
   }
 
   let address: string;
@@ -117,8 +123,11 @@ export async function walletImport(
 ): Promise<void> {
   console.log(kleur.cyan(`\n🔑 Import Wallet (${network})\n`));
 
-  let type: WalletType = walletType ?? 'EVM';
-  if (!walletType) {
+  let type: WalletType | undefined = walletType?.toUpperCase() as WalletType;
+  if (walletType && !VALID_WALLET_TYPES.includes(type)) {
+    error(`Invalid wallet type: "${walletType}". Valid types: ${VALID_WALLET_TYPES.join(', ')}`);
+  }
+  if (!type) {
     const response = await prompts({
       type: 'select',
       name: 'type',
@@ -131,7 +140,7 @@ export async function walletImport(
     if (!response.type) {
       error('Cancelled.');
     }
-    type = response.type;
+    type = response.type as WalletType;
   }
 
   let addr: string = address ?? '';

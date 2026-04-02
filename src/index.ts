@@ -232,7 +232,7 @@ cli
     console.log(kleur.cyan('  orderly wallet-create --help'));
     console.log(kleur.cyan('  orderly order-place --help'));
   })
-  .option('--network <network>', 'Network: mainnet or testnet (default: testnet)', {
+  .option('--network <network>', 'Network: mainnet or testnet', {
     default: getDefaultNetwork(),
   })
   .option('--csv', 'Output as CSV instead of JSON (for list data)')

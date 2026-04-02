@@ -15,7 +15,15 @@ function getVersion(): string {
   }
 }
 import { importKey, list, logout, show, exportKey, cleanup } from './commands/auth.js';
-import { info, balance, statistics, limits, keyInfo, liquidations } from './commands/account.js';
+import {
+  info,
+  balance,
+  statistics,
+  limits,
+  keyInfo,
+  liquidations,
+  feeTier,
+} from './commands/account.js';
 import {
   place,
   cancel,
@@ -191,7 +199,7 @@ ${kleur.yellow('Trading:')}
 
 ${kleur.yellow('Account:')}
   account-info, account-balance, account-statistics, account-limits
-  key-info, account-liquidations
+  key-info, fee-tier, account-liquidations
 
 ${kleur.yellow('Market Data:')}
   market-price, market-orderbook, market-trades, funding-rates, kline, symbols
@@ -455,6 +463,16 @@ cli
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void keyInfo(normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command('fee-tier', 'Get current fee rates (futures, RWA, default)')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly fee-tier')
+  .example('orderly fee-tier --account 0x1e6b...')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void feeTier(normalizeAccountId(options.account), network, getFormat(options));
   });
 
 cli

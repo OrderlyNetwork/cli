@@ -107,6 +107,40 @@ export async function keyInfo(
   }
 }
 
+function extractFeeTier(info: Record<string, unknown>) {
+  return {
+    account_id: info.account_id,
+    futures: {
+      maker_fee_rate: info.futures_maker_fee_rate ?? null,
+      taker_fee_rate: info.futures_taker_fee_rate ?? null,
+    },
+    rwa: {
+      maker_fee_rate: info.rwa_maker_fee_rate ?? null,
+      taker_fee_rate: info.rwa_taker_fee_rate ?? null,
+    },
+    default: {
+      maker_fee_rate: info.maker_fee_rate ?? null,
+      taker_fee_rate: info.taker_fee_rate ?? null,
+    },
+  };
+}
+
+export async function feeTier(
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const raw = await client.getAccountInfo();
+    const info = unwrap(raw);
+    output(extractFeeTier(info), format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
 export async function liquidations(
   symbol: string | undefined,
   page: number | undefined,

@@ -1378,11 +1378,44 @@ try {
 } catch (err) {
   if (err instanceof Error && err.name === 'CACError') {
     const message = err.message;
-    const match = message.match(/missing required args for command `(.+)`/);
-    if (match) {
-      const commandName = match[1];
+    const missingMatch = message.match(/missing required args for command `(.+)`/);
+    if (missingMatch) {
+      const commandName = missingMatch[1];
       error(`${message}`, [`Usage examples:`, `  orderly ${commandName} --help`]);
     }
+    const unknownMatch = message.match(/Unknown option `(.+)`/);
+    if (unknownMatch) {
+      const flag = unknownMatch[1];
+      const commandPart = rawArgs[0] || '';
+      const hints: string[] = [];
+      if (flag === '--account') {
+        hints.push(`This command does not accept ${kleur.cyan('--account')}.`);
+        const matchedCmd = cli.commands.find(
+          (c) =>
+            c.name === commandPart ||
+            (Array.isArray(c.aliasNames) && c.aliasNames.includes(commandPart))
+        );
+        if (matchedCmd) {
+          const hasAddress = matchedCmd.options.some((o: { name: string }) => o.name === 'address');
+          if (hasAddress) {
+            hints.push(`Did you mean ${kleur.cyan('--address <wallet-address>')}?`);
+          }
+          const hasAccountPos = matchedCmd.args.some(
+            (a: { value: string }) => a.value === 'account-id' || a.value === 'account'
+          );
+          if (hasAccountPos) {
+            hints.push(
+              `This command takes account ID as a positional argument: ${kleur.cyan(`orderly ${commandPart} <account-id>`)}`
+            );
+          }
+        }
+      }
+      if (hints.length === 0) {
+        hints.push(`Run ${kleur.cyan(`orderly ${commandPart} --help`)} to see valid options.`);
+      }
+      error(message, hints);
+    }
+    error(message, [`Run ${kleur.cyan('orderly --help')} to see available commands.`]);
   }
   throw err;
 }

@@ -96,6 +96,13 @@ export async function withdraw(
 
   const brokerId = await client.getBrokerId(keyPair!.accountId);
 
+  const supported = await isSupportedChain(chainId, network);
+  if (!supported) {
+    error(
+      `Chain ID ${chainId} is not supported on ${network}. Use 'orderly chains' to see supported chains.`
+    );
+  }
+
   let rawAmountValue: string;
 
   if (rawAmount) {
@@ -141,11 +148,15 @@ export async function withdraw(
   }
 
   try {
-    if (await hasNegativeUnsettledPnl(client)) {
-      const settleResult = await performSettlePnl(client, keyPair!, network);
-      if (settleResult) {
-        output({ auto_settled: true, settle_pnl_id: settleResult.settle_pnl_id }, format);
+    try {
+      if (await hasNegativeUnsettledPnl(client)) {
+        const settleResult = await performSettlePnl(client, keyPair!, network);
+        if (settleResult) {
+          output({ auto_settled: true, settle_pnl_id: settleResult.settle_pnl_id }, format);
+        }
       }
+    } catch {
+      // settle-pnl is best-effort; don't let it mask the real withdrawal error
     }
 
     const nonceResponse = await client.get<{ success: boolean; data?: { withdraw_nonce: string } }>(

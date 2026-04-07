@@ -501,7 +501,7 @@ cli
 cli
   .command(
     'order-place <symbol> <side> <type> <quantity>',
-    'Place a new order. Types: MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK (market sell), BID (market buy)'
+    'Place a new order. Side: BUY, SELL. Types: MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK (market sell), BID (market buy)'
   )
   .option('--price <price>', 'Order price (required for LIMIT, IOC, FOK, POST_ONLY)')
   .option('--client-order-id <id>', 'Custom client order ID (optional)')

@@ -164,11 +164,12 @@ export async function withdraw(
   }
 
   try {
+    let settledPnlId: number | null = null;
     try {
       if (await hasNegativeUnsettledPnl(client)) {
         const settleResult = await performSettlePnl(client, keyPair!, network);
         if (settleResult) {
-          output({ auto_settled: true, settle_pnl_id: settleResult.settle_pnl_id }, format);
+          settledPnlId = settleResult.settle_pnl_id;
         }
       }
     } catch {
@@ -248,12 +249,26 @@ export async function withdraw(
     };
 
     if (result.success && result.data?.withdraw_id) {
-      output(result.data, format);
+      const out = { ...result.data };
+      if (settledPnlId !== null) {
+        (out as Record<string, unknown>).auto_settled = true;
+        (out as Record<string, unknown>).settle_pnl_id = settledPnlId;
+      }
+      output(out, format);
     } else {
       const apiMsg = (result as Record<string, unknown>).message as string | undefined;
-      error(`Failed to initiate withdrawal${apiMsg ? `: ${apiMsg}` : ''}`, [
-        'If the error mentions cross-chain, use --allow-cross-chain flag.',
-      ]);
+      const hints: string[] = [];
+      if (allowCrossChain) {
+        hints.push('Check that the token and chain combination is valid.');
+      } else {
+        hints.push('If the error mentions cross-chain, use --allow-cross-chain flag.');
+      }
+      if (apiMsg && /amount/i.test(apiMsg)) {
+        hints.push(
+          'The amount may be below the minimum withdrawal or exceed your available balance.'
+        );
+      }
+      error(`Failed to initiate withdrawal${apiMsg ? `: ${apiMsg}` : ''}`, hints);
     }
   } catch (err) {
     handleError(err);

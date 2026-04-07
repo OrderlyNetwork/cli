@@ -1,11 +1,23 @@
 import kleur from 'kleur';
 import prompts from 'prompts';
-import { publicKeyFromPrivateKey, base64ToBase58 } from '../lib/crypto.js';
+import { publicKeyFromPrivateKey, base64ToBase58, base58ToBase64 } from '../lib/crypto.js';
 import { storeKey, deleteKey, listKeys } from '../lib/keychain.js';
 import { setDefaultNetwork } from '../lib/config.js';
 import { resolveKeyPair } from '../lib/account-select.js';
 import { KeyPair, Network } from '../types.js';
 import { error, output, type OutputFormat } from '../lib/output.js';
+
+function normalizeEd25519PrivateKey(key: string): string {
+  let k = key.trim();
+  if (k.startsWith('ed25519:')) {
+    k = k.slice(8);
+  }
+  const b64 = Buffer.from(k, 'base64');
+  if (b64.length === 32 && /^[A-Za-z0-9+/]+=*$/.test(k)) {
+    return k;
+  }
+  return base58ToBase64(k);
+}
 
 export async function importKey(
   privateKey: string | undefined,
@@ -29,7 +41,7 @@ export async function importKey(
     const response = await prompts({
       type: 'password',
       name: 'privateKey',
-      message: 'Enter your Ed25519 private key (base64)',
+      message: 'Enter your Ed25519 private key (base64, base58, or ed25519: prefixed)',
       validate: (value: string) => (value.length > 0 ? true : 'Private key is required'),
     });
     if (!response.privateKey) {
@@ -51,12 +63,13 @@ export async function importKey(
     accId = response.accountId.trim();
   }
 
-  const publicKey = publicKeyFromPrivateKey(key);
+  const normalizedKey = normalizeEd25519PrivateKey(key);
+  const publicKey = publicKeyFromPrivateKey(normalizedKey);
   const keyPair: KeyPair = {
     accountId: accId,
     address: '',
     publicKey,
-    privateKey: key,
+    privateKey: normalizedKey,
     network,
   };
 

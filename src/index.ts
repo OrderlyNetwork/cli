@@ -343,7 +343,7 @@ cli
   .example('orderly auth-import <base64-key> --account 12345')
   .action((privateKey, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void importKey(privateKey, options.account, network);
+    void importKey(privateKey, normalizeAccountId(options.account), network);
   });
 
 cli

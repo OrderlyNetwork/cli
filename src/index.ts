@@ -817,7 +817,7 @@ cli
 cli
   .command(
     'algo-order-place <symbol> <side> <algoType> <quantity>',
-    'Place an algo order (STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET)'
+    'Place an algo order. Valid algoTypes: STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET. Valid sides: BUY, SELL'
   )
   .option('--trigger-price <price>', 'Trigger price (required for STOP and BRACKET)')
   .option(

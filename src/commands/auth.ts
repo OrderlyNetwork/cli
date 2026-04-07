@@ -1,9 +1,9 @@
 import kleur from 'kleur';
 import prompts from 'prompts';
 import { publicKeyFromPrivateKey, base64ToBase58, base58ToBase64 } from '../lib/crypto.js';
-import { storeKey, deleteKey, listKeys } from '../lib/keychain.js';
+import { storeKey, deleteKey, listKeys, getKey } from '../lib/keychain.js';
 import { setDefaultNetwork } from '../lib/config.js';
-import { resolveKeyPair } from '../lib/account-select.js';
+import { resolveKeyPair, resolveAccountId } from '../lib/account-select.js';
 import { KeyPair, Network } from '../types.js';
 import { error, output, type OutputFormat } from '../lib/output.js';
 
@@ -199,7 +199,19 @@ export async function show(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const { keyPair: key } = await resolveKeyPair(accountId, network);
+  const accId = await resolveAccountId(accountId, network);
+  if (!accId) {
+    process.exitCode = 1;
+    output({ success: false, message: 'No account resolved.' }, format);
+    return;
+  }
+
+  const key = await getKey(accId, network);
+  if (!key) {
+    process.exitCode = 1;
+    output({ success: false, message: `No key found for account ${accId} on ${network}` }, format);
+    return;
+  }
 
   const result = {
     accountId: key.accountId,

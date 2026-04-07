@@ -425,7 +425,7 @@ export async function walletRegister(
     if (existingAccount.success && existingAccount.data?.account_id) {
       const accountId = existingAccount.data.account_id;
       if (nonInteractive) {
-        output({ accountId, address: addr, network });
+        output({ accountId, address: addr, network, alreadyExists: true });
       } else {
         console.log(kleur.yellow(`Account already exists: ${accountId}`));
         console.log(kleur.dim('Use `orderly wallet-add-key` to add an API key to this account.'));

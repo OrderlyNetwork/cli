@@ -12,10 +12,13 @@ CLI tool for Orderly Network trading with secure OS keychain authentication.
 ## Installation
 
 ```bash
-cd cli
-yarn install
-yarn build
+npm install -g @orderly.network/cli
 ```
+
+### Requirements
+
+- **Node.js >= 22**
+- **Linux**: `sudo apt install libsecret-1-0 libsecret-1-dev` (for OS keychain support)
 
 ## Quick Start (Testnet)
 

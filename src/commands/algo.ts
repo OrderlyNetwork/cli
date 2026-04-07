@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { createAuthenticatedClient } from '../lib/account-select.js';
 import { output, error, handleError, OutputFormat } from '../lib/output.js';
 import { Network } from '../types.js';
@@ -310,6 +311,32 @@ export async function placeAlgoOrder(
   }
 }
 
+function isAlreadyCompleteError(err: unknown): boolean {
+  if (!axios.isAxiosError(err)) {
+    return false;
+  }
+  const data = err.response?.data as Record<string, unknown> | undefined;
+  const message = String(data?.message || '');
+  return message.toLowerCase().includes('already complete');
+}
+
+async function checkIsBracketRoot(
+  client: {
+    findAlgoOrderById: (id: string) => Promise<{
+      success: boolean;
+      data?: { algo_type: string; symbol: string };
+    }>;
+  },
+  orderId: string
+): Promise<boolean> {
+  try {
+    const orderRes = await client.findAlgoOrderById(orderId);
+    return orderRes.success && orderRes.data?.algo_type === 'BRACKET';
+  } catch {
+    return false;
+  }
+}
+
 export async function cancelAlgoOrder(
   orderId: string,
   symbol: string | undefined,
@@ -336,6 +363,16 @@ export async function cancelAlgoOrder(
     const result = await client.cancelAlgoOrder(orderId, orderSymbol!);
     output(result, format);
   } catch (err) {
+    if (isAlreadyCompleteError(err)) {
+      const isBracket = await checkIsBracketRoot(client, orderId);
+      if (isBracket) {
+        error(`BRACKET root order ${orderId} has already triggered and cannot be cancelled.`, [
+          'BRACKET orders spawn TP/SL child orders once triggered.',
+          'Use `orderly algo-order-list` to find and cancel active child orders.',
+          'Or use `orderly algo-order-cancel-all` to cancel all open algo orders.',
+        ]);
+      }
+    }
     handleError(err);
   }
 }
@@ -408,6 +445,15 @@ export async function editAlgoOrder(
     const result = await client.editAlgoOrder(orderId, updates, orderSymbol!);
     output(result, format);
   } catch (err) {
+    if (isAlreadyCompleteError(err)) {
+      const isBracket = await checkIsBracketRoot(client, orderId);
+      if (isBracket) {
+        error(`BRACKET root order ${orderId} has already triggered and cannot be edited.`, [
+          'BRACKET orders spawn TP/SL child orders once triggered.',
+          'Use `orderly algo-order-list` to find and edit active child orders.',
+        ]);
+      }
+    }
     handleError(err);
   }
 }

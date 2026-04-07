@@ -501,6 +501,19 @@ export class OrderlyClient {
       quantity: number;
       trigger_price?: number;
       algo_status: string;
+      algo_type: string;
+      root_algo_order_id: number;
+      parent_algo_order_id: number;
+      child_orders?: Array<{
+        algo_order_id: number;
+        symbol: string;
+        algo_type: string;
+        algo_status: string;
+        side: string;
+        type: string;
+        trigger_price?: number;
+        quantity: number;
+      }>;
     };
   }> {
     return this.get(`/v1/algo/order/${orderId}`) as Promise<{
@@ -512,6 +525,19 @@ export class OrderlyClient {
         quantity: number;
         trigger_price?: number;
         algo_status: string;
+        algo_type: string;
+        root_algo_order_id: number;
+        parent_algo_order_id: number;
+        child_orders?: Array<{
+          algo_order_id: number;
+          symbol: string;
+          algo_type: string;
+          algo_status: string;
+          side: string;
+          type: string;
+          trigger_price?: number;
+          quantity: number;
+        }>;
       };
     }>;
   }

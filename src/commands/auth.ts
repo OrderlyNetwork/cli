@@ -17,6 +17,14 @@ export async function importKey(
   let key: string = privateKey ?? '';
   let accId: string = accountId ?? '';
 
+  if (!key || !accId) {
+    if (!process.stdin.isTTY) {
+      error(
+        'Missing required arguments. Usage: orderly auth-import <private-key> --account <account-id>'
+      );
+    }
+  }
+
   if (!key) {
     const response = await prompts({
       type: 'password',

@@ -56,11 +56,7 @@ function toCSV(data: unknown): string {
           metadata[key] = value;
         }
       }
-      if (Object.keys(metadata).length > 0) {
-        data = rows.map((row) => ({ ...metadata, ...row }));
-      } else {
-        data = rows;
-      }
+      data = rows;
     }
   }
 

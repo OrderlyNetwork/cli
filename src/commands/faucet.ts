@@ -21,6 +21,12 @@ export async function faucetUsdc(
     error('Faucet is only available on testnet. Use --network testnet');
   }
 
+  if (!chainId) {
+    error(
+      '--chain-id is required. Example: --chain-id 421614 (Arbitrum Sepolia), --chain-id 901901901 (Solana Devnet)'
+    );
+  }
+
   try {
     const client = new OrderlyClient(network);
     const result = (await client.faucetUsdc(

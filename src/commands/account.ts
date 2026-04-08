@@ -55,7 +55,12 @@ export async function limits(
 
       output({ account: info, symbol: { symbol, ...symbolData } }, format);
     } else {
-      output(info, format);
+      const limits = {
+        max_leverage: info.max_leverage ?? null,
+        imr_factor: info.imr_factor ?? null,
+        max_notional: info.max_notional ?? null,
+      };
+      output(limits, format);
     }
   } catch (err) {
     handleError(err);

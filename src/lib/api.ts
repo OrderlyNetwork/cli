@@ -398,7 +398,13 @@ export class OrderlyClient {
     params.append('page', (page ?? 1).toString());
     params.append('limit', (limit ?? 25).toString());
     const queryString = params.toString();
-    return this.get(`/v1/position_history?${queryString}`);
+    const result = (await this.get(`/v1/position_history?${queryString}`)) as {
+      data?: { rows?: unknown[] | null; meta?: unknown };
+    };
+    if (result?.data && result.data.rows === null) {
+      result.data.rows = [];
+    }
+    return result;
   }
 
   async placeAlgoOrder(order: {

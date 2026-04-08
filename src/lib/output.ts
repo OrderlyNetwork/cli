@@ -44,60 +44,59 @@ function flattenObject(obj: Record<string, unknown>, prefix = ''): Record<string
   return result;
 }
 
+function extractRows(data: unknown): unknown {
+  if (typeof data !== 'object' || data === null) return data;
+
+  const record = data as Record<string, unknown>;
+
+  const arrayKey = Object.keys(record).find((k) => Array.isArray(record[k]));
+  if (arrayKey) return record[arrayKey];
+
+  const nullArrayKey = Object.keys(record).find(
+    (k) => record[k] === null && (k === 'rows' || k === 'list' || k === 'data')
+  );
+  if (nullArrayKey) return [];
+
+  return data;
+}
+
 function toCSV(data: unknown): string {
-  if (typeof data === 'object' && data !== null) {
-    const record = data as Record<string, unknown>;
-    const arrayKey = Object.keys(record).find((k) => Array.isArray(record[k]));
-    if (arrayKey) {
-      const rows = record[arrayKey] as Record<string, unknown>[];
-      const metadata: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(record)) {
-        if (key !== arrayKey) {
-          metadata[key] = value;
-        }
+  const rows = extractRows(data);
+
+  if (Array.isArray(rows)) {
+    if (rows.length === 0) {
+      return '';
+    }
+
+    const allKeys = new Set<string>();
+    for (const item of rows) {
+      if (typeof item === 'object' && item !== null) {
+        const flat = flattenObject(item as Record<string, unknown>);
+        Object.keys(flat).forEach((k) => allKeys.add(k));
       }
-      data = rows;
     }
-  }
 
-  if (!Array.isArray(data)) {
-    if (typeof data === 'object' && data !== null) {
-      const flat = flattenObject(data as Record<string, unknown>);
-      const keys = Object.keys(flat);
-      return `${keys.join(',')}\n${keys.map((k) => escapeCsvValue(flat[k])).join(',')}`;
+    const keys = Array.from(allKeys);
+    const lines: string[] = [keys.join(',')];
+
+    for (const item of rows) {
+      if (typeof item === 'object' && item !== null) {
+        const flat = flattenObject(item as Record<string, unknown>);
+        const values = keys.map((k) => escapeCsvValue(flat[k] ?? ''));
+        lines.push(values.join(','));
+      }
     }
-    return String(data);
+
+    return lines.join('\n');
   }
 
-  if (data.length === 0) {
-    return '';
+  if (typeof rows === 'object' && rows !== null) {
+    const flat = flattenObject(rows as Record<string, unknown>);
+    const keys = Object.keys(flat);
+    return `${keys.join(',')}\n${keys.map((k) => escapeCsvValue(flat[k])).join(',')}`;
   }
 
-  const firstRow = data[0];
-  if (typeof firstRow !== 'object' || firstRow === null) {
-    return data.map((item) => String(item)).join('\n');
-  }
-
-  const allKeys = new Set<string>();
-  for (const item of data) {
-    if (typeof item === 'object' && item !== null) {
-      const flat = flattenObject(item as Record<string, unknown>);
-      Object.keys(flat).forEach((k) => allKeys.add(k));
-    }
-  }
-
-  const keys = Array.from(allKeys);
-  const lines: string[] = [keys.join(',')];
-
-  for (const item of data) {
-    if (typeof item === 'object' && item !== null) {
-      const flat = flattenObject(item as Record<string, unknown>);
-      const values = keys.map((k) => escapeCsvValue(flat[k] ?? ''));
-      lines.push(values.join(','));
-    }
-  }
-
-  return lines.join('\n');
+  return String(rows);
 }
 
 function escapeCsvValue(value: string): string {

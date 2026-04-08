@@ -161,10 +161,20 @@ export type { OutputFormat };
 
 export function handleError(err: unknown): never {
   if (axios.isAxiosError(err) && err.response?.data) {
-    const data = err.response.data as Record<string, unknown>;
     const status = err.response.status;
+    const rawData = err.response.data;
+    if (status === 429) {
+      error('Rate limited. Please wait before trying again.');
+    }
+    const data =
+      typeof rawData === 'object' && rawData !== null
+        ? (rawData as Record<string, unknown>)
+        : undefined;
     const code = data?.code;
-    const message = data?.message || JSON.stringify(data);
+    const message =
+      typeof rawData === 'string' && rawData.startsWith('<')
+        ? `Request failed with status ${status}`
+        : data?.message || JSON.stringify(rawData);
     const parts = [`API Error [${status}]`];
     if (code !== undefined) parts.push(`[${code}]`);
     parts.push(`: ${message}`);

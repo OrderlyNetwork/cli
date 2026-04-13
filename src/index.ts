@@ -822,7 +822,7 @@ cli
   .option('--trigger-price <price>', 'Trigger price (required for STOP and BRACKET)')
   .option(
     '--callback-rate <rate>',
-    'Callback rate as decimal, e.g. 0.05 for 5% (required for TRAILING_STOP)'
+    'Trailing callback rate: 1-15 for percentage (e.g. 5 = 5%), or 0.01-0.15 as decimal. Required for TRAILING_STOP'
   )
   .option('--price <price>', 'Order price (for limit orders)')
   .option(
@@ -844,7 +844,7 @@ cli
   .example(
     'orderly algo-order-place PERP_ETH_USDC SELL POSITIONAL_TP_SL 0 --tp-trigger-price 2500 --sl-trigger-price 1500'
   )
-  .example('orderly algo-order-place PERP_ETH_USDC SELL TRAILING_STOP 0.01 --callback-rate 0.05')
+  .example('orderly algo-order-place PERP_ETH_USDC SELL TRAILING_STOP 0.01 --callback-rate 5')
   .example(
     'orderly algo-order-place PERP_ETH_USDC SELL BRACKET 0.01 --trigger-price 2300 --price 2300 --tp-trigger-price 2000 --sl-trigger-price 2500'
   )
@@ -895,12 +895,15 @@ cli
   .option('--price <price>', 'New order price')
   .option('--quantity <quantity>', 'New order quantity')
   .option('--trigger-price <price>', 'New trigger price')
-  .option('--callback-rate <rate>', 'New callback rate as decimal, e.g. 0.05 for 5%')
+  .option(
+    '--callback-rate <rate>',
+    'New callback rate: 1-15 for percentage, or 0.01-0.15 as decimal'
+  )
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-edit 123456 --price 2500')
   .example('orderly algo-order-edit 123456 --quantity 0.02')
   .example('orderly algo-order-edit 123456 --trigger-price 1500')
-  .example('orderly algo-order-edit 123456 --callback-rate 0.03')
+  .example('orderly algo-order-edit 123456 --callback-rate 3')
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void editAlgoOrder(

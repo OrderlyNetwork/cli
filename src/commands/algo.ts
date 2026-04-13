@@ -37,6 +37,20 @@ export async function placeAlgoOrder(
     if (!callbackRate) {
       error('--callback-rate is required for TRAILING_STOP orders.');
     }
+    const rate = Number(callbackRate);
+    if (rate >= 1) {
+      callbackRate = String(rate / 100);
+    }
+    const normalizedRate = Number(callbackRate);
+    if (normalizedRate < 0.01 || normalizedRate > 0.15) {
+      error(
+        `Callback rate must be between 1% and 15%. Got ${rate}${rate >= 1 ? '%' : ` (${(normalizedRate * 100).toFixed(2)}%)`}.`,
+        [
+          'Use percentage format: --callback-rate 5 (for 5%)',
+          'Or decimal format: --callback-rate 0.05 (for 5%)',
+        ]
+      );
+    }
   } else if (validAlgoType === 'TP_SL' || validAlgoType === 'POSITIONAL_TP_SL') {
     if (!tpTriggerPrice && !slTriggerPrice) {
       error(
@@ -445,7 +459,23 @@ export async function editAlgoOrder(
     if (price) updates.price = Number(price);
     if (quantity) updates.quantity = Number(quantity);
     if (triggerPrice) updates.trigger_price = Number(triggerPrice);
-    if (callbackRate) updates.callback_rate = Number(callbackRate);
+    if (callbackRate) {
+      const rate = Number(callbackRate);
+      if (rate >= 1) {
+        callbackRate = String(rate / 100);
+      }
+      const normalizedRate = Number(callbackRate);
+      if (normalizedRate < 0.01 || normalizedRate > 0.15) {
+        error(
+          `Callback rate must be between 1% and 15%. Got ${rate}${rate >= 1 ? '%' : ` (${(normalizedRate * 100).toFixed(2)}%)`}.`,
+          [
+            'Use percentage format: --callback-rate 5 (for 5%)',
+            'Or decimal format: --callback-rate 0.05 (for 5%)',
+          ]
+        );
+      }
+      updates.callback_rate = Number(callbackRate);
+    }
 
     const result = await client.editAlgoOrder(orderId, updates, orderSymbol!);
     output(result, format);

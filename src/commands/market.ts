@@ -164,11 +164,18 @@ export async function getOrderbook(
   format: OutputFormat = 'json'
 ): Promise<void> {
   try {
-    const result = await fetchWsSnapshot<WsOrderbookData>(
-      symbol.toUpperCase(),
-      'orderbook',
-      network
-    );
+    const upper = symbol.toUpperCase();
+    const client = new OrderlyClient(network);
+    const priceCheck = (await client.getMarketPrice(upper)) as Record<string, unknown> | null;
+    if (
+      priceCheck !== null &&
+      typeof priceCheck === 'object' &&
+      (!('data' in priceCheck) || priceCheck.data === null)
+    ) {
+      error(`Symbol not found: "${symbol}".`, ['Run `orderly symbols` to see available symbols.']);
+    }
+
+    const result = await fetchWsSnapshot<WsOrderbookData>(upper, 'orderbook', network);
 
     if (!result.success || !result.data) {
       error(result.error || 'Failed to fetch orderbook');

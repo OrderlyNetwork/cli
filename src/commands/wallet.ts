@@ -552,22 +552,30 @@ export async function walletAddKey(
 
   const client = new OrderlyClient(network);
 
-  const storedKeys = await listKeys();
-  const matchingKey = storedKeys.find((k) => k.address === addr && k.network === network);
-
   let accountId: string;
   let resolvedBrokerId: string;
 
-  if (matchingKey) {
-    accountId = matchingKey.accountId;
-    try {
-      resolvedBrokerId = await client.getBrokerId(accountId);
-    } catch {
-      error('Failed to resolve broker_id for account. Register the account first.');
+  if (brokerId) {
+    const bId = brokerId.trim();
+    const accountInfo = await client.getAccount(addr, bId, walletKey.walletType);
+    if (!accountInfo.success || !accountInfo.data?.account_id) {
+      error('Account not found. Run `orderly wallet-register` first.');
     }
+    accountId = accountInfo.data.account_id;
+    resolvedBrokerId = bId;
   } else {
-    let bId: string | undefined = brokerId?.trim() || undefined;
-    if (!bId) {
+    const storedKeys = await listKeys();
+    const matchingKey = storedKeys.find((k) => k.address === addr && k.network === network);
+
+    if (matchingKey) {
+      accountId = matchingKey.accountId;
+      try {
+        resolvedBrokerId = await client.getBrokerId(accountId);
+      } catch {
+        error('Failed to resolve broker_id for account. Register the account first.');
+      }
+    } else {
+      let bId: string | undefined = undefined;
       if (!process.stdin.isTTY || !process.stdout.isTTY) {
         error('--broker-id is required when no API key is stored for this wallet.', [
           'Example: orderly wallet-add-key --address "0x1234..." --broker-id demo',
@@ -583,14 +591,14 @@ export async function walletAddKey(
         error('Cancelled.');
       }
       bId = response.brokerId.trim();
-    }
 
-    const accountInfo = await client.getAccount(addr, bId!, walletKey.walletType);
-    if (!accountInfo.success || !accountInfo.data?.account_id) {
-      error('Account not found. Run `orderly wallet-register` first.');
+      const accountInfo = await client.getAccount(addr, bId!, walletKey.walletType);
+      if (!accountInfo.success || !accountInfo.data?.account_id) {
+        error('Account not found. Run `orderly wallet-register` first.');
+      }
+      accountId = accountInfo.data.account_id;
+      resolvedBrokerId = bId!;
     }
-    accountId = accountInfo.data.account_id;
-    resolvedBrokerId = bId!;
   }
 
   let keyScope = scope;

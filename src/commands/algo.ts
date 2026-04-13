@@ -79,26 +79,31 @@ export async function placeAlgoOrder(
       const tp = tpTriggerPrice ? Number(tpTriggerPrice) : undefined;
       const sl = slTriggerPrice ? Number(slTriggerPrice) : undefined;
 
-      if (validSide === 'BUY') {
+      // For TP_SL/POSITIONAL_TP_SL, `side` is the closing direction (opposite of position).
+      // For BRACKET, `side` is the entry direction (same as position).
+      const isClosing = validAlgoType === 'TP_SL' || validAlgoType === 'POSITIONAL_TP_SL';
+      const isLong = isClosing ? validSide === 'SELL' : validSide === 'BUY';
+
+      if (isLong) {
         if (tp !== undefined && tp <= markPrice) {
           error(
-            `Take-profit trigger price (${tp}) must be above current mark price (${markPrice}) for a BUY/long position.`
+            `Take-profit trigger price (${tp}) must be above current mark price (${markPrice}) for a long position.`
           );
         }
         if (sl !== undefined && sl >= markPrice) {
           error(
-            `Stop-loss trigger price (${sl}) must be below current mark price (${markPrice}) for a BUY/long position.`
+            `Stop-loss trigger price (${sl}) must be below current mark price (${markPrice}) for a long position.`
           );
         }
       } else {
         if (tp !== undefined && tp >= markPrice) {
           error(
-            `Take-profit trigger price (${tp}) must be below current mark price (${markPrice}) for a SELL/short position.`
+            `Take-profit trigger price (${tp}) must be below current mark price (${markPrice}) for a short position.`
           );
         }
         if (sl !== undefined && sl <= markPrice) {
           error(
-            `Stop-loss trigger price (${sl}) must be above current mark price (${markPrice}) for a SELL/short position.`
+            `Stop-loss trigger price (${sl}) must be above current mark price (${markPrice}) for a short position.`
           );
         }
       }
@@ -119,7 +124,7 @@ export async function placeAlgoOrder(
         reduce_only: boolean;
       }> = [];
 
-      const oppositeSide = validSide === 'BUY' ? 'SELL' : 'BUY';
+      const closeSide = validSide;
 
       if (tpTriggerPrice) {
         const tpOrder: {
@@ -133,7 +138,7 @@ export async function placeAlgoOrder(
         } = {
           symbol: symbol.toUpperCase(),
           algo_type: 'TAKE_PROFIT',
-          side: oppositeSide,
+          side: closeSide,
           type:
             validAlgoType === 'POSITIONAL_TP_SL' ? 'CLOSE_POSITION' : tpPrice ? 'LIMIT' : 'MARKET',
           trigger_price: tpTriggerPrice,
@@ -155,7 +160,7 @@ export async function placeAlgoOrder(
         } = {
           symbol: symbol.toUpperCase(),
           algo_type: 'STOP_LOSS',
-          side: oppositeSide,
+          side: closeSide,
           type:
             validAlgoType === 'POSITIONAL_TP_SL' ? 'CLOSE_POSITION' : slPrice ? 'LIMIT' : 'MARKET',
           trigger_price: slTriggerPrice,

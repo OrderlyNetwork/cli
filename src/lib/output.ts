@@ -24,16 +24,27 @@ function unwrapResponse(response: unknown): unknown {
   return response;
 }
 
-function flattenObject(obj: Record<string, unknown>, prefix = ''): Record<string, string> {
+function flattenObject(
+  obj: Record<string, unknown>,
+  prefix = '',
+  schemaHints?: Map<string, string[]>
+): Record<string, string> {
   const result: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     const newKey = prefix ? `${prefix}.${key}` : key;
 
     if (value === null || value === undefined) {
-      result[newKey] = '';
+      const childKeys = schemaHints?.get(newKey);
+      if (childKeys && childKeys.length > 0) {
+        for (const ck of childKeys) {
+          result[`${newKey}.${ck}`] = '';
+        }
+      } else {
+        result[newKey] = '';
+      }
     } else if (typeof value === 'object' && !Array.isArray(value)) {
-      Object.assign(result, flattenObject(value as Record<string, unknown>, newKey));
+      Object.assign(result, flattenObject(value as Record<string, unknown>, newKey, schemaHints));
     } else if (Array.isArray(value)) {
       result[newKey] = JSON.stringify(value);
     } else {
@@ -60,6 +71,30 @@ function extractRows(data: unknown): unknown {
   return data;
 }
 
+function collectObjectSchema(value: unknown, prefix = ''): Map<string, string[]> {
+  const schema = new Map<string, string[]>();
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return schema;
+  const obj = value as Record<string, unknown>;
+  for (const [key, val] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      const childKeys = Object.keys(val as Record<string, unknown>);
+      schema.set(fullKey, childKeys);
+      const nested = collectObjectSchema(val, fullKey);
+      for (const [nk, nv] of nested) {
+        const existing = schema.get(nk);
+        if (existing) {
+          const merged = [...new Set([...existing, ...nv])];
+          schema.set(nk, merged);
+        } else {
+          schema.set(nk, nv);
+        }
+      }
+    }
+  }
+  return schema;
+}
+
 function toCSV(data: unknown): string {
   const rows = extractRows(data);
 
@@ -68,23 +103,37 @@ function toCSV(data: unknown): string {
       return '';
     }
 
-    const allKeys = new Set<string>();
+    const schemaHints = new Map<string, string[]>();
     for (const item of rows) {
       if (typeof item === 'object' && item !== null) {
-        const flat = flattenObject(item as Record<string, unknown>);
+        const itemSchema = collectObjectSchema(item);
+        for (const [key, childKeys] of itemSchema) {
+          const existing = schemaHints.get(key);
+          if (existing) {
+            schemaHints.set(key, [...new Set([...existing, ...childKeys])]);
+          } else {
+            schemaHints.set(key, childKeys);
+          }
+        }
+      }
+    }
+
+    const allKeys = new Set<string>();
+    const flatRows: Record<string, string>[] = [];
+    for (const item of rows) {
+      if (typeof item === 'object' && item !== null) {
+        const flat = flattenObject(item as Record<string, unknown>, '', schemaHints);
         Object.keys(flat).forEach((k) => allKeys.add(k));
+        flatRows.push(flat);
       }
     }
 
     const keys = Array.from(allKeys);
     const lines: string[] = [keys.join(',')];
 
-    for (const item of rows) {
-      if (typeof item === 'object' && item !== null) {
-        const flat = flattenObject(item as Record<string, unknown>);
-        const values = keys.map((k) => escapeCsvValue(flat[k] ?? ''));
-        lines.push(values.join(','));
-      }
+    for (const flat of flatRows) {
+      const values = keys.map((k) => escapeCsvValue(flat[k] ?? ''));
+      lines.push(values.join(','));
     }
 
     return lines.join('\n');

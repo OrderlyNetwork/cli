@@ -10,9 +10,14 @@ import {
   isSupportedChain,
   getVerifyingContract,
 } from '../lib/contracts.js';
-import { createWalletFromPrivateKey, signWithdraw as signWithdrawEVM } from '../lib/evm.js';
+import {
+  createWalletFromPrivateKey,
+  isValidEVMAddress,
+  signWithdraw as signWithdrawEVM,
+} from '../lib/evm.js';
 import {
   createSolanaWalletFromPrivateKey,
+  isValidSolanaAddress,
   signWithdraw as signWithdrawSolana,
 } from '../lib/solana.js';
 import { hasNegativeUnsettledPnl, performSettlePnl } from './settle.js';
@@ -105,7 +110,7 @@ export async function depositInfo(
 export async function withdraw(
   token: string,
   amount: string,
-  receiver: string,
+  receiver: string | undefined,
   chainId: number,
   accountId: string | undefined,
   network: Network,
@@ -200,7 +205,24 @@ export async function withdraw(
       );
     }
 
+    const resolvedReceiver = receiver || walletKey.address;
     const walletType = walletKey.walletType || keyPair.walletType || 'EVM';
+
+    if (walletType === 'SOL' && isValidEVMAddress(resolvedReceiver)) {
+      error(`Cannot withdraw to an EVM address (${resolvedReceiver}) using a Solana wallet.`, [
+        'Solana wallets can only withdraw to Solana (base58) addresses.',
+        'To withdraw to an EVM chain, use an EVM wallet account instead.',
+      ]);
+    }
+
+    if (walletType === 'EVM' && !isValidEVMAddress(resolvedReceiver)) {
+      if (isValidSolanaAddress(resolvedReceiver)) {
+        error(`Cannot withdraw to a Solana address (${resolvedReceiver}) using an EVM wallet.`, [
+          'EVM wallets can only withdraw to EVM (0x...) addresses.',
+          'To withdraw to a Solana chain, use a Solana wallet account instead.',
+        ]);
+      }
+    }
 
     let signature: string;
     let message: Record<string, unknown>;
@@ -210,7 +232,7 @@ export async function withdraw(
       const withdrawResult = await signWithdrawSolana(solanaWallet, {
         brokerId,
         chainId,
-        receiver,
+        receiver: resolvedReceiver,
         token: token.toUpperCase(),
         amount: rawAmountValue,
         withdrawNonce,
@@ -223,7 +245,7 @@ export async function withdraw(
       const withdrawMessage = {
         brokerId,
         chainId,
-        receiver,
+        receiver: resolvedReceiver,
         token: token.toUpperCase(),
         amount: rawAmountValue,
         withdrawNonce,

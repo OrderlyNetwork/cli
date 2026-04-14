@@ -1286,7 +1286,11 @@ cli
   });
 
 cli
-  .command('withdraw <token> <receiver> <chain-id>', 'Withdraw tokens (auto-signs with wallet key)')
+  .command(
+    'withdraw <token> <chain-id>',
+    'Withdraw tokens (auto-signs with wallet key). Omit --receiver to withdraw to your own wallet address.'
+  )
+  .option('--receiver <address>', 'Destination address (defaults to your wallet address)')
   .option('--amount <amount>', 'Amount to withdraw (human-readable, e.g. 10.5)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .option('--raw', 'Amount is in smallest units (default: false, use human-readable like 10.5)')
@@ -1294,20 +1298,30 @@ cli
     '--allow-cross-chain',
     'Allow cross-chain withdrawal (required when destination chain differs from deposit chain)'
   )
-  .example('# Withdraw 10 USDC (human-readable amount)')
-  .example('orderly withdraw USDC 0x1234... 421614 --amount 10')
-  .example('# Withdraw 0.5 USDC')
-  .example('orderly withdraw USDC 0x1234... 421614 --amount 0.5')
+  .example('# Withdraw 10 USDC to your own wallet address')
+  .example('orderly withdraw USDC 421614 --amount 10')
+  .example('# Withdraw 10 USDC to a specific address')
+  .example('orderly withdraw USDC 421614 --amount 10 --receiver 0x1234...')
   .example('# Withdraw to Solana (50 USDC)')
-  .example('orderly withdraw USDC <sol-address> 901901901 --amount 50')
+  .example('orderly withdraw USDC 901901901 --amount 50 --receiver <sol-address>')
   .example('# Use raw amount (10000000 = 10 USDC with 6 decimals)')
-  .example('orderly withdraw USDC 0x1234... 421614 --amount 10000000 --raw')
+  .example('orderly withdraw USDC 421614 --amount 10000000 --raw --receiver 0x1234...')
   .example('# Withdraw to different chain (cross-chain)')
-  .example('orderly withdraw USDC 0x1234... 84532 --amount 10 --allow-cross-chain')
-  .action((token, receiver, chainId, options) => {
+  .example('orderly withdraw USDC 84532 --amount 10 --receiver 0x1234... --allow-cross-chain')
+  .action((token, chainId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     if (options.amount === undefined || options.amount === null) {
       error('Missing required option: --amount');
+    }
+    let receiver: string | undefined;
+    if (options.receiver != null) {
+      receiver = String(options.receiver);
+      if (/^\d+(\.\d+)?(e\+?\d+)?$/i.test(receiver)) {
+        const idx = process.argv.indexOf('--receiver');
+        if (idx !== -1 && process.argv[idx + 1]) {
+          receiver = process.argv[idx + 1];
+        }
+      }
     }
     void withdraw(
       token,

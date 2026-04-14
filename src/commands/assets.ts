@@ -80,10 +80,15 @@ export async function depositInfo(
   }
 
   const chainVault = await getChainInfo(chainId, network);
-  const tokenAddress = await getTokenAddress(token, chainId, network);
-
   if (!chainVault) {
     error(`Chain ID ${chainId} not found in chain info.`);
+  }
+
+  const tokenAddress = await getTokenAddress(token, chainId, network);
+  if (!tokenAddress) {
+    error(`Token ${token.toUpperCase()} is not available on chain ${chainId}.`, [
+      "Use 'orderly tokens' to see supported tokens and 'orderly chains' to see supported chains.",
+    ]);
   }
 
   const { vault_address, ...chainRest } = chainVault;
@@ -91,7 +96,7 @@ export async function depositInfo(
     ...chainRest,
     chainId,
     token: token.toUpperCase(),
-    tokenAddress: tokenAddress ?? null,
+    tokenAddress,
     vaultAddress: vault_address ?? null,
   };
   output(result, format);

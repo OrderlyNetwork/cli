@@ -7,6 +7,7 @@ import { Network } from '../types.js';
 import {
   getChainInfo,
   getTokenAddress,
+  getWithdrawalFee,
   isSupportedChain,
   getVerifyingContract,
 } from '../lib/contracts.js';
@@ -170,6 +171,19 @@ export async function withdraw(
       rawAmountValue = parseUnits(amount, decimals).toString();
     } catch {
       error(`Invalid amount: ${amount}`, ['Amount must be a valid number (e.g., 10.5)']);
+    }
+  }
+
+  const feeInfo = await getWithdrawalFee(token, chainId, network);
+  if (feeInfo) {
+    const fee = allowCrossChain ? feeInfo.crossChainFee : feeInfo.fee;
+    if (fee > 0 && Number(amount) <= fee) {
+      error(
+        `Withdrawal amount (${amount} ${token.toUpperCase()}) must be greater than the withdrawal fee (${fee} ${token.toUpperCase()}).`,
+        [
+          `Minimum withdrawal: slightly above ${fee} ${token.toUpperCase()} (amount must exceed the fee).`,
+        ]
+      );
     }
   }
 

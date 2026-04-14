@@ -103,6 +103,19 @@ export async function isSupportedChain(chainId: number, network: Network): Promi
   return chain !== null;
 }
 
+export async function getWithdrawalFee(
+  token: string,
+  chainId: number,
+  network: Network
+): Promise<{ fee: number; crossChainFee: number } | null> {
+  const tokens = await fetchTokenInfo(network);
+  const tokenInfo = tokens.find((t) => t.token === token.toUpperCase());
+  if (!tokenInfo) return null;
+  const chainDetail = tokenInfo.chain_details.find((c) => String(c.chain_id) === String(chainId));
+  if (!chainDetail) return null;
+  return { fee: chainDetail.withdrawal_fee, crossChainFee: chainDetail.cross_chain_withdrawal_fee };
+}
+
 export function getVerifyingContract(network: Network): string {
   return VERIFYING_CONTRACTS[network];
 }

@@ -500,7 +500,7 @@ cli
 // Trading commands
 cli
   .command(
-    'order-place <symbol> <side> <type> <quantity>',
+    'order-place <symbol> <side> [type] <quantity>',
     'Place a new order. Side: BUY, SELL. Types: MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK (market sell), BID (market buy)'
   )
   .option('--price <price>', 'Order price (required for LIMIT, IOC, FOK, POST_ONLY)')
@@ -512,17 +512,41 @@ cli
   .example('orderly order-place PERP_ETH_USDC BUY IOC 0.01 --price 2100')
   .example('orderly order-place PERP_ETH_USDC SELL FOK 0.01 --price 2100')
   .example('orderly order-place PERP_ETH_USDC BUY POST_ONLY 0.01 --price 2000')
-  .example('orderly order-place PERP_ETH_USDC SELL ASK 0.01')
-  .example('orderly order-place PERP_ETH_USDC BUY BID 0.01')
+  .example('orderly order-place PERP_ETH_USDC ASK 0.01')
+  .example('orderly order-place PERP_ETH_USDC BID 0.01')
   .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --client-order-id my-order-123')
   .example('orderly order-place PERP_ETH_USDC SELL LIMIT 0.01 --price 3500 --reduce-only')
   .action((symbol, side, type, quantity, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
+    let resolvedSide: string = side;
+    let resolvedType: string = type;
+    let resolvedQuantity: string;
+    if (quantity === undefined) {
+      resolvedQuantity = type;
+      resolvedType = side.toUpperCase();
+      if (resolvedType === 'BID') {
+        resolvedSide = 'BUY';
+      } else if (resolvedType === 'ASK') {
+        resolvedSide = 'SELL';
+      } else {
+        error(
+          `Invalid short form. Use BID (market buy) or ASK (market sell), or provide all 4 args: <symbol> <side> <type> <quantity>`,
+          [
+            'Examples:',
+            '  orderly order-place PERP_ETH_USDC BID 0.01',
+            '  orderly order-place PERP_ETH_USDC BUY MARKET 0.01',
+          ]
+        );
+        return;
+      }
+    } else {
+      resolvedQuantity = quantity;
+    }
     void place(
       normalizeSymbol(symbol),
-      side,
-      type,
-      quantity,
+      resolvedSide,
+      resolvedType,
+      resolvedQuantity,
       options.price,
       options.clientOrderId,
       options.reduceOnly === true,

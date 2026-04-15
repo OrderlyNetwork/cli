@@ -1170,14 +1170,14 @@ cli
     'kline <symbol> <type>',
     'Get candlestick/kline data. Valid intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon'
   )
-  .option('--limit <n>', 'Number of candles (max 1000)')
+  .option('--size <n>', 'Number of candles (default: 100, max: 1000)')
   .example('orderly kline PERP_ETH_USDC 1h')
-  .example('orderly kline PERP_BTC_USDC 1d --limit 30')
+  .example('orderly kline PERP_BTC_USDC 1d --size 30')
   .action((symbol, type, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    const parsed = options.limit ? parseInt(options.limit, 10) : 100;
+    const parsed = options.size != null ? parseInt(String(options.size), 10) : 100;
     if (isNaN(parsed) || parsed <= 0) {
-      error(`Invalid --limit value: "${options.limit}". Must be a positive integer.`);
+      error(`Invalid --size value: "${options.size}". Must be a positive integer.`);
       return;
     }
     void getKline(normalizeSymbol(symbol), type, parsed, network, getFormat(options));
@@ -1185,14 +1185,14 @@ cli
 
 cli
   .command('market-trades <symbol>', 'Get recent public trades')
-  .option('--limit <n>', 'Number of trades (default: 50)')
+  .option('--size <n>', 'Number of trades (default: 50)')
   .example('orderly market-trades PERP_ETH_USDC')
-  .example('orderly market-trades PERP_BTC_USDC --limit 20')
+  .example('orderly market-trades PERP_BTC_USDC --size 20')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    const parsed = options.limit ? parseInt(options.limit, 10) : undefined;
-    if (options.limit && (isNaN(parsed!) || parsed! <= 0)) {
-      error(`Invalid --limit value: "${options.limit}". Must be a positive integer.`);
+    const parsed = options.size != null ? parseInt(String(options.size), 10) : undefined;
+    if (options.size != null && (isNaN(parsed!) || parsed! <= 0)) {
+      error(`Invalid --size value: "${options.size}". Must be a positive integer.`);
       return;
     }
     void getMarketTrades(normalizeSymbol(symbol), parsed, network, getFormat(options));

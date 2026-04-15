@@ -60,7 +60,7 @@ export async function walletCreate(
       message: 'Select wallet type',
       choices: [
         { title: 'EVM (Ethereum, Arbitrum, etc.)', value: 'EVM' },
-        { title: 'Solana', value: 'SOL' },
+        { title: 'SOL', value: 'SOL' },
       ],
     });
     if (!response.type) {
@@ -134,7 +134,7 @@ export async function walletImport(
       message: 'Select wallet type',
       choices: [
         { title: 'EVM (Ethereum, Arbitrum, etc.)', value: 'EVM' },
-        { title: 'Solana', value: 'SOL' },
+        { title: 'SOL', value: 'SOL' },
       ],
     });
     if (!response.type) {

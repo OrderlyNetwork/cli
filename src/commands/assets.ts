@@ -223,17 +223,17 @@ export async function withdraw(
     const walletType = walletKey.walletType || keyPair.walletType || 'EVM';
 
     if (walletType === 'SOL' && isValidEVMAddress(resolvedReceiver)) {
-      error(`Cannot withdraw to an EVM address (${resolvedReceiver}) using a Solana wallet.`, [
-        'Solana wallets can only withdraw to Solana (base58) addresses.',
+      error(`Cannot withdraw to an EVM address (${resolvedReceiver}) using a SOL wallet.`, [
+        'SOL wallets can only withdraw to SOL (base58) addresses.',
         'To withdraw to an EVM chain, use an EVM wallet account instead.',
       ]);
     }
 
     if (walletType === 'EVM' && !isValidEVMAddress(resolvedReceiver)) {
       if (isValidSolanaAddress(resolvedReceiver)) {
-        error(`Cannot withdraw to a Solana address (${resolvedReceiver}) using an EVM wallet.`, [
+        error(`Cannot withdraw to a SOL address (${resolvedReceiver}) using an EVM wallet.`, [
           'EVM wallets can only withdraw to EVM (0x...) addresses.',
-          'To withdraw to a Solana chain, use a Solana wallet account instead.',
+          'To withdraw to a SOL chain, use a SOL wallet account instead.',
         ]);
       }
     }

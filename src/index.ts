@@ -173,7 +173,7 @@ ${kleur.cyan().bold('SETUP FLOW')}
 ${kleur.dim('─'.repeat(50))}
 
 ${kleur.yellow('For new users:')}
-  wallet-create    → Generate a new wallet (EVM or Solana)
+  wallet-create    → Generate a new wallet (EVM or SOL)
   wallet-register  → Register wallet with Orderly (get account ID)
   wallet-add-key   → Generate & register Ed25519 API key for trading
 
@@ -243,7 +243,7 @@ function getFormat(options: { csv?: boolean }): OutputFormat {
 
 // Wallet commands - Setup flow
 cli
-  .command('wallet-create', 'Create a new EVM or Solana wallet')
+  .command('wallet-create', 'Create a new EVM or SOL wallet')
   .option('--type <type>', 'Wallet type: EVM or SOL (default: prompts)')
   .example('orderly wallet-create --type EVM')
   .example('orderly wallet-create --type SOL')
@@ -1239,7 +1239,7 @@ cli
   .example('# EVM (Arbitrum Sepolia):')
   .example('orderly faucet-usdc 0x1234... --chain-id 421614')
   .example('orderly faucet-usdc 0x1234... --chain-id 421614 --broker-id demo')
-  .example('# Solana:')
+  .example('# SOL:')
   .example('orderly faucet-usdc <sol-address>')
   .action((address, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -1302,7 +1302,7 @@ cli
   .example('orderly withdraw USDC 421614 --amount 10')
   .example('# Withdraw 10 USDC to a specific address')
   .example('orderly withdraw USDC 421614 --amount 10 --receiver 0x1234...')
-  .example('# Withdraw to Solana (50 USDC)')
+  .example('# Withdraw to SOL chain (50 USDC)')
   .example('orderly withdraw USDC 901901901 --amount 50 --receiver <sol-address>')
   .example('# Use raw amount (10000000 = 10 USDC with 6 decimals)')
   .example('orderly withdraw USDC 421614 --amount 10000000 --raw --receiver 0x1234...')

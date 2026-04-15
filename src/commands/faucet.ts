@@ -23,7 +23,7 @@ export async function faucetUsdc(
 
   if (!chainId) {
     error(
-      '--chain-id is required. Example: --chain-id 421614 (Arbitrum Sepolia), --chain-id 901901901 (Solana Devnet)'
+      '--chain-id is required. Example: --chain-id 421614 (Arbitrum Sepolia), --chain-id 901901901 (SOL Devnet)'
     );
   }
 

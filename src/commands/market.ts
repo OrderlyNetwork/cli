@@ -90,10 +90,6 @@ export async function getPrice(
   }
 }
 
-const KLINED_ALIASES: Record<string, string> = {
-  '1M': '1mon',
-};
-
 export async function getKline(
   symbol: string,
   type: string,
@@ -101,9 +97,8 @@ export async function getKline(
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
-  const aliased = KLINED_ALIASES[type] ?? type;
-  const validType = aliased.toLowerCase();
-  if (!VALID_KLINE_TYPES.includes(validType)) {
+  const validType = type.toLowerCase();
+  if (!VALID_KLINE_TYPES.includes(type)) {
     error(`Invalid kline type. Use one of: ${VALID_KLINE_TYPES.join(', ')}`);
   }
 

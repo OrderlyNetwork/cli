@@ -1144,7 +1144,7 @@ cli
 cli
   .command(
     'kline <symbol> <type>',
-    'Get candlestick/kline data. Valid intervals: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M'
+    'Get candlestick/kline data. Valid intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon'
   )
   .option('--limit <n>', 'Number of candles (max 1000)')
   .example('orderly kline PERP_ETH_USDC 1h')

@@ -244,7 +244,7 @@ function getFormat(options: { csv?: boolean }): OutputFormat {
 // Wallet commands - Setup flow
 cli
   .command('wallet-create', 'Create a new EVM or SOL wallet')
-  .option('--type <type>', 'Wallet type: EVM or SOL (default: prompts)')
+  .option('--type <type>', 'Wallet type: EVM or SOL (required in non-interactive mode)')
   .example('orderly wallet-create --type EVM')
   .example('orderly wallet-create --type SOL')
   .action((options) => {
@@ -254,7 +254,7 @@ cli
 
 cli
   .command('wallet-import', 'Import an existing wallet private key')
-  .option('--type <type>', 'Wallet type: EVM or SOL (default: prompts)')
+  .option('--type <type>', 'Wallet type: EVM or SOL (required in non-interactive mode)')
   .option('--address <address>', 'Wallet address (optional, derived from key)')
   .example('orderly wallet-import --type EVM')
   .example('orderly wallet-import --type SOL')

@@ -54,6 +54,12 @@ export async function walletCreate(
     error(`Invalid wallet type: "${walletType}". Valid types: ${VALID_WALLET_TYPES.join(', ')}`);
   }
   if (!type) {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      error('--type is required in non-interactive mode.', [
+        'Example: orderly wallet-create --type EVM',
+        'Valid types: EVM, SOL',
+      ]);
+    }
     const response = await prompts({
       type: 'select',
       name: 'type',
@@ -128,6 +134,12 @@ export async function walletImport(
     error(`Invalid wallet type: "${walletType}". Valid types: ${VALID_WALLET_TYPES.join(', ')}`);
   }
   if (!type) {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      error('--type is required in non-interactive mode.', [
+        'Example: orderly wallet-import --type EVM',
+        'Valid types: EVM, SOL',
+      ]);
+    }
     const response = await prompts({
       type: 'select',
       name: 'type',
@@ -147,6 +159,11 @@ export async function walletImport(
   let key: string = privateKey ?? '';
 
   if (!key) {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      error('Private key is required in non-interactive mode.', [
+        'Example: orderly wallet-import <private-key> --type EVM',
+      ]);
+    }
     const response = await prompts({
       type: 'password',
       name: 'privateKey',
@@ -185,6 +202,11 @@ export async function walletImport(
 
   const existing = await hasWalletKey(addr, network);
   if (existing) {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      error(
+        `Wallet already exists for ${addr} on ${network}. Use wallet-logout first to remove it.`
+      );
+    }
     console.log(kleur.yellow(`Wallet already exists for ${addr} on ${network}`));
     const overwrite = await prompts({
       type: 'confirm',
@@ -247,6 +269,12 @@ export async function walletShow(
   let addr = address;
 
   if (!addr) {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      error('Address is required in non-interactive mode.', [
+        'Example: orderly wallet-show "0x1234..."',
+        'Run `orderly wallet-list` to see available addresses.',
+      ]);
+    }
     const wallets = await listWalletKeys();
     const filteredWallets = wallets.filter((w) => w.network === network);
 
@@ -296,6 +324,12 @@ export async function walletLogout(address: string | undefined, network: Network
   let addr = address;
 
   if (!addr) {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      error('Address is required in non-interactive mode.', [
+        'Example: orderly wallet-logout "0x1234..."',
+        'Run `orderly wallet-list` to see available addresses.',
+      ]);
+    }
     const wallets = await listWalletKeys();
     const filteredWallets = wallets.filter((w) => w.network === network);
 
@@ -322,6 +356,20 @@ export async function walletLogout(address: string | undefined, network: Network
 
   if (!addr) {
     error('No address selected.');
+  }
+
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    try {
+      const deleted = await deleteWalletKey(addr, network);
+      if (deleted) {
+        output({ removed: true, address: addr, network });
+      } else {
+        error(`No wallet found for ${addr} on ${network}`);
+      }
+    } catch {
+      error('Failed to remove wallet');
+    }
+    return;
   }
 
   const confirm = await prompts({

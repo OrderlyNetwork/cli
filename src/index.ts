@@ -1175,8 +1175,12 @@ cli
   .example('orderly kline PERP_BTC_USDC 1d --limit 30')
   .action((symbol, type, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    const limit = options.limit ? parseInt(options.limit, 10) : 100;
-    void getKline(normalizeSymbol(symbol), type, limit, network, getFormat(options));
+    const parsed = options.limit ? parseInt(options.limit, 10) : 100;
+    if (isNaN(parsed) || parsed <= 0) {
+      error(`Invalid --limit value: "${options.limit}". Must be a positive integer.`);
+      return;
+    }
+    void getKline(normalizeSymbol(symbol), type, parsed, network, getFormat(options));
   });
 
 cli
@@ -1186,8 +1190,12 @@ cli
   .example('orderly market-trades PERP_BTC_USDC --limit 20')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    const limit = options.limit ? parseInt(options.limit, 10) : undefined;
-    void getMarketTrades(normalizeSymbol(symbol), limit, network, getFormat(options));
+    const parsed = options.limit ? parseInt(options.limit, 10) : undefined;
+    if (options.limit && (isNaN(parsed!) || parsed! <= 0)) {
+      error(`Invalid --limit value: "${options.limit}". Must be a positive integer.`);
+      return;
+    }
+    void getMarketTrades(normalizeSymbol(symbol), parsed, network, getFormat(options));
   });
 
 cli

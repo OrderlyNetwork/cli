@@ -159,7 +159,10 @@ export function output(data: unknown, format: OutputFormat = 'json'): void {
   const unwrapped = unwrapResponse(data);
 
   if (format === 'csv') {
-    console.log(toCSV(unwrapped));
+    const csv = toCSV(unwrapped);
+    if (csv !== '') {
+      console.log(csv);
+    }
   } else {
     console.log(JSON.stringify(unwrapped, null, isPrettyJson() ? 2 : 0));
   }

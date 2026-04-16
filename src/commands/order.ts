@@ -372,6 +372,30 @@ export async function batchCancel(
   }
 }
 
+export async function batchCancelByClientId(
+  clientOrderIds: string[],
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  if (clientOrderIds.length === 0) {
+    error('At least one client order ID is required.');
+  }
+
+  if (clientOrderIds.length > 10) {
+    error('Maximum 10 client order IDs allowed per batch.');
+  }
+
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const result = await client.cancelBatchOrdersByClientIds(clientOrderIds);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
 export async function cancelByClientId(
   clientOrderId: string,
   symbol: string,

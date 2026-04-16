@@ -32,6 +32,7 @@ import {
   listOrders,
   batchPlace,
   batchCancel,
+  batchCancelByClientId,
   cancelByClientId,
   getOrder,
   orderTrades,
@@ -193,7 +194,7 @@ ${kleur.yellow('Setup & Auth:')}
 ${kleur.yellow('Trading:')}
   order-place, order-cancel, order-edit, order-cancel-all, order-list
   order-get, order-cancel-by-client-id, order-trades
-  batch-order-place, batch-order-cancel
+  batch-order-place, batch-order-cancel, batch-order-cancel-by-client-id
   algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list, algo-order-trades, algo-order-get, algo-order-cancel-by-client-id
   positions-list, positions-close, positions-history
   leverage, trades, funding-history
@@ -681,6 +682,24 @@ cli
     const network = (options.network as Network) || getDefaultNetwork();
     const ids = Array.isArray(orderIds) ? orderIds : [orderIds];
     void batchCancel(ids, normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command(
+    'batch-order-cancel-by-client-id <client-order-ids...>',
+    'Cancel multiple orders by client order IDs (max 10)'
+  )
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly batch-order-cancel-by-client-id my-order-1 my-order-2 my-order-3')
+  .action((clientOrderIds, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const ids = Array.isArray(clientOrderIds) ? clientOrderIds : [clientOrderIds];
+    void batchCancelByClientId(
+      ids,
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli

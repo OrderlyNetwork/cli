@@ -199,6 +199,10 @@ export class OrderlyClient {
     return this.delete(`/v1/batch-order?order_ids=${orderIds.join(',')}`);
   }
 
+  async cancelBatchOrdersByClientIds(clientOrderIds: string[]): Promise<unknown> {
+    return this.delete(`/v1/client/batch-order?client_order_ids=${clientOrderIds.join(',')}`);
+  }
+
   async getPositions(): Promise<unknown> {
     return this.get('/v1/positions');
   }

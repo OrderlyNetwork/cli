@@ -256,17 +256,22 @@ cli
   });
 
 cli
-  .command('wallet-import', 'Import an existing wallet private key')
+  .command('wallet-import [private-key]', 'Import an existing wallet private key')
   .option('--type <type>', 'Wallet type: EVM or SOL (required in non-interactive mode)')
   .option('--address <address>', 'Wallet address (optional, derived from key)')
+  .option(
+    '--private-key <key>',
+    'Private key (alternative to positional arg, for non-interactive use)'
+  )
+  .example('orderly wallet-import <private-key> --type EVM')
+  .example('orderly wallet-import --private-key <key> --type SOL')
   .example('orderly wallet-import --type EVM')
-  .example('orderly wallet-import --type SOL')
-  .action((options) => {
+  .action((privateKey, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void walletImport(
       options.type as WalletType,
       normalizeAddress(options.address),
-      undefined,
+      privateKey ?? options.privateKey,
       network
     );
   });

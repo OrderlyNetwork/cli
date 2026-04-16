@@ -69,6 +69,8 @@ import {
   listAlgoOrders,
   editAlgoOrder,
   algoOrderTrades,
+  getAlgoOrder,
+  cancelAlgoOrderByClientId,
 } from './commands/algo.js';
 import { fundingHistory } from './commands/funding.js';
 import { settlePnl, settlePnlHistory } from './commands/settle.js';
@@ -192,7 +194,7 @@ ${kleur.yellow('Trading:')}
   order-place, order-cancel, order-edit, order-cancel-all, order-list
   order-get, order-cancel-by-client-id, order-trades
   batch-order-place, batch-order-cancel
-  algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list, algo-order-trades
+  algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list, algo-order-trades, algo-order-get, algo-order-cancel-by-client-id
   positions-list, positions-close, positions-history
   leverage, trades, funding-history
 
@@ -998,6 +1000,33 @@ cli
   .action((orderId, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void algoOrderTrades(orderId, normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command('algo-order-get <order-id>', 'Get details for a specific algo order')
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly algo-order-get 123456')
+  .action((orderId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void getAlgoOrder(orderId, normalizeAccountId(options.account), network, getFormat(options));
+  });
+
+cli
+  .command(
+    'algo-order-cancel-by-client-id <client-order-id> <symbol>',
+    'Cancel an algo order by client order ID'
+  )
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .example('orderly algo-order-cancel-by-client-id my-algo-123 PERP_ETH_USDC')
+  .action((clientOrderId, symbol, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void cancelAlgoOrderByClientId(
+      clientOrderId,
+      normalizeSymbol(symbol),
+      normalizeAccountId(options.account),
+      network,
+      getFormat(options)
+    );
   });
 
 cli

@@ -512,6 +512,39 @@ export async function listAlgoOrders(
   }
 }
 
+export async function getAlgoOrder(
+  orderId: string,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const result = await client.findAlgoOrderById(orderId);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+export async function cancelAlgoOrderByClientId(
+  clientOrderId: string,
+  symbol: string,
+  accountId: string | undefined,
+  network: Network,
+  format: OutputFormat = 'json'
+): Promise<void> {
+  const { client } = await createAuthenticatedClient(accountId, network);
+
+  try {
+    const result = await client.cancelAlgoOrderByClientId(clientOrderId, symbol);
+    output(result, format);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
 export async function algoOrderTrades(
   orderId: string,
   accountId: string | undefined,

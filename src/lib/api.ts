@@ -450,6 +450,12 @@ export class OrderlyClient {
     return this.post('/v1/algo/order', body);
   }
 
+  async cancelAlgoOrderByClientId(clientOrderId: string, symbol: string): Promise<unknown> {
+    return this.delete(
+      `/v1/algo/client/order?client_order_id=${encodeURIComponent(clientOrderId)}&symbol=${symbol}`
+    );
+  }
+
   async cancelAlgoOrder(orderId: string, symbol: string): Promise<unknown> {
     return this.delete(`/v1/algo/order?order_id=${orderId}&symbol=${symbol}`);
   }

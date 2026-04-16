@@ -758,10 +758,13 @@ cli
 
 cli
   .command('market-orderbook <symbol>', 'Get orderbook snapshot')
+  .option('--depth <n>', 'Number of price levels per side (default: all)')
   .example('orderly market-orderbook PERP_ETH_USDC')
+  .example('orderly market-orderbook PERP_ETH_USDC --depth 10')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getOrderbook(normalizeSymbol(symbol), network, getFormat(options));
+    const depth = options.depth != null ? parseInt(options.depth, 10) : undefined;
+    void getOrderbook(normalizeSymbol(symbol), network, getFormat(options), depth);
   });
 
 cli

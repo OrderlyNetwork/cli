@@ -156,9 +156,14 @@ interface WsOrderbookData {
 export async function getOrderbook(
   symbol: string,
   network: Network,
-  format: OutputFormat = 'json'
+  format: OutputFormat = 'json',
+  depth?: number
 ): Promise<void> {
   try {
+    if (depth !== undefined && (!Number.isFinite(depth) || depth < 1)) {
+      error('--depth must be a positive integer.');
+    }
+
     const upper = symbol.toUpperCase();
     const client = new OrderlyClient(network);
     const priceCheck = (await client.getMarketPrice(upper)) as Record<string, unknown> | null;
@@ -176,15 +181,19 @@ export async function getOrderbook(
       error(result.error || 'Failed to fetch orderbook');
     }
 
-    const asks = (result.data.asks ?? []).map(([price, quantity]) => ({
-      price: Number(price),
-      quantity: Number(quantity),
-    }));
+    const asks = (result.data.asks ?? [])
+      .slice(0, depth ?? result.data.asks.length)
+      .map(([price, quantity]) => ({
+        price: Number(price),
+        quantity: Number(quantity),
+      }));
 
-    const bids = (result.data.bids ?? []).map(([price, quantity]) => ({
-      price: Number(price),
-      quantity: Number(quantity),
-    }));
+    const bids = (result.data.bids ?? [])
+      .slice(0, depth ?? result.data.bids.length)
+      .map(([price, quantity]) => ({
+        price: Number(price),
+        quantity: Number(quantity),
+      }));
 
     if (format === 'csv') {
       const rows = [

@@ -649,7 +649,24 @@ export async function walletAddKey(
     }
   }
 
+  const VALID_SCOPES = ['read', 'trading', 'asset'] as const;
+
   let keyScope = scope;
+  if (keyScope) {
+    const normalized = keyScope.toLowerCase();
+    const parts = normalized
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const invalid = parts.filter((s) => !VALID_SCOPES.includes(s as (typeof VALID_SCOPES)[number]));
+    if (invalid.length > 0) {
+      error(`Invalid scope value(s): ${invalid.join(', ')}`, [
+        `Valid scopes: ${VALID_SCOPES.join(', ')}`,
+        `Example: --scope ${VALID_SCOPES.join(',')}`,
+      ]);
+    }
+    keyScope = parts.join(',');
+  }
   if (!keyScope && (!process.stdin.isTTY || !process.stdout.isTTY)) {
     keyScope = 'read,trading';
   }

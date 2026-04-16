@@ -228,16 +228,22 @@ const cli = cac('orderly');
 cli
   .version(getVersion())
   .help(() => {
-    console.log(DESCRIPTION);
-    console.log(QUICK_START);
+    const firstArg = process.argv[2];
+    const hasSubcommand = firstArg && !firstArg.startsWith('-') && firstArg !== 'help';
+    if (!hasSubcommand) {
+      console.log(DESCRIPTION);
+      console.log(QUICK_START);
+    }
     console.log(kleur.bold('Global Options:'));
     console.log(kleur.dim('  --network <network>  Network: mainnet or testnet (default: testnet)'));
     console.log(kleur.dim('  --pretty             Pretty-print JSON output (2-space indent)'));
     console.log(kleur.dim('  --csv                Output as CSV instead of JSON (for list data)'));
-    console.log('');
-    console.log(kleur.dim('Run any command with --help for more details'));
-    console.log(kleur.cyan('  orderly wallet-create --help'));
-    console.log(kleur.cyan('  orderly order-place --help'));
+    if (!hasSubcommand) {
+      console.log('');
+      console.log(kleur.dim('Run any command with --help for more details'));
+      console.log(kleur.cyan('  orderly wallet-create --help'));
+      console.log(kleur.cyan('  orderly order-place --help'));
+    }
   })
   .option('--network <network>', 'Network: mainnet or testnet', {
     default: getDefaultNetwork(),

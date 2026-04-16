@@ -63,13 +63,21 @@ export async function importKey(
     accId = response.accountId.trim();
   }
 
-  const normalizedKey = normalizeEd25519PrivateKey(key);
-  const publicKey = publicKeyFromPrivateKey(normalizedKey);
+  let normalizedKey: string;
+  let publicKey: string;
+  try {
+    normalizedKey = normalizeEd25519PrivateKey(key);
+    publicKey = publicKeyFromPrivateKey(normalizedKey);
+  } catch {
+    error(
+      `Invalid key format. Provide a valid Ed25519 private key in base64, base58, or ed25519: prefixed format.`
+    );
+  }
   const keyPair: KeyPair = {
     accountId: accId,
     address: '',
     publicKey,
-    privateKey: normalizedKey,
+    privateKey: normalizedKey!,
     network,
   };
 

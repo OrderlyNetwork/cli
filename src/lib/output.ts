@@ -169,6 +169,8 @@ export function output(data: unknown, format: OutputFormat = 'json'): void {
     const csv = toCSV(unwrapped);
     if (csv !== '') {
       console.log(csv);
+    } else {
+      console.error(kleur.dim('(no data)'));
     }
   } else {
     console.log(JSON.stringify(unwrapped, null, isPrettyJson() ? 2 : 0));

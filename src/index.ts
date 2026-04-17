@@ -1006,12 +1006,17 @@ cli
   .command('algo-order-list', 'List algo orders')
   .option('--symbol <symbol>', 'Filter by symbol')
   .option('--status <status>', 'Filter by status: NEW, CANCELLED, INCOMPLETE, COMPLETED')
+  .option(
+    '--algo-type <type>',
+    'Filter by algo type: STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET'
+  )
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25, max: 500)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-list')
   .example('orderly algo-order-list --symbol PERP_ETH_USDC')
   .example('orderly algo-order-list --status INCOMPLETE')
+  .example('orderly algo-order-list --algo-type STOP')
   .example('orderly algo-order-list --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
@@ -1022,6 +1027,7 @@ cli
       options.status,
       page,
       size,
+      options.algoType,
       normalizeAccountId(options.account),
       network,
       getFormat(options)

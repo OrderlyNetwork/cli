@@ -476,13 +476,15 @@ export class OrderlyClient {
     symbol?: string,
     status?: string,
     page?: number,
-    size?: number
+    size?: number,
+    algoType?: string
   ): Promise<unknown> {
     const params = new URLSearchParams();
     if (symbol) params.append('symbol', symbol);
     if (status) params.append('status', status);
     if (page) params.append('page', page.toString());
     if (size) params.append('size', size.toString());
+    if (algoType) params.append('algo_type', algoType);
     const queryString = params.toString();
     return this.get(queryString ? `/v1/algo/orders?${queryString}` : '/v1/algo/orders');
   }

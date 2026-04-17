@@ -498,6 +498,7 @@ export async function listAlgoOrders(
   status: string | undefined,
   page: number | undefined,
   size: number | undefined,
+  algoType: string | undefined,
   accountId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -505,7 +506,7 @@ export async function listAlgoOrders(
   const { client } = await createAuthenticatedClient(accountId, network);
 
   try {
-    const result = await client.getAlgoOrders(symbol, status, page, size);
+    const result = await client.getAlgoOrders(symbol, status, page, size, algoType);
     output(result, format);
   } catch (err) {
     handleError(err);

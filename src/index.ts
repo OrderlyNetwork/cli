@@ -675,6 +675,17 @@ cli
 cli
   .command('batch-order-place <orders>', 'Place multiple orders (max 10)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .usage(
+    'batch-order-place <orders>\n\n' +
+      'Each order object accepts these fields:\n\n' +
+      '  CLI name              API name              Required  Description\n' +
+      '  symbol                symbol                Yes       Trading pair (e.g. PERP_ETH_USDC)\n' +
+      '  type                  order_type            Yes       LIMIT, MARKET, IOC, FOK, POST_ONLY, ASK, BID\n' +
+      '  side                  side                  Yes       BUY or SELL\n' +
+      '  quantity              order_quantity        Yes       Order quantity (positive number)\n' +
+      '  price                 order_price           Cond.*    Order price (required for LIMIT, IOC, FOK, POST_ONLY)\n' +
+      '  client_order_id       client_order_id       No        Custom ID, unique among open orders'
+  )
   .example('# Using CLI-style field names (recommended):')
   .example(
     'orderly batch-order-place \'[{"symbol":"PERP_ETH_USDC","type":"LIMIT","side":"BUY","quantity":"0.01","price":"2000"}]\''

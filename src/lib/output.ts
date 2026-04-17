@@ -60,13 +60,20 @@ function extractRows(data: unknown): unknown {
 
   const record = data as Record<string, unknown>;
 
-  const arrayKey = Object.keys(record).find((k) => Array.isArray(record[k]));
-  if (arrayKey) return record[arrayKey];
+  const knownKeys = ['rows', 'list', 'data'];
 
-  const nullArrayKey = Object.keys(record).find(
-    (k) => record[k] === null && (k === 'rows' || k === 'list' || k === 'data')
-  );
-  if (nullArrayKey) return [];
+  for (const key of knownKeys) {
+    if (key in record) {
+      if (Array.isArray(record[key])) return record[key];
+      if (record[key] === null) return [];
+    }
+  }
+
+  const keys = Object.keys(record);
+  const arrayKeys = keys.filter((k) => Array.isArray(record[k]));
+  if (arrayKeys.length === 1 && keys.length <= 2) {
+    return record[arrayKeys[0]];
+  }
 
   return data;
 }

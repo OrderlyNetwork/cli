@@ -19,6 +19,7 @@ export async function placeAlgoOrder(
   slTriggerPrice: string | undefined,
   slPrice: string | undefined,
   reduceOnly: boolean | undefined,
+  clientOrderId: string | undefined,
   accountId: string | undefined,
   network: Network,
   format: OutputFormat = 'json'
@@ -188,6 +189,7 @@ export async function placeAlgoOrder(
         symbol: symbol.toUpperCase(),
         algoType: validAlgoType,
         quantity: validAlgoType === 'POSITIONAL_TP_SL' ? undefined : quantity,
+        clientOrderId,
         childOrders,
       });
     } else if (validAlgoType === 'BRACKET') {
@@ -253,6 +255,7 @@ export async function placeAlgoOrder(
         quantity: string;
         triggerPrice: string;
         price?: string;
+        clientOrderId?: string;
         childOrders: Array<{
           symbol: string;
           algo_type: string;
@@ -287,6 +290,9 @@ export async function placeAlgoOrder(
       if (price) {
         orderPayload.price = price;
       }
+      if (clientOrderId) {
+        orderPayload.clientOrderId = clientOrderId;
+      }
 
       result = await client.placeAlgoOrder(orderPayload);
     } else {
@@ -300,6 +306,7 @@ export async function placeAlgoOrder(
         price?: string;
         callbackRate?: string;
         reduceOnly?: boolean;
+        clientOrderId?: string;
       } = {
         symbol: symbol.toUpperCase(),
         type: price ? 'LIMIT' : 'MARKET',
@@ -319,6 +326,9 @@ export async function placeAlgoOrder(
       }
       if (reduceOnly) {
         orderPayload.reduceOnly = true;
+      }
+      if (clientOrderId) {
+        orderPayload.clientOrderId = clientOrderId;
       }
 
       result = await client.placeAlgoOrder(orderPayload);

@@ -900,6 +900,7 @@ cli
   )
   .option('--sl-price <price>', 'Stop-loss order price (optional, MARKET if not set)')
   .option('--reduce-only', 'Reduce-only order (can only reduce existing position, not open new)')
+  .option('--client-order-id <id>', 'Custom client order ID (optional)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-place PERP_ETH_USDC SELL STOP 0.01 --trigger-price 2000')
   .example(
@@ -927,6 +928,7 @@ cli
       options.slTriggerPrice,
       options.slPrice,
       options.reduceOnly,
+      options.clientOrderId,
       normalizeAccountId(options.account),
       network,
       getFormat(options)

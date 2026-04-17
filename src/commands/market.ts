@@ -12,6 +12,17 @@ interface RowWithSymbol {
   [key: string]: unknown;
 }
 
+async function validateSymbol(client: OrderlyClient, symbol: string): Promise<void> {
+  const result = (await client.getMarketPrice(symbol)) as Record<string, unknown> | null;
+  if (
+    result !== null &&
+    typeof result === 'object' &&
+    (!('data' in result) || result.data === null)
+  ) {
+    error(`Symbol not found: "${symbol}".`, ['Run `orderly symbols` to see available symbols.']);
+  }
+}
+
 function filterRows(result: Record<string, unknown>, symbol: string | undefined): void {
   if (!symbol) return;
   const data = result.data as Record<string, unknown> | undefined;
@@ -113,6 +124,9 @@ export async function getKline(
   const from = to - count * resolutionSeconds;
 
   try {
+    const client = new OrderlyClient(network);
+    await validateSymbol(client, symbol.toUpperCase());
+
     const baseUrl = getApiBaseUrl(network);
 
     const { data } = await axios.get<TvHistoryResponse>(`${baseUrl}/v1/tv/history`, {
@@ -231,7 +245,9 @@ export async function getMarketTrades(
 ): Promise<void> {
   try {
     const client = new OrderlyClient(network);
-    const result = await client.getMarketTrades(symbol.toUpperCase(), limit);
+    const upper = symbol.toUpperCase();
+    await validateSymbol(client, upper);
+    const result = await client.getMarketTrades(upper, limit);
     output(result, format);
   } catch (err) {
     handleError(err);
@@ -275,6 +291,9 @@ export async function getOpenInterest(
 ): Promise<void> {
   try {
     const client = new OrderlyClient(network);
+    if (symbol) {
+      await validateSymbol(client, symbol.toUpperCase());
+    }
     const result = (await client.getOpenInterest()) as Record<string, unknown>;
     filterRows(result, symbol);
     output(result, format);

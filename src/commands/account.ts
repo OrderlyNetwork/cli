@@ -10,6 +10,32 @@ function unwrap(data: unknown): Record<string, unknown> {
   return obj;
 }
 
+function extractFlatFields(info: Record<string, unknown>): Record<string, unknown> {
+  const flat: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(info)) {
+    if (typeof value !== 'object' || value === null) {
+      flat[key] = value;
+    }
+  }
+  return flat;
+}
+
+function limitsToRows(info: Record<string, unknown>): Record<string, unknown>[] {
+  const imrFactor = info.imr_factor as Record<string, unknown> | undefined;
+  const maxNotional = info.max_notional as Record<string, unknown> | undefined;
+  const symbols = new Set([...Object.keys(imrFactor || {}), ...Object.keys(maxNotional || {})]);
+  const rows: Record<string, unknown>[] = [];
+  for (const sym of symbols) {
+    rows.push({
+      symbol: sym,
+      max_leverage: info.max_leverage ?? '',
+      imr_factor: imrFactor?.[sym] ?? '',
+      max_notional: maxNotional?.[sym] ?? '',
+    });
+  }
+  return rows;
+}
+
 export async function info(
   accountId: string | undefined,
   network: Network,
@@ -19,7 +45,11 @@ export async function info(
 
   try {
     const raw = await client.getAccountInfo();
-    output(raw, format);
+    if (format === 'csv') {
+      output(extractFlatFields(unwrap(raw)), format);
+    } else {
+      output(raw, format);
+    }
   } catch (err) {
     handleError(err);
   }
@@ -50,10 +80,31 @@ export async function limits(
       }
 
       if (!symbolData) {
-        error(`Symbol ${symbol} not found.`, ['Use "orderly symbols" to list available symbols.']);
+        error(`Symbol ${symbol} not found.`, ['Use "orderly symbols" to see available symbols.']);
       }
 
-      output({ account: info, symbol: { symbol, ...symbolData } }, format);
+      if (format === 'csv') {
+        const imrFactor = info.imr_factor as Record<string, unknown> | undefined;
+        const maxNotional = info.max_notional as Record<string, unknown> | undefined;
+        output(
+          {
+            rows: [
+              {
+                symbol,
+                account_max_leverage: info.max_leverage ?? '',
+                account_imr_factor: imrFactor?.[symbol] ?? '',
+                account_max_notional: maxNotional?.[symbol] ?? '',
+                ...symbolData,
+              },
+            ],
+          },
+          format
+        );
+      } else {
+        output({ account: info, symbol: { symbol, ...symbolData } }, format);
+      }
+    } else if (format === 'csv') {
+      output({ rows: limitsToRows(info) }, format);
     } else {
       const limits = {
         max_leverage: info.max_leverage ?? null,

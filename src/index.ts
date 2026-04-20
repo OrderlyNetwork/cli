@@ -900,7 +900,18 @@ cli
 cli
   .command(
     'algo-order-place <symbol> <side> <algoType> <quantity>',
-    'Place an algo order. Valid algoTypes: STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET. Valid sides: BUY, SELL'
+    [
+      'Place an algo order.',
+      '',
+      'Valid algoTypes and their required flags:',
+      '  STOP             --trigger-price',
+      '  TP_SL            --tp-trigger-price and/or --sl-trigger-price',
+      '  POSITIONAL_TP_SL --tp-trigger-price and/or --sl-trigger-price (quantity must be 0)',
+      '  TRAILING_STOP    --callback-rate (1-15%)',
+      '  BRACKET          --trigger-price + --tp-trigger-price and/or --sl-trigger-price',
+      '',
+      'Valid sides: BUY, SELL',
+    ].join('\n')
   )
   .option('--trigger-price <price>', 'Trigger price (required for STOP and BRACKET)')
   .option(

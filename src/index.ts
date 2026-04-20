@@ -518,9 +518,16 @@ cli
 
 // Trading commands
 cli
-  .command(
-    'order-place <symbol> <side> [type] <quantity>',
-    'Place a new order. Side: BUY, SELL. Types: MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK (market sell), BID (market buy)'
+  .command('order-place <symbol> <side> [type] <quantity>', 'Place a new order')
+  .usage(
+    'order-place <symbol> <side> [type] <quantity>\n\n' +
+      'Order types: MARKET, LIMIT, IOC, FOK, POST_ONLY, ASK, BID\n\n' +
+      'If [type] is omitted, the short form is used — provide BID or ASK as <side>:\n' +
+      '  BID → market buy (equivalent to BUY MARKET)\n' +
+      '  ASK → market sell (equivalent to SELL MARKET)\n\n' +
+      '  orderly order-place PERP_ETH_USDC BID 0.01\n' +
+      '  orderly order-place PERP_ETH_USDC ASK 0.01\n\n' +
+      'Side: BUY, SELL'
   )
   .option('--price <price>', 'Order price (required for LIMIT, IOC, FOK, POST_ONLY)')
   .option('--client-order-id <id>', 'Custom client order ID (optional)')
@@ -531,6 +538,7 @@ cli
   .example('orderly order-place PERP_ETH_USDC BUY IOC 0.01 --price 2100')
   .example('orderly order-place PERP_ETH_USDC SELL FOK 0.01 --price 2100')
   .example('orderly order-place PERP_ETH_USDC BUY POST_ONLY 0.01 --price 2000')
+  .example('# Short form (type omitted):')
   .example('orderly order-place PERP_ETH_USDC ASK 0.01')
   .example('orderly order-place PERP_ETH_USDC BID 0.01')
   .example('orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --client-order-id my-order-123')

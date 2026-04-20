@@ -826,8 +826,8 @@ cli
 cli
   .command('positions-history', 'Get position history')
   .option('--symbol <symbol>', 'Filter by symbol')
-  .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
-  .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
+  .option('--start-time <timestamp>', 'Start timestamp (Unix ms)')
+  .option('--end-time <timestamp>', 'End timestamp (Unix ms)')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
@@ -836,8 +836,8 @@ cli
   .example('orderly positions-history --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    const startT = options.startT ? parseInt(options.startT, 10) : undefined;
-    const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    const startT = options.startTime ? parseInt(options.startTime, 10) : undefined;
+    const endT = options.endTime ? parseInt(options.endTime, 10) : undefined;
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void positionHistory(
@@ -871,8 +871,8 @@ cli
 cli
   .command('trades', 'Get trade history')
   .option('--symbol <symbol>', 'Filter by symbol')
-  .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
-  .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
+  .option('--start-time <timestamp>', 'Start timestamp (Unix ms)')
+  .option('--end-time <timestamp>', 'End timestamp (Unix ms)')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25, max: 500)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
@@ -881,8 +881,8 @@ cli
   .example('orderly trades --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    const startT = options.startT ? parseInt(options.startT, 10) : undefined;
-    const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    const startT = options.startTime ? parseInt(options.startTime, 10) : undefined;
+    const endT = options.endTime ? parseInt(options.endTime, 10) : undefined;
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void listTrades(
@@ -1105,8 +1105,8 @@ cli
 cli
   .command('funding-history', 'Get funding fee history')
   .option('--symbol <symbol>', 'Filter by symbol')
-  .option('--start-t <timestamp>', 'Start timestamp (ms)')
-  .option('--end-t <timestamp>', 'End timestamp (ms)')
+  .option('--start-time <timestamp>', 'Start timestamp (Unix ms)')
+  .option('--end-time <timestamp>', 'End timestamp (Unix ms)')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
@@ -1115,8 +1115,8 @@ cli
   .example('orderly funding-history --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    const startT = options.startT ? parseInt(options.startT, 10) : undefined;
-    const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    const startT = options.startTime ? parseInt(options.startTime, 10) : undefined;
+    const endT = options.endTime ? parseInt(options.endTime, 10) : undefined;
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void fundingHistory(
@@ -1174,8 +1174,8 @@ cli
   .command('distribution-history', 'Get broker fee and referral rebate history')
   .option('--status <status>', 'Filter by status: CREATED, SPLIT, COMPLETED')
   .option('--type <type>', 'Filter by type: BROKER_FEE, REFEREE_REBATE, REFERRER_REBATE')
-  .option('--start-t <timestamp>', 'Start timestamp (Unix ms)')
-  .option('--end-t <timestamp>', 'End timestamp (Unix ms)')
+  .option('--start-time <timestamp>', 'Start timestamp (Unix ms)')
+  .option('--end-time <timestamp>', 'End timestamp (Unix ms)')
   .option('--page <n>', 'Page number (default: 1)')
   .option('--size <n>', 'Page size (default: 25)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
@@ -1184,8 +1184,8 @@ cli
   .example('orderly distribution-history --status COMPLETED --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    const startT = options.startT ? parseInt(options.startT, 10) : undefined;
-    const endT = options.endT ? parseInt(options.endT, 10) : undefined;
+    const startT = options.startTime ? parseInt(options.startTime, 10) : undefined;
+    const endT = options.endTime ? parseInt(options.endTime, 10) : undefined;
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
     void distributionHistory(

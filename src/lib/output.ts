@@ -46,7 +46,25 @@ function flattenObject(
     } else if (typeof value === 'object' && !Array.isArray(value)) {
       Object.assign(result, flattenObject(value as Record<string, unknown>, newKey, schemaHints));
     } else if (Array.isArray(value)) {
-      result[newKey] = JSON.stringify(value);
+      const objectItems = value.filter(
+        (item): item is Record<string, unknown> =>
+          typeof item === 'object' && item !== null && !Array.isArray(item)
+      );
+      if (objectItems.length > 0) {
+        let objIdx = 0;
+        for (let i = 0; i < value.length; i++) {
+          const item = value[i];
+          if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+            Object.assign(
+              result,
+              flattenObject(item as Record<string, unknown>, `${newKey}.${objIdx}`, schemaHints)
+            );
+            objIdx++;
+          }
+        }
+      } else {
+        result[newKey] = JSON.stringify(value);
+      }
     } else {
       result[newKey] = String(value);
     }
@@ -95,6 +113,30 @@ function collectObjectSchema(value: unknown, prefix = ''): Map<string, string[]>
           schema.set(nk, merged);
         } else {
           schema.set(nk, nv);
+        }
+      }
+    } else if (Array.isArray(val)) {
+      const objectItems = val.filter(
+        (item): item is Record<string, unknown> =>
+          typeof item === 'object' && item !== null && !Array.isArray(item)
+      );
+      if (objectItems.length > 0) {
+        schema.set(fullKey, ['0']);
+        const mergedChildKeys = new Set<string>();
+        for (let i = 0; i < objectItems.length; i++) {
+          const indexedKey = `${fullKey}.${i}`;
+          const childKeys = Object.keys(objectItems[i]);
+          schema.set(indexedKey, childKeys);
+          childKeys.forEach((ck) => mergedChildKeys.add(ck));
+          const nested = collectObjectSchema(objectItems[i], indexedKey);
+          for (const [nk, nv] of nested) {
+            const existing = schema.get(nk);
+            if (existing) {
+              schema.set(nk, [...new Set([...existing, ...nv])]);
+            } else {
+              schema.set(nk, nv);
+            }
+          }
         }
       }
     }

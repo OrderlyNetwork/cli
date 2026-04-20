@@ -1,6 +1,6 @@
 {
   "name": "@orderly.network/cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "CLI tool for Orderly Network trading - secure keychain-based authentication",
   "main": "dist/index.js",
   "type": "module",

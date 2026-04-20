@@ -772,7 +772,11 @@ export async function walletAddKey(
         );
       }
     } else {
-      error('Failed to add Orderly key');
+      const apiMsg = (result as Record<string, unknown>)?.message;
+      const hint = apiMsg
+        ? `API response: ${apiMsg}`
+        : `Request succeeded but no orderly_key was returned. Scopes requested: ${keyScope}`;
+      error('Failed to add Orderly key', [hint]);
     }
   } catch (err) {
     handleError(err);

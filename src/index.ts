@@ -1420,7 +1420,7 @@ cli
     'Withdraw tokens (auto-signs with wallet key). Omit --receiver to withdraw to your own wallet address.'
   )
   .option('--receiver <address>', 'Destination address (defaults to your wallet address)')
-  .option('--amount <amount>', 'Amount to withdraw (human-readable, e.g. 10.5)')
+  .option('--amount <amount>', 'Amount to withdraw (required, e.g. 10.5)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .option('--raw', 'Amount is in smallest units (default: false, use human-readable like 10.5)')
   .option(

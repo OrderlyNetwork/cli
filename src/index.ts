@@ -1360,13 +1360,16 @@ cli
 // Testnet faucet
 cli
   .command('faucet-usdc <address>', 'Get test USDC from faucet (testnet only)')
-  .option('--chain-id <id>', 'Chain ID for EVM: 421614 (Arbitrum Sepolia), 84532 (Base Sepolia)')
+  .option(
+    '--chain-id <id>',
+    'Required. EVM: 421614 (Arbitrum Sepolia), 84532 (Base Sepolia). SOL: 901901901 (Devnet)'
+  )
   .option('--broker-id <id>', 'Broker ID (default: demo)')
   .example('# EVM (Arbitrum Sepolia):')
   .example('orderly faucet-usdc 0x1234... --chain-id 421614')
   .example('orderly faucet-usdc 0x1234... --chain-id 421614 --broker-id demo')
-  .example('# SOL:')
-  .example('orderly faucet-usdc <sol-address>')
+  .example('# SOL (Devnet):')
+  .example('orderly faucet-usdc <sol-address> --chain-id 901901901')
   .action((address, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const chainId = options.chainId ? String(options.chainId) : undefined;

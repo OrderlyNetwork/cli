@@ -710,7 +710,7 @@ cli
   });
 
 cli
-  .command('batch-order-cancel <order-ids...>', 'Cancel multiple orders by IDs')
+  .command('batch-order-cancel <...order-ids>', 'Cancel multiple orders by IDs')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly batch-order-cancel 123 456 789')
   .action((orderIds, options) => {
@@ -721,7 +721,7 @@ cli
 
 cli
   .command(
-    'batch-order-cancel-by-client-id <client-order-ids...>',
+    'batch-order-cancel-by-client-id <...client-order-ids>',
     'Cancel multiple orders by client order IDs (max 10)'
   )
   .option('--account <id>', 'Account ID (auto-resolves if single account)')

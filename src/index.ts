@@ -647,7 +647,7 @@ cli
   .option('--symbol <symbol>', 'Filter by symbol')
   .option(
     '--status <status>',
-    'Filter by status: NEW, FILLED, CANCELLED, PARTIAL_FILLED, REJECTED, INCOMPLETE, COMPLETED'
+    'Filter by status. Individual: NEW, FILLED, CANCELLED, PARTIAL_FILLED, REJECTED. Bundled: INCOMPLETE (= NEW + PARTIAL_FILLED), COMPLETED (= FILLED + CANCELLED). Default: INCOMPLETE'
   )
   .option('--side <side>', 'Filter by side: BUY, SELL')
   .option('--order-type <type>', 'Filter by type: LIMIT, MARKET')
@@ -663,6 +663,7 @@ cli
   .example('orderly order-list --all')
   .example('orderly order-list --symbol PERP_ETH_USDC')
   .example('orderly order-list --status FILLED --symbol PERP_ETH_USDC')
+  .example('orderly order-list --status COMPLETED')
   .example('orderly order-list --side BUY --order-type LIMIT')
   .example('orderly order-list --page 2 --size 50')
   .action((options) => {

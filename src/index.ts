@@ -78,6 +78,7 @@ import { settlePnl, settlePnlHistory } from './commands/settle.js';
 import { info as referralInfo } from './commands/referral.js';
 import { distributionHistory, volumeStats } from './commands/stats.js';
 import { inbox, inboxUnread } from './commands/notification.js';
+import { brokerCreate, brokerStatus } from './commands/broker.js';
 import { getDefaultNetwork } from './lib/config.js';
 import { Network, WalletType } from './types.js';
 import { OutputFormat, error, normalizeSymbol, normalizeOptionalSymbol } from './lib/output.js';
@@ -221,6 +222,9 @@ ${kleur.yellow('Stats & Notifications:')}
 
 ${kleur.yellow('Testnet Only:')}
   faucet-usdc
+
+${kleur.yellow('Orderly One:')}
+  broker-create
 `;
 
 const cli = cac('orderly');
@@ -1391,6 +1395,58 @@ cli
       getFormat(options),
       options.brokerId
     );
+  });
+
+// Broker ID creation
+cli
+  .command('broker-create [broker-id]', 'Create a broker ID via Orderly One')
+  .option('--address <address>', 'EVM wallet address (prompts if not provided)')
+  .option('--tx-hash <hash>', 'Payment tx hash (skip info, go straight to verify)')
+  .option('--chain <chain>', 'Payment chain: ethereum, arbitrum, base')
+  .option('--chain-id <id>', 'Chain ID: 1, 42161, 8453')
+  .option('--payment-type <type>', 'Payment token: usdc, usdt, or order')
+  .option('--maker-fee <bps>', 'Maker fee in basis points (-0.5 to 15)')
+  .option('--taker-fee <bps>', 'Taker fee in basis points (3 to 15)')
+  .option('--rwa-maker-fee <bps>', 'RWA maker fee in basis points (-0.5 to 15)')
+  .option('--rwa-taker-fee <bps>', 'RWA taker fee in basis points (5 to 15)')
+  .example('orderly broker-create')
+  .example('orderly broker-create my-dex')
+  .example('orderly broker-create my-dex --address 0x1234...')
+  .example('# Direct verification after payment:')
+  .example(
+    'orderly broker-create my-dex --tx-hash 0xabc... --chain arbitrum --chain-id 42161 --payment-type usdc --maker-fee 0 --taker-fee 3 --rwa-maker-fee 0 --rwa-taker-fee 5'
+  )
+  .action((brokerId, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    const chainId = options.chainId ? parseInt(String(options.chainId), 10) : undefined;
+    const makerFee = options.makerFee !== undefined ? parseFloat(String(options.makerFee)) : undefined;
+    const takerFee = options.takerFee !== undefined ? parseFloat(String(options.takerFee)) : undefined;
+    const rwaMakerFee = options.rwaMakerFee !== undefined ? parseFloat(String(options.rwaMakerFee)) : undefined;
+    const rwaTakerFee = options.rwaTakerFee !== undefined ? parseFloat(String(options.rwaTakerFee)) : undefined;
+    void brokerCreate(
+      brokerId,
+      normalizeAddress(options.address),
+      normalizeHexInput(options.txHash, "tx-hash", "tx hashes", '--tx-hash "0xabc..."' ),
+      options.chain,
+      chainId,
+      options.paymentType,
+      makerFee,
+      takerFee,
+      rwaMakerFee,
+      rwaTakerFee,
+      network,
+      getFormat(options)
+    );
+  });
+
+cli
+  .command("broker-status", "Show your DEX/broker status (requires EVM wallet)")
+  .option("--address <address>", "EVM wallet address (prompts if not provided)")
+  .example("orderly broker-status")
+  .example("orderly broker-status --address 0x1234...")
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void brokerStatus(normalizeAddress(options.address), network, getFormat(options));
   });
 
 // Asset commands

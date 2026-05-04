@@ -22,6 +22,7 @@ export function getDomain(network: Network): EIP712Domain {
 
 export interface EVMWallet {
   address: string;
+  signMessage(message: string): Promise<string>;
   signTypedData(
     domain: EIP712Domain,
     types: Record<string, unknown>,
@@ -33,6 +34,7 @@ export function createWalletFromPrivateKey(privateKey: string): EVMWallet {
   const wallet = new Wallet(privateKey);
   return {
     address: wallet.address,
+    signMessage: (message: string) => wallet.signMessage(message),
     signTypedData: async (domain, types, value) => {
       return wallet.signTypedData(
         domain,

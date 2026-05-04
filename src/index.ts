@@ -1040,9 +1040,13 @@ cli
   });
 
 cli
-  .command('algo-order-list', 'List algo orders')
+  .command('algo-order-list', 'List algo orders (defaults to open/active orders)')
   .option('--symbol <symbol>', 'Filter by symbol')
-  .option('--status <status>', 'Filter by status: NEW, CANCELLED, INCOMPLETE, COMPLETED')
+  .option(
+    '--status <status>',
+    'Filter by status. Individual: NEW, CANCELLED, PARTIAL_FILLED, FILLED, REJECTED. Bundled: INCOMPLETE (= NEW + PARTIAL_FILLED), COMPLETED (= FILLED + CANCELLED). Default: INCOMPLETE'
+  )
+  .option('--all', 'Show all orders (overrides default INCOMPLETE filter)')
   .option(
     '--algo-type <type>',
     'Filter by algo type: STOP, TP_SL, POSITIONAL_TP_SL, TRAILING_STOP, BRACKET'
@@ -1051,17 +1055,19 @@ cli
   .option('--size <n>', 'Page size (default: 25, max: 500)')
   .option('--account <id>', 'Account ID (auto-resolves if single account)')
   .example('orderly algo-order-list')
+  .example('orderly algo-order-list --all')
   .example('orderly algo-order-list --symbol PERP_ETH_USDC')
-  .example('orderly algo-order-list --status INCOMPLETE')
+  .example('orderly algo-order-list --status COMPLETED')
   .example('orderly algo-order-list --algo-type STOP')
   .example('orderly algo-order-list --page 2 --size 50')
   .action((options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     const page = options.page ? parseInt(options.page, 10) : undefined;
     const size = options.size ? parseInt(options.size, 10) : undefined;
+    const status = options.status ?? (options.all ? undefined : 'INCOMPLETE');
     void listAlgoOrders(
       normalizeOptionalSymbol(options.symbol),
-      options.status,
+      status,
       page,
       size,
       options.algoType,

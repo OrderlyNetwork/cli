@@ -73,27 +73,28 @@ interface TvHistoryResponse {
 }
 
 export async function getPrice(
+  rawInput: string,
   symbol: string,
   network: Network,
   format: OutputFormat = 'json'
 ): Promise<void> {
   try {
     const client = new OrderlyClient(network);
-    const result = await client.getMarketPrice(symbol.toUpperCase());
+    const result = await client.getMarketPrice(symbol);
     if (
       result !== null &&
       typeof result === 'object' &&
       'data' in (result as Record<string, unknown>) &&
       (result as Record<string, unknown>).data === null
     ) {
-      error(`Symbol not found: "${symbol}".`, ['Run `orderly symbols` to see available symbols.']);
+      error(`Symbol not found: "${rawInput}".`, ['Run `orderly symbols` to see available symbols.']);
     }
     if (
       result !== null &&
       typeof result === 'object' &&
       !('data' in (result as Record<string, unknown>))
     ) {
-      error(`Symbol not found: "${symbol}".`, ['Run `orderly symbols` to see available symbols.']);
+      error(`Symbol not found: "${rawInput}".`, ['Run `orderly symbols` to see available symbols.']);
     }
     output(result, format);
   } catch (err) {

@@ -1254,7 +1254,7 @@ cli
   .example('orderly market-price PERP_BTC_USDC')
   .action((symbol, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
-    void getPrice(normalizeSymbol(symbol), network, getFormat(options));
+    void getPrice(symbol, normalizeSymbol(symbol), network, getFormat(options));
   });
 
 cli

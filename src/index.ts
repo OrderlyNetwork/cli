@@ -918,6 +918,20 @@ cli
       'Valid sides: BUY, SELL',
     ].join('\n')
   )
+  .usage(
+    [
+      'algo-order-place <symbol> <side> <algoType> <quantity>',
+      '',
+      'Valid algoTypes and their required flags:',
+      '  STOP             --trigger-price',
+      '  TP_SL            --tp-trigger-price and/or --sl-trigger-price',
+      '  POSITIONAL_TP_SL --tp-trigger-price and/or --sl-trigger-price (quantity must be 0)',
+      '  TRAILING_STOP    --callback-rate (1-15%)',
+      '  BRACKET          --trigger-price + --tp-trigger-price and/or --sl-trigger-price',
+      '',
+      'Valid sides: BUY, SELL',
+    ].join('\n')
+  )
   .option('--trigger-price <price>', 'Trigger price (required for STOP and BRACKET)')
   .option(
     '--callback-rate <rate>',
@@ -1285,6 +1299,10 @@ cli
   .command(
     'kline <symbol> <type>',
     'Get candlestick/kline data. Valid intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon'
+  )
+  .usage(
+    'kline <symbol> <type>\n\n' +
+      'Valid intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon'
   )
   .option('--size <n>', 'Number of candles (default: 100, max: 1000)')
   .example('orderly kline PERP_ETH_USDC 1h')

@@ -67,8 +67,19 @@ export async function place(
   }
 
   try {
-    const result = await client.placeOrder(orderPayload);
-    output(result, format);
+    const result = (await client.placeOrder(orderPayload)) as Record<string, unknown>;
+    const orderData = (result?.success === true && result?.data) ? result.data as Record<string, unknown> : result;
+    const orderId = orderData?.order_id;
+    if (orderId) {
+      try {
+        const details = await client.getOrderByOrderId(String(orderId));
+        output(details, format);
+      } catch {
+        output(result, format);
+      }
+    } else {
+      output(result, format);
+    }
   } catch (err) {
     handleError(err);
   }

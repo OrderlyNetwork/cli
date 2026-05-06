@@ -6,6 +6,7 @@ import { setDefaultNetwork } from '../lib/config.js';
 import { resolveKeyPair, resolveAccountId } from '../lib/account-select.js';
 import { KeyPair, Network } from '../types.js';
 import { error, output, type OutputFormat } from '../lib/output.js';
+import { OrderlyClient } from '../lib/api.js';
 
 function normalizeEd25519PrivateKey(key: string): string {
   let k = key.trim();
@@ -221,12 +222,21 @@ export async function show(
     return;
   }
 
+  const client = new OrderlyClient(network);
+  let brokerId: string | undefined;
+  try {
+    brokerId = await client.getBrokerId(key.accountId);
+  } catch {
+    // broker_id resolution is best-effort
+  }
+
   const result = {
     accountId: key.accountId,
     address: key.address || '',
     network: key.network,
     walletType: getWalletType(key),
     publicKey: base64ToBase58(key.publicKey),
+    brokerId,
   };
 
   output(result, format);

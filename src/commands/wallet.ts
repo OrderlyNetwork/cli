@@ -6,6 +6,7 @@ import {
   WalletType,
   RegistrationMessage,
   AddKeyMessage,
+  type StoredKey,
 } from '../types.js';
 
 const VALID_WALLET_TYPES: WalletType[] = ['EVM', 'SOL'];
@@ -308,11 +309,34 @@ export async function walletShow(
     error(`No wallet found for ${addr} on ${network}`);
   }
 
+  const allKeys = await listKeys();
+  const matchingKeys = allKeys.filter((k: StoredKey) => {
+    if (k.network !== network || !k.address) return false;
+    const kAddr = k.address.toLowerCase();
+    const wAddr = wallet.address.toLowerCase();
+    return kAddr === wAddr || kAddr === `0x${wAddr}` || `0x${kAddr}` === wAddr;
+  });
+
+  const client = new OrderlyClient(network);
+
+  const accounts = await Promise.all(
+    matchingKeys.map(async (k: StoredKey) => {
+      let brokerId: string | undefined;
+      try {
+        brokerId = await client.getBrokerId(k.accountId);
+      } catch {
+        // broker_id resolution is best-effort
+      }
+      return { accountId: k.accountId, brokerId };
+    })
+  );
+
   output(
     {
       address: wallet.address,
       network: wallet.network,
       walletType: wallet.walletType,
+      accounts,
     },
     format
   );

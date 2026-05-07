@@ -561,7 +561,11 @@ export async function walletRegister(
         );
       }
     } else {
-      error('Failed to register account');
+      const apiMsg = (result as Record<string, unknown>)?.message;
+      const hint = apiMsg
+        ? String(apiMsg)
+        : undefined;
+      error('Failed to register account', hint ? [hint] : undefined);
     }
   } catch (err) {
     handleError(err);

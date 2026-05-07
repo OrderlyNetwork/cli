@@ -684,4 +684,8 @@ export class OrderlyClient {
   async getKeyInfo(): Promise<unknown> {
     return this.get('/v1/client/key_info');
   }
+
+  async removeOrderlyKey(orderlyKey: string): Promise<{ success: boolean }> {
+    return this.post('/v1/client/remove_orderly_key', { orderly_key: orderlyKey });
+  }
 }

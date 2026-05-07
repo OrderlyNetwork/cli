@@ -1,11 +1,11 @@
 import kleur from 'kleur';
 import prompts from 'prompts';
-import { publicKeyFromPrivateKey, base64ToBase58, base58ToBase64 } from '../lib/crypto.js';
+import { publicKeyFromPrivateKey, base64ToBase58, base58ToBase64, getPublicKeyBase58 } from '../lib/crypto.js';
 import { storeKey, deleteKey, listKeys, getKey } from '../lib/keychain.js';
 import { setDefaultNetwork } from '../lib/config.js';
-import { resolveKeyPair, resolveAccountId } from '../lib/account-select.js';
+import { resolveKeyPair, resolveAccountId, createAuthenticatedClient } from '../lib/account-select.js';
 import { KeyPair, Network } from '../types.js';
-import { error, output, type OutputFormat } from '../lib/output.js';
+import { error, output, handleError, type OutputFormat } from '../lib/output.js';
 import { OrderlyClient } from '../lib/api.js';
 
 function normalizeEd25519PrivateKey(key: string): string {
@@ -322,4 +322,71 @@ export async function exportKey(accountId: string | undefined, network: Network)
   console.log(kleur.white(key.privateKey));
   console.log();
   console.log(kleur.yellow('⚠️  Store your private key securely. Never share it with anyone.'));
+}
+
+export async function revokeKey(
+  accountId: string | undefined,
+  network: Network,
+  force: boolean = false
+): Promise<void> {
+  const { accId, keyPair, client } = await createAuthenticatedClient(accountId, network);
+
+  const orderlyKey = `ed25519:${getPublicKeyBase58(keyPair.publicKey)}`;
+
+  const nonInteractive = !process.stdin.isTTY || !process.stdout.isTTY;
+
+  if (nonInteractive) {
+    if (!force) {
+      error('--force is required in non-interactive mode.', [
+        'Example: orderly wallet-revoke-key --account <id> --force',
+        'WARNING: This permanently deactivates the key on the server and removes it from the keychain.',
+      ]);
+    }
+  } else {
+    console.log(kleur.cyan('\n🗑️  Revoke Orderly Key\n'));
+    console.log(kleur.yellow('⚠️  WARNING: This will permanently revoke the API key.'));
+    console.log(kleur.yellow('   You will lose ALL access to this account via this key.'));
+    console.log(kleur.dim(`   Account: ${accId}`));
+    console.log(kleur.dim(`   Key: ${orderlyKey}`));
+    console.log();
+
+    const confirm = await prompts({
+      type: 'text',
+      name: 'confirm',
+      message: 'Type "REVOKE" to confirm you want to permanently revoke this key:',
+      validate: (value: string) => (value === 'REVOKE' ? true : 'You must type REVOKE exactly'),
+    });
+
+    if (!confirm.confirm) {
+      error('Cancelled.');
+    }
+  }
+
+  try {
+    const result = await client.removeOrderlyKey(orderlyKey);
+    if (result.success) {
+      try {
+        await deleteKey(accId, network);
+      } catch {
+        if (!nonInteractive) {
+          console.log(kleur.yellow('Key revoked on server but failed to remove from local keychain.'));
+        }
+      }
+      if (nonInteractive) {
+        output({ success: true, revoked: orderlyKey, account: accId, network });
+      } else {
+        console.log();
+        console.log(kleur.green('✅ Key revoked successfully.'));
+        console.log(kleur.dim(`   Account: ${accId}`));
+        console.log(kleur.dim(`   Key: ${orderlyKey}`));
+        console.log();
+        console.log(kleur.dim('The key has been deactivated on the server and removed from local keychain.'));
+        console.log(kleur.dim('Run `orderly wallet-add-key` to generate a new key if needed.'));
+      }
+    } else {
+      error('Failed to revoke key on server.');
+    }
+  } catch (err) {
+    handleError(err);
+  }
 }

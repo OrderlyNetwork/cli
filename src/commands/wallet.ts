@@ -205,7 +205,7 @@ export async function walletImport(
   if (existing) {
     if (!process.stdin.isTTY || !process.stdout.isTTY) {
       error(
-        `Wallet already exists for ${addr} on ${network}. Use wallet-logout first to remove it.`
+        `Wallet already exists for ${addr} on ${network}. Use wallet-remove first to remove it.`
       );
     }
     console.log(kleur.yellow(`Wallet already exists for ${addr} on ${network}`));
@@ -342,15 +342,15 @@ export async function walletShow(
   );
 }
 
-export async function walletLogout(address: string | undefined, network: Network): Promise<void> {
-  console.log(kleur.cyan('\n🚪 Wallet Logout\n'));
+export async function walletRemove(address: string | undefined, network: Network, force: boolean = false): Promise<void> {
+  console.log(kleur.cyan('\n🗑️  Remove Wallet\n'));
 
   let addr = address;
 
   if (!addr) {
     if (!process.stdin.isTTY || !process.stdout.isTTY) {
       error('Address is required in non-interactive mode.', [
-        'Example: orderly wallet-logout "0x1234..."',
+        'Example: orderly wallet-remove "0x1234..."',
         'Run `orderly wallet-list` to see available addresses.',
       ]);
     }
@@ -365,7 +365,7 @@ export async function walletLogout(address: string | undefined, network: Network
     const response = await prompts({
       type: 'select',
       name: 'address',
-      message: 'Select wallet to logout',
+      message: 'Select wallet to remove',
       choices: filteredWallets.map((w) => ({
         title: `${w.address} (${w.walletType})`,
         value: w.address,
@@ -382,7 +382,19 @@ export async function walletLogout(address: string | undefined, network: Network
     error('No address selected.');
   }
 
+  console.log(kleur.yellow('⚠️  WARNING: Removing a wallet deletes its private key from the keychain.'));
+  console.log(kleur.yellow('   This can cause PERMANENT LOSS OF ACCESS to any accounts that depend on it.'));
+  console.log(kleur.dim(`   Address: ${addr}`));
+  console.log(kleur.dim(`   Network: ${network}`));
+  console.log();
+
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    if (!force) {
+      error('--force is required in non-interactive mode.', [
+        'Example: orderly wallet-remove "0x1234..." --force',
+        'WARNING: This permanently deletes the wallet private key from the OS keychain.',
+      ]);
+    }
     try {
       const deleted = await deleteWalletKey(addr, network);
       if (deleted) {
@@ -396,15 +408,18 @@ export async function walletLogout(address: string | undefined, network: Network
     return;
   }
 
-  const confirm = await prompts({
-    type: 'confirm',
-    name: 'value',
-    message: `Remove wallet ${addr} on ${network}?`,
-    initial: false,
-  });
+  if (!force) {
+    const confirm = await prompts({
+      type: 'text',
+      name: 'confirm',
+      message: `Type the wallet address to confirm removal:`,
+      validate: (value: string) =>
+        value.toLowerCase() === addr!.toLowerCase() ? true : 'Address does not match',
+    });
 
-  if (!confirm.value) {
-    error('Cancelled.');
+    if (!confirm.confirm) {
+      error('Cancelled.');
+    }
   }
 
   try {
@@ -417,6 +432,10 @@ export async function walletLogout(address: string | undefined, network: Network
   } catch {
     error('Failed to remove wallet');
   }
+}
+
+export async function walletLogout(address: string | undefined, network: Network): Promise<void> {
+  return walletRemove(address, network);
 }
 
 export async function walletRegister(

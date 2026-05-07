@@ -14,7 +14,7 @@ function getVersion(): string {
     return '0.0.0';
   }
 }
-import { importKey, list, logout, show, exportKey, cleanup } from './commands/auth.js';
+import { importKey, list, logout, show, exportKey, cleanup, revokeKey } from './commands/auth.js';
 import {
   info,
   balance,
@@ -55,6 +55,7 @@ import {
   walletImport,
   walletList,
   walletShow,
+  walletRemove,
   walletLogout,
   walletRegister,
   walletAddKey,
@@ -188,8 +189,8 @@ ${kleur.cyan().bold('COMMANDS BY CATEGORY')}
 ${kleur.dim('─'.repeat(50))}
 
 ${kleur.yellow('Setup & Auth:')}
-  wallet-create, wallet-import, wallet-list, wallet-show, wallet-logout
-  wallet-register, wallet-add-key
+  wallet-create, wallet-import, wallet-list, wallet-show, wallet-remove
+  wallet-register, wallet-add-key, wallet-revoke-key
   auth-import, auth-list, auth-show, auth-logout, auth-cleanup, auth-export-key
 
 ${kleur.yellow('Trading:')}
@@ -314,11 +315,23 @@ cli
 
 cli
   .command(
-    'wallet-logout [address]',
-    'Remove wallet from keychain (address required for AI/scripts, prompts if omitted)'
+    'wallet-remove [address]',
+    'Remove wallet private key from keychain. WARNING: can cause permanent loss of access to dependent accounts.'
   )
-  .example('orderly wallet-logout')
-  .example('orderly wallet-logout 0x1234...')
+  .option('--force', 'Skip confirmation prompt (required in non-interactive mode)')
+  .example('orderly wallet-remove')
+  .example('orderly wallet-remove 0x1234...')
+  .example('orderly wallet-remove 0x1234... --force')
+  .action((address, options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void walletRemove(normalizeAddress(address), network, options.force === true);
+  });
+
+cli
+  .command(
+    'wallet-logout [address]',
+    'Remove wallet from keychain (alias for wallet-remove)'
+  )
   .action((address, options) => {
     const network = (options.network as Network) || getDefaultNetwork();
     void walletLogout(normalizeAddress(address), network);
@@ -354,6 +367,26 @@ cli
       network,
       options.brokerId
     );
+  });
+
+cli
+  .command(
+    'wallet-revoke-key',
+    [
+      'Revoke the current Orderly API key (server-side + local keychain removal).',
+      '',
+      'WARNING: This permanently deactivates the key. You will lose ALL access',
+      'to the account via this key. Use wallet-add-key to generate a new one after.',
+    ].join('\n')
+  )
+  .option('--account <id>', 'Account ID (auto-resolves if single account)')
+  .option('--force', 'Skip confirmation prompt (required in non-interactive mode)')
+  .example('orderly wallet-revoke-key')
+  .example('orderly wallet-revoke-key --account 0x1e6b...')
+  .example('orderly wallet-revoke-key --account 0x1e6b... --force')
+  .action((options) => {
+    const network = (options.network as Network) || getDefaultNetwork();
+    void revokeKey(normalizeAccountId(options.account), network, options.force === true);
   });
 
 // Auth commands - For users with existing API keys

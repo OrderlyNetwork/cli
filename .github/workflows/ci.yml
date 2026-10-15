@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      # libsecret headers are only needed to *link* keytar-style tooling; the
+      # Rust crate speaks the Secret Service protocol over D-Bus, so no native
+      # build dependency is required. Installed anyway for a realistic env.
+      - run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev pkg-config
+      - name: Build
+        run: cargo build --locked
+      - name: Test
+        run: cargo test --locked
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Format check
+        run: cargo fmt --check
+
+  # Regenerate the TS-derived parity fixtures and fail if they changed, so the
+  # recorded oracle stays in sync with the TypeScript implementation.
+  parity-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+      - run: node rust/parity/gen_output_fixtures.mjs
+      - run: node rust/parity/gen_crypto_fixtures.mjs
+      - run: node rust/parity/gen_evm_fixtures.mjs
+      - run: node rust/parity/gen_solana_fixtures.mjs
+      - name: Fixtures unchanged
+        run: git diff --exit-code rust/parity/fixtures

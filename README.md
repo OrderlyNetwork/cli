@@ -11,6 +11,21 @@ CLI tool for Orderly Network trading with secure OS keychain authentication.
 
 ## Installation
 
+### Rust binary (recommended)
+
+A static `orderly` binary is available for Linux, macOS and Windows (x64 and
+arm64) with no Node.js runtime required:
+
+```bash
+# download the asset for your platform from the latest GitHub release, e.g.
+curl -fsSL https://github.com/OrderlyNetwork/cli/releases/latest/download/orderly-x86_64-unknown-linux-musl.tar.gz | tar -xz
+install -m 0755 orderly ~/.local/bin/orderly
+```
+
+See [`rust/README.md`](rust/README.md) for details and the compatibility notes.
+
+### npm (legacy)
+
 ```bash
 npm install -g @orderly.network/cli
 ```

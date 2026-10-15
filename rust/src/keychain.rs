@@ -250,6 +250,53 @@ mod backend {
         }
         Ok(true)
     }
+
+    /// Enumerate credentials for a service, like `keytar.findCredentials`.
+    pub async fn list_passwords(service: &str) -> Result<Vec<(String, String)>, String> {
+        let ss = connect().await?;
+        let collection = ss
+            .get_default_collection()
+            .await
+            .map_err(|e| format!("keychain collection failed: {e}"))?;
+        if collection
+            .is_locked()
+            .await
+            .map_err(|e| format!("keychain lock check failed: {e}"))?
+        {
+            collection
+                .unlock()
+                .await
+                .map_err(|e| format!("keychain unlock failed: {e}"))?;
+        }
+        let attributes = HashMap::from([("service", service)]);
+        let items = collection
+            .search_items(attributes)
+            .await
+            .map_err(|e| format!("keychain search failed: {e}"))?;
+
+        let mut out = Vec::new();
+        for item in items {
+            let attrs = item
+                .get_attributes()
+                .await
+                .map_err(|e| format!("keychain read attributes failed: {e}"))?;
+            let Some(account) = attrs.get("account") else {
+                continue;
+            };
+            if account.is_empty() {
+                continue;
+            }
+            let secret = item
+                .get_secret()
+                .await
+                .map_err(|e| format!("keychain read failed: {e}"))?;
+            out.push((
+                account.clone(),
+                String::from_utf8_lossy(&secret).to_string(),
+            ));
+        }
+        Ok(out)
+    }
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -281,6 +328,12 @@ mod backend {
             Err(keyring::Error::NoEntry) => Ok(false),
             Err(e) => Err(e.to_string()),
         }
+    }
+
+    /// Enumeration is not supported by the `keyring` crate; callers fall back to
+    /// the local index file.
+    pub async fn list_passwords(_service: &str) -> Result<Vec<(String, String)>, String> {
+        Err("enumeration not supported on this platform".to_string())
     }
 }
 
@@ -326,6 +379,25 @@ pub async fn has_key(account_id: &str, network: &str) -> bool {
 }
 
 pub async fn list_keys() -> Result<Vec<StoredKey>, String> {
+    // Prefer real enumeration (Linux Secret Service), which matches the
+    // TypeScript CLI's `keytar.findCredentials`.
+    if let Ok(entries) = backend::list_passwords(SERVICE_NAME).await {
+        let mut out = Vec::new();
+        for (_account, data) in entries {
+            if let Ok(key) = serde_json::from_str::<KeyPair>(&data) {
+                out.push(StoredKey {
+                    account_id: key.account_id,
+                    address: key.address,
+                    wallet_type: key.wallet_type,
+                    public_key: key.public_key,
+                    network: key.network,
+                });
+            }
+        }
+        return Ok(out);
+    }
+
+    // Fallback: the local index file.
     let index = load_index();
     let mut out = Vec::new();
     for entry in &index.keys {
@@ -393,6 +465,20 @@ pub async fn has_wallet_key(address: &str, network: &str) -> bool {
 }
 
 pub async fn list_wallet_keys() -> Result<Vec<StoredWalletKey>, String> {
+    if let Ok(entries) = backend::list_passwords(SERVICE_NAME_WALLET).await {
+        let mut out = Vec::new();
+        for (_account, data) in entries {
+            if let Ok(key) = serde_json::from_str::<WalletKeyPair>(&data) {
+                out.push(StoredWalletKey {
+                    address: key.address,
+                    wallet_type: key.wallet_type,
+                    network: key.network,
+                });
+            }
+        }
+        return Ok(out);
+    }
+
     let index = load_index();
     let mut out = Vec::new();
     for entry in &index.wallets {

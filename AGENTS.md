@@ -58,7 +58,7 @@ rust/src/
 ├── crypto.rs             # Ed25519 + base58/base64 + keccak
 ├── evm.rs                # EIP-712 / personal_sign / parseUnits
 ├── solana.rs             # keccak+ABI+Ed25519 signing
-├── keychain.rs           # Secret Service (keytar-compatible) + index file
+├── keychain.rs           # Secret Service (keytar-compatible, enumerable on Linux)
 ├── output.rs             # JSON/CSV rendering, JS-compatible numbers
 └── account_select.rs     # Account resolution
 ```

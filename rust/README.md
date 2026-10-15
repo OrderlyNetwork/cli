@@ -38,11 +38,12 @@ install -m 0755 rust/target/release/orderly ~/.local/bin/orderly
 
 ### Enumeration
 
-`keytar.findCredentials` has no portable Rust equivalent, so credential
-*enumeration* (used by `auth-list`, `wallet-list`, and account auto-resolution)
-reads `~/.orderly-cli/keys-index.json`. Secrets are still only ever stored in
-the OS keychain. Entries created by the TypeScript CLI are readable by exact
-account/address but are not enumerated until re-imported.
+On Linux, credentials are enumerated directly from the Secret Service (the same
+`org.freedesktop.Secret.Generic` items `keytar` uses), so `auth-list`,
+`wallet-list` and account auto-resolution return exactly what the TypeScript CLI
+returns. On macOS/Windows the `keyring` crate cannot enumerate, so an index file
+at `~/.orderly-cli/keys-index.json` is used as a fallback. Secrets themselves are
+only ever stored in the OS keychain.
 
 ## Testing
 

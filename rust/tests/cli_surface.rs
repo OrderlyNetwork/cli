@@ -165,3 +165,15 @@ fn global_flags_accepted_after_subcommand() {
     assert!(cli.pretty);
     assert_eq!(cli.network.as_deref(), Some("mainnet"));
 }
+
+#[test]
+fn help_output_matches_typescript() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("parity/fixtures/help.txt");
+    let expected = std::fs::read_to_string(&path)
+        .expect("run `node rust/parity/gen_help_fixture.mjs` to generate the fixture");
+    assert_eq!(
+        orderly::help::full_help(),
+        expected,
+        "`orderly --help` differs from the TypeScript output"
+    );
+}

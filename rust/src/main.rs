@@ -7,6 +7,20 @@ use orderly::error::handle_error;
 async fn main() {
     check_negative_number_args();
 
+    // `orderly` with no arguments (or `orderly help`) prints nothing and exits 0.
+    let raw: Vec<String> = std::env::args().skip(1).collect();
+    let first = raw.first().map(|s| s.as_str()).unwrap_or("");
+    if raw.is_empty() || first == "help" {
+        std::process::exit(0);
+    }
+
+    // `orderly --help` / `orderly -h` print the hand-written overview
+    // (mirroring the TS `DESCRIPTION` + `QUICK_START`) and the command list.
+    if first == "--help" || first == "-h" {
+        print!("{}", orderly::help::full_help());
+        std::process::exit(0);
+    }
+
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(err) => handle_clap_error(err),

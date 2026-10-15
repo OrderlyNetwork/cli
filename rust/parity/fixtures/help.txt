@@ -1,0 +1,265 @@
+
+Orderly Network CLI
+Secure keychain-based trading CLI for Orderly Network
+
+This CLI uses your OS keychain (Keychain/Credential Manager/libsecret) to store
+private keys securely. Keys are NEVER exposed to AI context or logged.
+
+SETUP FLOW
+──────────────────────────────────────────────────
+
+For new users:
+  wallet-create    → Generate a new wallet (EVM or SOL)
+  wallet-register  → Register wallet with Orderly (get account ID)
+  wallet-add-key   → Generate & register Ed25519 API key for trading
+
+For existing Orderly users with API keys:
+  auth-import      → Import existing Ed25519 API key directly
+
+COMMANDS BY CATEGORY
+──────────────────────────────────────────────────
+
+Setup & Auth:
+  wallet-create, wallet-import, wallet-list, wallet-show, wallet-remove
+  wallet-register, wallet-add-key, wallet-revoke-key
+  auth-import, auth-list, auth-show, auth-logout, auth-cleanup, auth-export-key
+
+Trading:
+  order-place, order-cancel, order-edit, order-cancel-all, order-list
+  order-get, order-cancel-by-client-id, order-trades
+  batch-order-place, batch-order-cancel, batch-order-cancel-by-client-id
+  algo-order-place, algo-order-cancel, algo-order-cancel-all, algo-order-edit, algo-order-list, algo-order-trades, algo-order-get, algo-order-cancel-by-client-id
+  positions-list, positions-close, positions-history
+  leverage, trades, funding-history
+
+Account:
+  account-info, account-balance, account-statistics, account-limits
+  key-info, fee-tier, account-liquidations
+
+Market Data:
+  market-price, market-orderbook, market-trades, funding-rates, kline, symbols
+  price-changes, open-interest, liquidated-positions, system-status
+
+Assets:
+  chains, tokens, deposit-info, withdraw, asset-history
+
+PnL:
+  settle-pnl, settle-pnl-history
+
+Referral:
+  referral-info
+
+Stats & Notifications:
+  distribution-history, volume-stats, notification-inbox, notification-unread
+
+Testnet Only:
+  faucet-usdc
+
+Orderly One:
+  broker-create
+
+
+QUICK START (Testnet)
+──────────────────────────────────────────────────
+
+1. Create a new wallet:
+   orderly wallet-create --type EVM
+
+2. Register an Orderly account:
+   orderly wallet-register --broker-id demo
+
+3. Get test USDC (wait a few minutes for delivery):
+   orderly faucet-usdc <address> --chain-id 421614
+
+4. Add API key for trading:
+   orderly wallet-add-key
+
+5. Check balance:
+   orderly account-balance
+
+6. Place an order:
+   orderly order-place PERP_ETH_USDC BUY MARKET 0.01
+
+Global Options:
+  --network <network>  Network: mainnet or testnet (default: testnet)
+  --pretty             Pretty-print JSON output (2-space indent)
+  --csv                Output as CSV instead of JSON (for list data)
+
+Run any command with --help for more details
+  orderly wallet-create --help
+  orderly order-place --help
+orderly/1.2.0
+
+Usage:
+  $ orderly <command> [options]
+
+Commands:
+  wallet-create                                              Create a new EVM or SOL wallet
+  wallet-import [private-key]                                Import an existing wallet private key
+  wallet-list                                                List all stored wallets
+  wallet-show [address]                                      Show wallet info (address required for AI/scripts, prompts if omitted)
+  wallet-remove [address]                                    Remove wallet private key from keychain. WARNING: can cause permanent loss of access to dependent accounts.
+  wallet-logout [address]                                    Remove wallet from keychain (alias for wallet-remove)
+  wallet-register                                            Register an Orderly account with your wallet (Step 2 of setup)
+  wallet-add-key                                             Add Orderly API key for trading (Step 3 of setup)
+  wallet-revoke-key                                          Revoke the current Orderly API key (server-side + local keychain removal).
+
+WARNING: This permanently deactivates the key. You will lose ALL access
+to the account via this key. Use wallet-add-key to generate a new one after.
+  auth-import [private-key]                                  Import existing Ed25519 API key (for users who already have one)
+  auth-list                                                  List all stored API keys (public keys only)
+  auth-show                                                  Show public key for an account
+  auth-logout [account-id]                                   Remove API key from keychain
+  auth-cleanup                                               Remove all stored API keys for a network
+  auth-export-key [account-id]                               Export Ed25519 private key (requires interactive TTY)
+  account-info                                               Get account information
+  account-balance                                            Get account balances
+  account-statistics                                         Get account trading statistics (volume, fees, days since registration)
+  account-limits                                             Get margin requirements and position limits.
+  imr_factor: per-symbol factor used in initial margin calculation — IMR_i = max(1/max_leverage, base_imr, imr_factor * |notional|^0.8)
+  max_notional: max position size in USD per symbol
+  base_imr / base_mmr: minimum initial/maintenance margin ratios (shown with --symbol)
+  base_mmr: threshold for liquidation — MMR_i = max(base_mmr, (base_mmr/base_imr) * imr_factor * |notional|^0.8)
+  key-info                                                   Get registered API key info and scopes
+  fee-tier                                                   Get current fee rates (futures, RWA, default)
+  account-liquidations                                       Get account liquidation history
+  order-place <symbol> <side> [type] <quantity>              Place a new order
+  order-cancel <order-id>                                    Cancel an order
+  order-edit <order-id>                                      Edit a pending order (only specify what to change)
+  order-cancel-all                                           Cancel all orders
+  order-list                                                 List orders (defaults to open/active orders)
+  batch-order-place <orders>                                 Place multiple orders (max 10)
+  batch-order-cancel <...order-ids>                          Cancel multiple orders by IDs
+  batch-order-cancel-by-client-id <...client-order-ids>      Cancel multiple orders by client order IDs (max 10)
+  order-get [order-id]                                       Get order details. Auto-detects numeric order ID vs client order ID
+  order-cancel-by-client-id <client-order-id> <symbol>       Cancel an order by client order ID
+  order-trades <order-id>                                    Get trades for a specific order
+  positions-list                                             List open positions
+  positions-close <symbol>                                   Close a position
+  market-orderbook <symbol>                                  Get orderbook snapshot
+  positions-history                                          Get position history
+  leverage <symbol> [value]                                  Get or set leverage for a symbol
+  trades                                                     Get trade history
+  algo-order-place <symbol> <side> <algoType> <quantity>     Place an algo order.
+
+Valid algoTypes and their required flags:
+  STOP             --trigger-price
+  TP_SL            --tp-trigger-price and/or --sl-trigger-price
+  POSITIONAL_TP_SL --tp-trigger-price and/or --sl-trigger-price (quantity must be 0)
+  TRAILING_STOP    --callback-rate (1-15%)
+  BRACKET          --trigger-price + --tp-trigger-price and/or --sl-trigger-price
+
+Valid sides: BUY, SELL
+  algo-order-cancel <order-id>                               Cancel an algo order
+  algo-order-edit <order-id>                                 Edit a pending algo order (only specify what to change: price, quantity, trigger-price, callback-rate)
+  algo-order-cancel-all                                      Cancel all algo orders
+  algo-order-list                                            List algo orders (defaults to open/active orders)
+  algo-order-trades <order-id>                               Get trades for a specific algo order
+  algo-order-get <order-id>                                  Get details for a specific algo order
+  algo-order-cancel-by-client-id <client-order-id> <symbol>  Cancel an algo order by client order ID
+  funding-history                                            Get funding fee history
+  settle-pnl                                                 Settle unrealized PnL into account balance
+  settle-pnl-history                                         Get on-chain PnL settlement history
+  referral-info                                              Get referral information (referrer/referee stats and codes)
+  distribution-history                                       Get broker fee and referral rebate history
+  volume-stats                                               Get perp trading volume statistics (today, 1d, 7d, 30d, YTD, LTD)
+  notification-inbox                                         List notification inbox messages
+  notification-unread                                        Get unread notification count and messages
+  market-price <symbol>                                      Get current market price
+  symbols                                                    List trading symbols. Default: compact list (symbol, pair, prices). Use --info for full order rules (lot size, min notional, price tick, etc.)
+  kline <symbol> <type>                                      Get candlestick/kline data. Valid intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon
+  market-trades <symbol>                                     Get recent public trades
+  funding-rates                                              Get public funding rates for all symbols (no auth required)
+  price-changes                                              Get price changes for all symbols (5m, 30m, 1h, 24h, 7d, 30d) (no auth required)
+  open-interest                                              Get long/short open interest for all symbols (no auth required)
+  liquidated-positions                                       Get public liquidated positions (no auth required)
+  system-status                                              Get Orderly system maintenance status (no auth required)
+  faucet-usdc <address>                                      Get test USDC from faucet (testnet only)
+  broker-create [broker-id]                                  Create a broker ID via Orderly One
+  broker-status                                              Show your DEX/broker status (requires EVM wallet)
+  chains                                                     List supported chains (no auth required)
+  tokens                                                     List supported tokens (no auth required)
+  deposit-info <token> <chain-id>                            Get deposit info for a token
+  withdraw <token> <chain-id>                                Withdraw tokens (auto-signs with wallet key). Omit --receiver to withdraw to your own wallet address.
+  asset-history                                              Get asset deposit/withdraw history
+
+For more info, run any command with the `--help` flag:
+  $ orderly wallet-create --help
+  $ orderly wallet-import --help
+  $ orderly wallet-list --help
+  $ orderly wallet-show --help
+  $ orderly wallet-remove --help
+  $ orderly wallet-logout --help
+  $ orderly wallet-register --help
+  $ orderly wallet-add-key --help
+  $ orderly wallet-revoke-key --help
+  $ orderly auth-import --help
+  $ orderly auth-list --help
+  $ orderly auth-show --help
+  $ orderly auth-logout --help
+  $ orderly auth-cleanup --help
+  $ orderly auth-export-key --help
+  $ orderly account-info --help
+  $ orderly account-balance --help
+  $ orderly account-statistics --help
+  $ orderly account-limits --help
+  $ orderly key-info --help
+  $ orderly fee-tier --help
+  $ orderly account-liquidations --help
+  $ orderly order-place --help
+  $ orderly order-cancel --help
+  $ orderly order-edit --help
+  $ orderly order-cancel-all --help
+  $ orderly order-list --help
+  $ orderly batch-order-place --help
+  $ orderly batch-order-cancel --help
+  $ orderly batch-order-cancel-by-client-id --help
+  $ orderly order-get --help
+  $ orderly order-cancel-by-client-id --help
+  $ orderly order-trades --help
+  $ orderly positions-list --help
+  $ orderly positions-close --help
+  $ orderly market-orderbook --help
+  $ orderly positions-history --help
+  $ orderly leverage --help
+  $ orderly trades --help
+  $ orderly algo-order-place --help
+  $ orderly algo-order-cancel --help
+  $ orderly algo-order-edit --help
+  $ orderly algo-order-cancel-all --help
+  $ orderly algo-order-list --help
+  $ orderly algo-order-trades --help
+  $ orderly algo-order-get --help
+  $ orderly algo-order-cancel-by-client-id --help
+  $ orderly funding-history --help
+  $ orderly settle-pnl --help
+  $ orderly settle-pnl-history --help
+  $ orderly referral-info --help
+  $ orderly distribution-history --help
+  $ orderly volume-stats --help
+  $ orderly notification-inbox --help
+  $ orderly notification-unread --help
+  $ orderly market-price --help
+  $ orderly symbols --help
+  $ orderly kline --help
+  $ orderly market-trades --help
+  $ orderly funding-rates --help
+  $ orderly price-changes --help
+  $ orderly open-interest --help
+  $ orderly liquidated-positions --help
+  $ orderly system-status --help
+  $ orderly faucet-usdc --help
+  $ orderly broker-create --help
+  $ orderly broker-status --help
+  $ orderly chains --help
+  $ orderly tokens --help
+  $ orderly deposit-info --help
+  $ orderly withdraw --help
+  $ orderly asset-history --help
+
+Options:
+  -v, --version        Display version number 
+  -h, --help           Display this message 
+  --network <network>  Network: mainnet or testnet (default: testnet)
+  --csv                Output as CSV instead of JSON (for list data) 
+  --pretty             Pretty-print JSON output (2-space indent) 

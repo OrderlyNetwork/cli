@@ -15,6 +15,7 @@ pub mod crypto;
 pub mod dex_api;
 pub mod error;
 pub mod evm;
+pub mod help;
 pub mod keychain;
 pub mod output;
 pub mod solana;

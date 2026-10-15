@@ -55,3 +55,12 @@ pub fn dim(s: &str) -> String {
 pub fn bold(s: &str) -> String {
     wrap("1", s)
 }
+
+/// kleur's `cyan().bold()` chain.
+pub fn cyan_bold(s: &str) -> String {
+    if enabled() {
+        format!("\u{1b}[36m\u{1b}[1m{s}\u{1b}[22m\u{1b}[39m")
+    } else {
+        s.to_string()
+    }
+}

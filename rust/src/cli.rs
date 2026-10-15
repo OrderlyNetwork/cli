@@ -863,6 +863,9 @@ pub enum CliCommand {
     /// Show wallet info (address required for AI/scripts, prompts if omitted)
     WalletShow(AddressOnlyArgs),
     /// Remove wallet private key from keychain. WARNING: can cause permanent loss of access to dependent accounts.
+    #[command(
+        about = "Remove wallet private key from keychain. WARNING: can cause permanent loss of access to dependent accounts."
+    )]
     WalletRemove(WalletRemoveArgs),
     /// Remove wallet from keychain (alias for wallet-remove)
     WalletLogout(AddressOnlyArgs),
@@ -871,6 +874,9 @@ pub enum CliCommand {
     /// Add Orderly API key for trading (Step 3 of setup)
     WalletAddKey(WalletAddKeyArgs),
     /// Revoke the current Orderly API key (server-side + local keychain removal)
+    #[command(
+        about = "Revoke the current Orderly API key (server-side + local keychain removal).\n\nWARNING: This permanently deactivates the key. You will lose ALL access\nto the account via this key. Use wallet-add-key to generate a new one after."
+    )]
     WalletRevokeKey(WalletRevokeKeyArgs),
 
     /// Import existing Ed25519 API key (for users who already have one)
@@ -893,6 +899,9 @@ pub enum CliCommand {
     /// Get account trading statistics (volume, fees, days since registration)
     AccountStatistics(AccountOnlyArgs),
     /// Get margin requirements and position limits
+    #[command(
+        about = "Get margin requirements and position limits.\n  imr_factor: per-symbol factor used in initial margin calculation — IMR_i = max(1/max_leverage, base_imr, imr_factor * |notional|^0.8)\n  max_notional: max position size in USD per symbol\n  base_imr / base_mmr: minimum initial/maintenance margin ratios (shown with --symbol)\n  base_mmr: threshold for liquidation — MMR_i = max(base_mmr, (base_mmr/base_imr) * imr_factor * |notional|^0.8)"
+    )]
     AccountLimits(AccountLimitsArgs),
     /// Get registered API key info and scopes
     KeyInfo(AccountOnlyArgs),
@@ -925,10 +934,16 @@ pub enum CliCommand {
     OrderTrades(OrderIdSymbolArgs),
 
     /// Place an algo order
+    #[command(
+        about = "Place an algo order.\n\nValid algoTypes and their required flags:\n  STOP             --trigger-price\n  TP_SL            --tp-trigger-price and/or --sl-trigger-price\n  POSITIONAL_TP_SL --tp-trigger-price and/or --sl-trigger-price (quantity must be 0)\n  TRAILING_STOP    --callback-rate (1-15%)\n  BRACKET          --trigger-price + --tp-trigger-price and/or --sl-trigger-price\n\nValid sides: BUY, SELL"
+    )]
     AlgoOrderPlace(AlgoOrderPlaceArgs),
     /// Cancel an algo order
     AlgoOrderCancel(OrderIdSymbolArgs),
     /// Edit a pending algo order (only specify what to change)
+    #[command(
+        about = "Edit a pending algo order (only specify what to change: price, quantity, trigger-price, callback-rate)"
+    )]
     AlgoOrderEdit(AlgoOrderEditArgs),
     /// Cancel all algo orders
     AlgoOrderCancelAll(AlgoOrderCancelAllArgs),
@@ -962,12 +977,21 @@ pub enum CliCommand {
     /// Get recent public trades
     MarketTrades(MarketTradesArgs),
     /// List trading symbols
+    #[command(
+        about = "List trading symbols. Default: compact list (symbol, pair, prices). Use --info for full order rules (lot size, min notional, price tick, etc.)"
+    )]
     Symbols(SymbolsArgs),
     /// Get candlestick/kline data
+    #[command(
+        about = "Get candlestick/kline data. Valid intervals: 1m, 5m, 15m, 30m, 1h, 4h, 12h, 1d, 1w, 1mon"
+    )]
     Kline(KlineArgs),
     /// Get public funding rates for all symbols (no auth required)
     FundingRates(OptionalSymbolArgs),
     /// Get price changes for all symbols (no auth required)
+    #[command(
+        about = "Get price changes for all symbols (5m, 30m, 1h, 24h, 7d, 30d) (no auth required)"
+    )]
     PriceChanges(OptionalSymbolArgs),
     /// Get long/short open interest for all symbols (no auth required)
     OpenInterest(OptionalSymbolArgs),
@@ -991,6 +1015,9 @@ pub enum CliCommand {
     /// Get deposit info for a token
     DepositInfo(DepositInfoArgs),
     /// Withdraw tokens (auto-signs with wallet key)
+    #[command(
+        about = "Withdraw tokens (auto-signs with wallet key). Omit --receiver to withdraw to your own wallet address."
+    )]
     Withdraw(WithdrawArgs),
     /// Get asset deposit/withdraw history
     AssetHistory(AssetHistoryArgs),
@@ -1004,6 +1031,7 @@ pub enum CliCommand {
     /// Get broker fee and referral rebate history
     DistributionHistory(DistributionHistoryArgs),
     /// Get perp trading volume statistics
+    #[command(about = "Get perp trading volume statistics (today, 1d, 7d, 30d, YTD, LTD)")]
     VolumeStats(AccountOnlyArgs),
     /// List notification inbox messages
     NotificationInbox(NotificationInboxArgs),

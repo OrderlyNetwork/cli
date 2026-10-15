@@ -14,5 +14,6 @@ pub mod error;
 pub mod evm;
 pub mod keychain;
 pub mod output;
+pub mod solana;
 pub mod types;
 pub mod ws;

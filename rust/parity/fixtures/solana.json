@@ -1,0 +1,77 @@
+{
+  "privateKey": "4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw",
+  "address": "9C6hybhQ6Aycep9jaUnP6uL9ZYvDjUp1aSkFWPUFJtpj",
+  "registration": {
+    "input": {
+      "brokerId": "demo",
+      "timestamp": 1792047490101,
+      "registrationNonce": "123456789"
+    },
+    "message": {
+      "brokerId": "demo",
+      "chainId": 901901901,
+      "timestamp": 1792047490101,
+      "registrationNonce": "123456789",
+      "chainType": "SOL"
+    },
+    "signature": "0x57eca69644a73cb1615c73f433546f665bf5eeccf7beb045ca41f064ce954900cbc4cd6de78667ae4854801d680687b2e27d094cfb9c40ec2744d14ed804020f"
+  },
+  "addKey": {
+    "input": {
+      "brokerId": "demo",
+      "scope": "read,trading",
+      "timestamp": 1792047490101,
+      "expiration": 1892047490101
+    },
+    "message": {
+      "brokerId": "demo",
+      "chainType": "SOL",
+      "orderlyKey": "9C6hybhQ6Aycep9jaUnP6uL9ZYvDjUp1aSkFWPUFJtpj",
+      "scope": "read,trading",
+      "chainId": 901901901,
+      "timestamp": 1792047490101,
+      "expiration": 1892047490101
+    },
+    "signature": "0x585e4ab285ea1e149d1c44b1a324fdbbc0e201aaec25c7285ad3f5ed240f13bc52eaa2f57194cf69e369f0ec42c77611aa0b220bae85ae8ab3d1065c100f7405"
+  },
+  "withdraw": {
+    "input": {
+      "chainId": 901901901,
+      "token": "USDC",
+      "amount": "10500000",
+      "withdrawNonce": "7",
+      "timestamp": 1792047490101
+    },
+    "message": {
+      "brokerId": "demo",
+      "chainId": 901901901,
+      "receiver": "9C6hybhQ6Aycep9jaUnP6uL9ZYvDjUp1aSkFWPUFJtpj",
+      "token": "USDC",
+      "amount": "10500000",
+      "withdrawNonce": "7",
+      "timestamp": 1792047490101,
+      "chainType": "SOL"
+    },
+    "signature": "0x99f952455a5d467bcce225355a0d1162f57a0ed06b69d8ac6422ff7018834b923784abd170228fd54972c19c11ef55dc3bd45a8f793cac1b1b30f3e07bd79b0a"
+  },
+  "settlePnl": {
+    "input": {
+      "brokerId": "demo",
+      "chainId": 901901901,
+      "settleNonce": "3",
+      "timestamp": 1792047490101
+    },
+    "message": {
+      "brokerId": "demo",
+      "chainId": 901901901,
+      "settleNonce": "3",
+      "timestamp": 1792047490101,
+      "chainType": "SOL"
+    },
+    "signature": "0xb8df80f420c2180c6077c313053b4a7c2ea26d78ea05010cda8669f90a3412c2b6d516c33c42fa1636d2b394daf9057fbb1916c859d476e5a2e1ebd732275d0a"
+  },
+  "validation": {
+    "valid": true,
+    "invalid": false
+  }
+}

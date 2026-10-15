@@ -5,3 +5,8 @@
 //! `src/` in the repository root.
 
 pub mod cli;
+pub mod colors;
+pub mod config;
+pub mod error;
+pub mod output;
+pub mod types;

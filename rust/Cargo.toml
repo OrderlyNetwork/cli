@@ -18,6 +18,11 @@ clap = { version = "4", features = ["derive", "wrap_help"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = "1"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = "0.8"
+bs58 = "0.5"
+base64 = "0.22"
+sha3 = "0.10"
 
 [profile.release]
 opt-level = "z"

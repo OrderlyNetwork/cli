@@ -1,0 +1,48 @@
+{
+  "privateKey": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+  "publicKey": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+  "base58": "FAe4sisG95oZ42w7buUn5qEE4TAnfTTFPiguZUHmhiF",
+  "base64FromBase58": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+  "vectors": [
+    {
+      "name": "msg_0",
+      "privateKey": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "publicKey": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+      "message": "",
+      "signature": "nKU1eVMGVNXD33cInvRe2mE-L-32cOlr7axGOVBOWEXvS5XVeTB3Iz3RaBeyUy6cVSWHKnOkrXS3WTaangXBAg",
+      "verifySelf": true
+    },
+    {
+      "name": "msg_1",
+      "privateKey": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "publicKey": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+      "message": "orderly",
+      "signature": "Kw2vULtDwQfjwDZPxJ-G6PCrcD5NYXlJXOnGZTu7_dtWMtYrpjUPR_bXzj5HciT-rWOtS1Vn-vqwa3zV-7GMAg",
+      "verifySelf": true
+    },
+    {
+      "name": "msg_2",
+      "privateKey": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "publicKey": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+      "message": "1792047490101GET/v1/orders",
+      "signature": "gN2z-j2YU4InCMGmtT14RdFV9LGxXQlf5EewljxXB_WKaXszfU9KQnMqP26jQN_BdU0YK78mh7dFs2HA2VU7CQ",
+      "verifySelf": true
+    },
+    {
+      "name": "msg_3",
+      "privateKey": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "publicKey": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+      "message": "1792047490101POST/v1/order{\"symbol\":\"PERP_ETH_USDC\",\"order_type\":\"MARKET\",\"side\":\"BUY\",\"order_quantity\":\"0.01\"}",
+      "signature": "RaDNgRWlfBmrONGfyQebVzLHo5xPqZGeT3Gs0yHFzJCs_ZCi6fYx6hQwUcoUYfLghuBrUNQIFhZsppCU3OiKAQ",
+      "verifySelf": true
+    },
+    {
+      "name": "msg_4",
+      "privateKey": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "publicKey": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+      "message": "1792047490101DELETE/v1/order?order_id=123&symbol=PERP_ETH_USDC",
+      "signature": "jsa3FWtk3KabwNnLzCRuuM4SrYmqknf1Mv7BCAP5naaZKCb5aYwwr5nKWRGRve7XHLI0mUL_-umY7OKsXw1QAw",
+      "verifySelf": true
+    }
+  ]
+}

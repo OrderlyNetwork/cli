@@ -7,6 +7,7 @@
 pub mod cli;
 pub mod colors;
 pub mod config;
+pub mod crypto;
 pub mod error;
 pub mod output;
 pub mod types;

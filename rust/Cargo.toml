@@ -23,6 +23,9 @@ rand = "0.8"
 bs58 = "0.5"
 base64 = "0.22"
 sha3 = "0.10"
+k256 = { version = "0.13", features = ["ecdsa"] }
+primitive-types = "0.12"
+hex = "0.4"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
 futures-util = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

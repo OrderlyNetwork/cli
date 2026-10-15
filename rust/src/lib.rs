@@ -11,6 +11,7 @@ pub mod config;
 pub mod contracts;
 pub mod crypto;
 pub mod error;
+pub mod evm;
 pub mod keychain;
 pub mod output;
 pub mod types;

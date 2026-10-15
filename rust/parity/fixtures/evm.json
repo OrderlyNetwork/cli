@@ -1,0 +1,70 @@
+{
+  "privateKey": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+  "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "personalSign": {
+    "message": "hello orderly",
+    "signature": "0x886ddf14b8e20a02b2cdf9d4cf9c0c80d8d07c8b489ac44a1518899f67d1c5a11beed7cb82fb73eb907f64370996cddd903e81e71d511b5fdb84801572602d0f1b"
+  },
+  "registration": {
+    "message": {
+      "brokerId": "demo",
+      "chainId": 421614,
+      "timestamp": "1792047490101",
+      "registrationNonce": "123456789"
+    },
+    "hash": "0x7c89a70a992fed36770694c0869e181f4c902be1503d52fa2153148ec8c2e89a",
+    "signature": "0x86cb8454b89a83e47a266a9d0fd04a439ea8f44e068976582fbe2c5e915f241a538c9b0b5897a2df98a91a871969ca10332f68427c594e02369d72fe672d4fbb1c"
+  },
+  "addKey": {
+    "message": {
+      "brokerId": "demo",
+      "chainId": 421614,
+      "orderlyKey": "ed25519:FAe4sisG95oZ42w7buUn5qEE4TAnfTTFPiguZUHmhiF",
+      "scope": "read,trading",
+      "timestamp": 1792047490101,
+      "expiration": 1892047490101
+    },
+    "hash": "0x9c8e1b4a375c7946d66ab72555fea275656c6f2a5f6666106706dff514adeeda",
+    "signature": "0x5f466a82e45d3917d095806f7c31886c502f4978d116689b2b3017698883c2e2050be491456c2a2e39f5103196ea20fab34881be8747a2d6f0e87cde0e56f02d1b"
+  },
+  "withdrawTestnet": {
+    "message": {
+      "brokerId": "demo",
+      "chainId": 421614,
+      "receiver": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "token": "USDC",
+      "amount": "10500000",
+      "withdrawNonce": "7",
+      "timestamp": 1792047490101
+    },
+    "signature": "0xb3ba037f9273a74662562731bcde3162b18f51cd590c610b7642d5598ef842930ac6c52b9fdc2bcf2982be0592eca9adbe7aa1779a39676907a49347b58d475b1b"
+  },
+  "withdrawMainnet": {
+    "message": {
+      "brokerId": "demo",
+      "chainId": 42161,
+      "receiver": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "token": "USDC",
+      "amount": "10500000",
+      "withdrawNonce": "7",
+      "timestamp": 1792047490101
+    },
+    "signature": "0xb3240a80486ba39bbbb7c0ffed91dce4a725777adb1cc9549bb07aeca7d66b33403134fb4e6a02c9f544e4f1f04978b57765608ad46a26a11584ea36c217cff91c"
+  },
+  "settlePnlTestnet": {
+    "message": {
+      "brokerId": "demo",
+      "chainId": 421614,
+      "settleNonce": "3",
+      "timestamp": 1792047490101
+    },
+    "signature": "0x869a0713c9bb8e413b857fc7bbbde93fa42f4f375e7158bc281df3564b04089b6afe94aed6536791dd00fe58d9c536d222cff59a38b2de0bf2a20db3037d6b601c"
+  },
+  "validation": {
+    "validAddress": true,
+    "invalidAddress": false,
+    "validKey": true,
+    "invalidKey": false,
+    "normalized": "0xabcdef"
+  }
+}

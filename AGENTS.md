@@ -39,6 +39,34 @@ src/
     └── account-select.ts # Account resolution
 ```
 
+## Rust CLI (replacement)
+
+A 1:1 Rust rewrite lives in `rust/` and is published as a static binary (no
+Node runtime required). It is the recommended install path; the TypeScript
+implementation remains as the parity oracle until the Rust CLI is fully signed
+off, then it will be removed.
+
+```
+rust/src/
+├── main.rs               # tokio entry + clap error mapping
+├── cli.rs                # clap command tree (all 72 commands)
+├── commands/             # one module per TS command file
+├── api.rs                # REST client, byte-identical signing
+├── dex_api.rs            # Orderly One (broker) API
+├── contracts.rs          # chain/token metadata (cached)
+├── ws.rs                 # WebSocket snapshot
+├── crypto.rs             # Ed25519 + base58/base64 + keccak
+├── evm.rs                # EIP-712 / personal_sign / parseUnits
+├── solana.rs             # keccak+ABI+Ed25519 signing
+├── keychain.rs           # Secret Service (keytar-compatible) + index file
+├── output.rs             # JSON/CSV rendering, JS-compatible numbers
+└── account_select.rs     # Account resolution
+```
+
+Verification: `cargo test` (unit + offline TS parity fixtures), `cargo clippy
+--all-targets`, and `rust/parity/compare_live.sh` (diffs the Rust and TS binaries
+against testnet). See `rust/README.md`.
+
 ## Build & Quality
 
 ```bash
@@ -47,6 +75,15 @@ yarn lint           # ESLint
 yarn format         # Prettier
 yarn typecheck      # tsc --noEmit
 yarn test:run       # Vitest
+```
+
+Rust:
+
+```bash
+cd rust
+cargo build --release
+cargo test
+cargo clippy --all-targets
 ```
 
 ## Troubleshooting

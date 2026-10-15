@@ -59,6 +59,14 @@ pub enum AppError {
     Api { status: u16, body: String },
     /// A generic error.
     Msg(String),
+    /// A user-facing error carrying message + hints (mirrors `error(msg, hints)`).
+    User(OutputError),
+}
+
+impl From<OutputError> for AppError {
+    fn from(e: OutputError) -> Self {
+        AppError::User(e)
+    }
 }
 
 impl std::fmt::Display for AppError {
@@ -69,10 +77,10 @@ impl std::fmt::Display for AppError {
                 f.write_str(&message)
             }
             AppError::Msg(m) => f.write_str(m),
+            AppError::User(e) => f.write_str(&e.message),
         }
     }
 }
-
 impl std::error::Error for AppError {}
 
 impl From<String> for AppError {
@@ -139,9 +147,9 @@ pub fn handle_error(err: AppError) -> ! {
             error(&message, &hints);
         }
         AppError::Msg(message) => error(&message, &[]),
+        AppError::User(e) => e.report(),
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

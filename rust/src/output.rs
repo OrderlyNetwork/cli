@@ -302,14 +302,96 @@ pub fn render(data: &Value, format: OutputFormat, pretty: bool) -> (String, Stri
                 (String::new(), colors::dim("(no data)"))
             }
         }
-        OutputFormat::Json => {
-            let s = if pretty {
-                serde_json::to_string_pretty(&unwrapped)
-            } else {
-                serde_json::to_string(&unwrapped)
-            };
-            (s.unwrap_or_default(), String::new())
+        OutputFormat::Json => (to_js_json(&unwrapped, pretty), String::new()),
+    }
+}
+
+fn js_string(s: &str) -> String {
+    // Reuse serde's string escaping, which matches JSON.stringify for the ASCII
+    // and control-character cases we encounter.
+    serde_json::to_string(&Value::String(s.to_string())).unwrap_or_else(|_| "\"\"".to_string())
+}
+
+fn js_number_string(n: &serde_json::Number) -> String {
+    if let Some(i) = n.as_i64() {
+        return i.to_string();
+    }
+    if let Some(u) = n.as_u64() {
+        return u.to_string();
+    }
+    js_f64_to_string(n.as_f64().unwrap_or(f64::NAN))
+}
+
+/// Serialize a `Value` the way JavaScript's `JSON.stringify(value, null, indent)`
+/// does — most importantly, numbers use JS `Number.prototype.toString`
+/// formatting (`10.0` → `10`, `0.000007` → `0.000007`, not `7e-6`).
+pub fn to_js_json(value: &Value, pretty: bool) -> String {
+    let mut out = String::new();
+    write_js_json(value, pretty, 0, &mut out);
+    out
+}
+
+fn write_js_json(value: &Value, pretty: bool, depth: usize, out: &mut String) {
+    match value {
+        Value::Null => out.push_str("null"),
+        Value::Bool(b) => out.push_str(if *b { "true" } else { "false" }),
+        Value::Number(n) => out.push_str(&js_number_string(n)),
+        Value::String(s) => out.push_str(&js_string(s)),
+        Value::Array(arr) => {
+            if arr.is_empty() {
+                out.push_str("[]");
+                return;
+            }
+            out.push('[');
+            for (i, item) in arr.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                if pretty {
+                    out.push('\n');
+                    push_indent(depth + 1, out);
+                }
+                write_js_json(item, pretty, depth + 1, out);
+            }
+            if pretty {
+                out.push('\n');
+                push_indent(depth, out);
+            }
+            out.push(']');
         }
+        Value::Object(map) => {
+            if map.is_empty() {
+                out.push_str("{}");
+                return;
+            }
+            out.push('{');
+            for (i, (k, v)) in map.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                if pretty {
+                    out.push('\n');
+                    push_indent(depth + 1, out);
+                }
+                out.push_str(&js_string(k));
+                out.push(':');
+                if pretty {
+                    out.push(' ');
+                }
+                write_js_json(v, pretty, depth + 1, out);
+            }
+            if pretty {
+                out.push('\n');
+                push_indent(depth, out);
+            }
+            out.push('}');
+        }
+    }
+}
+
+fn push_indent(depth: usize, out: &mut String) {
+    for _ in 0..depth {
+        out.push_str("  ");
     }
 }
 
@@ -438,5 +520,24 @@ mod tests {
         assert_eq!(js_f64_to_string(1e21), "1e+21");
         assert_eq!(js_f64_to_string(1e-7), "1e-7");
         assert_eq!(js_f64_to_string(0.0), "0");
+    }
+
+    #[test]
+    fn js_json_matches_json_stringify() {
+        // Integral floats print without a trailing ".0".
+        assert_eq!(to_js_json(&json!({"a": 10.0}), false), r#"{"a":10}"#);
+        // Small floats do not use serde's `7e-6` exponential form.
+        assert_eq!(
+            to_js_json(&json!({"a": 0.000007, "b": 9.1e-8}), false),
+            r#"{"a":0.000007,"b":9.1e-8}"#
+        );
+        // Nested + pretty.
+        assert_eq!(
+            to_js_json(&json!({"a":[1,2],"b":{"c":true},"d":[]}), true),
+            "{\n  \"a\": [\n    1,\n    2\n  ],\n  \"b\": {\n    \"c\": true\n  },\n  \"d\": []\n}"
+        );
+        assert_eq!(to_js_json(&json!({}), false), "{}");
+        assert_eq!(to_js_json(&json!([]), false), "[]");
+        assert_eq!(to_js_json(&json!(null), false), "null");
     }
 }

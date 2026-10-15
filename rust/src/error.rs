@@ -61,6 +61,20 @@ pub enum AppError {
     Msg(String),
 }
 
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AppError::Api { status, body } => {
+                let (message, _) = format_api_error(*status, body);
+                f.write_str(&message)
+            }
+            AppError::Msg(m) => f.write_str(m),
+        }
+    }
+}
+
+impl std::error::Error for AppError {}
+
 impl From<String> for AppError {
     fn from(s: String) -> Self {
         AppError::Msg(s)

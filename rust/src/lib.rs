@@ -4,11 +4,14 @@
 //! logic is unit-testable. Module layout mirrors the TypeScript original under
 //! `src/` in the repository root.
 
+pub mod api;
 pub mod cli;
 pub mod colors;
 pub mod config;
+pub mod contracts;
 pub mod crypto;
 pub mod error;
 pub mod keychain;
 pub mod output;
 pub mod types;
+pub mod ws;

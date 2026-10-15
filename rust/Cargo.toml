@@ -23,6 +23,14 @@ rand = "0.8"
 bs58 = "0.5"
 base64 = "0.22"
 sha3 = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+futures-util = "0.3"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+secret-service = { version = "4", features = ["rt-tokio-crypto-rust"] }
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+keyring = { version = "3", features = ["apple-native", "windows-native"] }
 
 [profile.release]
 opt-level = "z"

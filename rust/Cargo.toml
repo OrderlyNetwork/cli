@@ -1,0 +1,24 @@
+[package]
+name = "orderly"
+version = "1.2.0"
+edition = "2021"
+description = "CLI tool for Orderly Network trading - secure keychain-based authentication"
+license = "MIT"
+
+[[bin]]
+name = "orderly"
+path = "src/main.rs"
+
+[lib]
+name = "orderly"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive", "wrap_help"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

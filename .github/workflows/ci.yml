@@ -44,5 +44,6 @@ jobs:
       - run: node rust/parity/gen_crypto_fixtures.mjs
       - run: node rust/parity/gen_evm_fixtures.mjs
       - run: node rust/parity/gen_solana_fixtures.mjs
+      - run: node rust/parity/gen_help_fixture.mjs
       - name: Fixtures unchanged
         run: git diff --exit-code rust/parity/fixtures

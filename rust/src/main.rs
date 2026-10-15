@@ -5,6 +5,8 @@ use orderly::error::handle_error;
 
 #[tokio::main]
 async fn main() {
+    check_negative_number_args();
+
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(err) => handle_clap_error(err),
@@ -12,6 +14,23 @@ async fn main() {
 
     if let Err(err) = commands::dispatch(cli).await {
         handle_error(err);
+    }
+}
+
+/// Mirror the TS CLI's pre-parse guard: `process.argv.slice(2)` scanned from
+/// index 2 for `-<number>`-looking arguments (which shells/users mistake for
+/// flags). Plain, uncoloured stderr, exit 1.
+fn check_negative_number_args() {
+    let re = regex::Regex::new(r"^-\d+(\.\d+)?$").unwrap();
+    let raw: Vec<String> = std::env::args().skip(1).collect();
+    for arg in raw.iter().skip(2) {
+        if re.is_match(arg) {
+            eprintln!(
+                "Error: Invalid argument \"{arg}\". Negative numbers look like CLI flags.\n\
+                 Use a positive value, or quote the value to avoid shell parsing issues."
+            );
+            std::process::exit(1);
+        }
     }
 }
 

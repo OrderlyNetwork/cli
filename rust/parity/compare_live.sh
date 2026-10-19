@@ -21,6 +21,7 @@ trap 'rm -rf "$TMP"' EXIT
 
 pass=0
 fail=0
+drift=0
 
 check() {
   # shellcheck disable=SC2086
@@ -39,21 +40,37 @@ check() {
   fi
 }
 
+# Outputs containing live prices drift between the two invocations; report but
+# do not fail on them.
+check_volatile() {
+  # shellcheck disable=SC2086
+  $TS "$@" --network "$NET" >"$TMP/ts" 2>&1
+  # shellcheck disable=SC2086
+  $RS "$@" --network "$NET" >"$TMP/rs" 2>&1
+  if diff -q "$TMP/ts" "$TMP/rs" >/dev/null; then
+    echo "MATCH  $*"
+    pass=$((pass + 1))
+  else
+    echo "drift  $*"
+    drift=$((drift + 1))
+  fi
+}
+
 # --- public / unauthenticated -------------------------------------------------
 check chains
 check chains --verbose
 check tokens
 check tokens --verbose
-check symbols
-check symbols --info
-check symbols --csv
-check funding-rates
-check price-changes
-check open-interest
-check liquidated-positions
+check_volatile symbols
+check_volatile symbols --info
+check_volatile symbols --csv
+check_volatile funding-rates
+check_volatile price-changes
+check_volatile open-interest
+check_volatile liquidated-positions
 check system-status
-check market-price PERP_ETH_USDC
-check market-trades PERP_ETH_USDC --size 5
+check_volatile market-price PERP_ETH_USDC
+check_volatile market-trades PERP_ETH_USDC --size 5
 check deposit-info USDC 421614
 
 # --- deterministic CLI surface (no network) -----------------------------------
@@ -89,5 +106,5 @@ else
 fi
 
 echo
-echo "passed=$pass failed=$fail"
+echo "passed=$pass failed=$fail drift=$drift"
 [ "$fail" -eq 0 ]

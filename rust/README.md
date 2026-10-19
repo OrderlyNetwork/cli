@@ -45,6 +45,22 @@ returns. On macOS/Windows the `keyring` crate cannot enumerate, so an index file
 at `~/.orderly-cli/keys-index.json` is used as a fallback. Secrets themselves are
 only ever stored in the OS keychain.
 
+## Known divergences
+
+Everything below only differs on **invalid input**; valid usage is byte-identical.
+
+| Case | TypeScript | Rust |
+| --- | --- | --- |
+| Non-numeric value for a numeric arg/flag (e.g. `leverage SYM abc`, `--size abc`) | `parseFloat`/`parseInt` → `NaN`, propagated (often silently omitted or sent as `null`) | rejected at parse time with a clear error |
+| Unexpected extra positional (`orderly settle-pnl-history x`) | ignored by cac | rejected |
+| `--network bogus` | crashes with a JS `TypeError` | clean error message |
+| `--version` | `orderly/1.2.0 <platform> node-<ver>` | `orderly 1.2.0` |
+| Network/DNS failure | Node's `getaddrinfo ...` text | reqwest's error text |
+
+The top-level `--help` output, the `Commands:` list and the "missing required
+args" diagnostic are reproduced byte-for-byte from the TypeScript CLI (see
+`parity/fixtures/help.txt` and the `help_output_matches_typescript` test).
+
 ## Testing
 
 ```bash

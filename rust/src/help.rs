@@ -102,6 +102,50 @@ fn spec_override(name: &str) -> Option<&'static str> {
     }
 }
 
+/// The cac-style usage spec for a subcommand: its name followed by positional
+/// arguments (`<required>`, `[optional]`, `<...variadic>`).
+fn spec_for(sc: &clap::Command) -> String {
+    let name = sc.get_name().to_string();
+    if let Some(overridden) = spec_override(&name) {
+        return overridden.to_string();
+    }
+    let mut spec = name;
+    for a in sc.get_arguments() {
+        if a.get_long().is_some() || a.get_short().is_some() {
+            continue;
+        }
+        if a.get_id() == "help" || a.get_id() == "version" {
+            continue;
+        }
+        let id = arg_spec_name(a.get_id().as_str());
+        let variadic = a
+            .get_num_args()
+            .map(|r| r.max_values() > 1)
+            .unwrap_or(false);
+        if variadic {
+            spec.push_str(&format!(" <...{id}>"));
+        } else if a.is_required_set() {
+            spec.push_str(&format!(" <{id}>"));
+        } else {
+            spec.push_str(&format!(" [{id}]"));
+        }
+    }
+    spec
+}
+
+/// The usage spec for a named subcommand, used by the "missing required args"
+/// diagnostic to match the TypeScript CLI's message.
+pub fn usage_spec(name: &str) -> Option<String> {
+    use clap::CommandFactory;
+    let cmd = crate::cli::Cli::command();
+    for sc in cmd.get_subcommands() {
+        if sc.get_name() == name {
+            return Some(spec_for(sc));
+        }
+    }
+    None
+}
+
 /// Reproduces cac's `Commands:` list (name + positional spec, aligned, then the
 /// command description) from the clap command tree, in TS registration order.
 pub fn command_list() -> String {
@@ -113,35 +157,8 @@ pub fn command_list() -> String {
     for sc in cmd.get_subcommands() {
         let name = sc.get_name().to_string();
         let rank = ORDER.iter().position(|n| *n == name).unwrap_or(usize::MAX);
-        let mut spec = name.clone();
-        if let Some(overridden) = spec_override(&name) {
-            spec = overridden.to_string();
-            let about = sc.get_about().map(|s| s.to_string()).unwrap_or_default();
-            rows.push((rank, spec, about));
-            continue;
-        }
-        for a in sc.get_arguments() {
-            if a.get_long().is_some() || a.get_short().is_some() {
-                continue;
-            }
-            if a.get_id() == "help" || a.get_id() == "version" {
-                continue;
-            }
-            let id = arg_spec_name(a.get_id().as_str());
-            let variadic = a
-                .get_num_args()
-                .map(|r| r.max_values() > 1)
-                .unwrap_or(false);
-            if variadic {
-                spec.push_str(&format!(" <...{id}>"));
-            } else if a.is_required_set() {
-                spec.push_str(&format!(" <{id}>"));
-            } else {
-                spec.push_str(&format!(" [{id}]"));
-            }
-        }
         let about = sc.get_about().map(|s| s.to_string()).unwrap_or_default();
-        rows.push((rank, spec, about));
+        rows.push((rank, spec_for(sc), about));
     }
     rows.sort_by_key(|(rank, _, _)| *rank);
 

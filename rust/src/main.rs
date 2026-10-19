@@ -70,6 +70,22 @@ fn handle_clap_error(err: clap::Error) -> ! {
         }
     }
 
+    // Mirror cac's "missing required args" diagnostic.
+    if err.kind() == ErrorKind::MissingRequiredArgument {
+        let raw: Vec<String> = std::env::args().skip(1).collect();
+        if let Some(name) = raw.first() {
+            if let Some(spec) = orderly::help::usage_spec(name) {
+                orderly::error::error(
+                    &format!("missing required args for command `{spec}`"),
+                    &[
+                        "Usage examples:".to_string(),
+                        format!("  orderly {spec} --help"),
+                    ],
+                );
+            }
+        }
+    }
+
     let exit_code = if err.exit_code() == 0 { 0 } else { 1 };
     let _ = err.print();
     std::process::exit(exit_code);

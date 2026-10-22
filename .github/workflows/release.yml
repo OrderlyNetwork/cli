@@ -51,8 +51,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      id-token: write # cosign keyless signing + provenance attestation
-      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -138,6 +136,36 @@ jobs:
           Compress-Archive -Path "dist/$env:BIN.exe" -DestinationPath "dist/$env:BIN-${{ matrix.target }}.zip"
           Remove-Item "dist/$env:BIN.exe"
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write # cosign keyless signing + provenance attestation
+      attestations: write
+    env:
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # Only for Cargo.lock (recorded in BUILD-INFO.txt); assets come from the
+      # build jobs.
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      # Sign and attest once, on Linux. The artifacts are platform-independent
+      # blobs; cosign links the digest to this workflow run and tag. Doing it
+      # here avoids needing a cosign binary on every runner (notably
+      # windows-11-arm, which cosign-installer does not support).
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
@@ -156,30 +184,6 @@ jobs:
         uses: actions/attest-build-provenance@v4
         with:
           subject-path: "dist/*"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.target }}
-          path: dist/*
-          if-no-files-found: error
-          retention-days: 7
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    env:
-      GH_REPO: ${{ github.repository }}
-    steps:
-      # Only for Cargo.lock (recorded in BUILD-INFO.txt); assets come from the
-      # build jobs.
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
 
       - name: Checksums
         shell: bash

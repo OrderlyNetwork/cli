@@ -1,39 +1,39 @@
-# @orderly.network/cli
+# orderly
 
-CLI tool for Orderly Network trading with secure OS keychain authentication.
+CLI for Orderly Network trading, with secure OS keychain authentication. Ships
+as a single static binary — no Node.js runtime required.
 
 ## Features
 
-- **Secure key storage** - Wallet and API keys stored in OS keychain (never in files)
-- **AI-friendly** - Keys never exposed to AI context, CLI returns only results
-- **Full trading support** - Place/cancel orders, manage positions, set leverage
-- **Multi-chain** - Supports EVM (Arbitrum, Base, Optimism, etc.) and Solana
+- **Secure key storage** — wallet and API keys live in the OS keychain, never in files
+- **AI-friendly** — keys are never exposed in output; the CLI returns only results
+- **Full trading support** — place/cancel orders, algo orders, positions, leverage
+- **Multi-chain** — EVM (Arbitrum, Base, Optimism, …) and Solana
 
-## Installation
+## Install
 
-### Rust binary (recommended)
-
-A static `orderly` binary is available for Linux, macOS and Windows (x64 and
-arm64) with no Node.js runtime required:
+Download the archive for your platform from the latest release and put the
+binary on your `PATH`. Full instructions (all platforms, verification, and
+building from source) are in [`INSTALL.md`](INSTALL.md).
 
 ```bash
-# download the asset for your platform from the latest GitHub release, e.g.
+# Linux x86_64
 curl -fsSL https://github.com/OrderlyNetwork/cli/releases/latest/download/orderly-x86_64-unknown-linux-musl.tar.gz | tar -xz
+install -m 0755 orderly ~/.local/bin/orderly
+
+# macOS (Apple silicon; use x86_64-apple-darwin on Intel)
+curl -fsSL https://github.com/OrderlyNetwork/cli/releases/latest/download/orderly-aarch64-apple-darwin.tar.gz | tar -xz
 install -m 0755 orderly ~/.local/bin/orderly
 ```
 
-See [`rust/README.md`](rust/README.md) for details and the compatibility notes.
-
-### npm (legacy)
-
-```bash
-npm install -g @orderly.network/cli
+```powershell
+# Windows x86_64 (use aarch64-pc-windows-msvc on ARM)
+Invoke-WebRequest https://github.com/OrderlyNetwork/cli/releases/latest/download/orderly-x86_64-pc-windows-msvc.zip -OutFile orderly.zip
+Expand-Archive orderly.zip -DestinationPath "$env:LOCALAPPDATA\orderly"
 ```
 
-### Requirements
-
-- **Node.js >= 22**
-- **Linux**: `sudo apt install libsecret-1-0 libsecret-1-dev` (for OS keychain support)
+Every release asset is covered by SHA-256 checksums, a GitHub build-provenance
+attestation and a cosign signature — see [`INSTALL.md`](INSTALL.md#verify-the-download).
 
 ## Quick Start (Testnet)
 
@@ -60,7 +60,8 @@ orderly account-balance --account <account-id> --network testnet
 orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --network testnet
 ```
 
-**Note:** The `--account` flag is required for all authenticated commands. Use `auth-list` to see available accounts.
+**Note:** `--account` is required for all authenticated commands. Use
+`auth-list` to see available accounts.
 
 ## Common Commands
 
@@ -92,6 +93,8 @@ orderly kline PERP_ETH_USDC 1h --limit 100 --account <account-id>
 orderly symbols
 ```
 
+Run `orderly --help` for the complete command reference.
+
 ## Output Format
 
 By default, output is compact JSON (no whitespace) for AI/programmatic use:
@@ -115,27 +118,67 @@ orderly symbols --csv
 - Private keys are stored in the OS keychain:
   - **macOS**: Keychain
   - **Windows**: Credential Manager
-  - **Linux**: libsecret/gnome-keyring
+  - **Linux**: Secret Service (libsecret / gnome-keyring)
+- Keys are **never** written to disk in plain text, printed in output, or
+  accessible to agents.
+- Request signing (Ed25519, EIP-712, Solana) is byte-identical to the original
+  TypeScript implementation.
 
-- Keys are **never**:
-  - Written to disk in plain text
-  - Exposed in CLI output
-  - Accessible to AI agents
+### Keychain compatibility
 
-## Commands
+On Linux the crate talks to the Secret Service directly using the
+`org.freedesktop.Secret.Generic` schema with `service`/`account` attributes —
+the same items `keytar` used — so credentials created by the legacy
+TypeScript/npm CLI remain readable, and vice versa. On macOS/Windows the OS
+store is used via `keyring`.
 
-Run `orderly --help` for the complete command reference.
+On Linux, credentials are enumerated directly from the Secret Service, so
+`auth-list`, `wallet-list` and account auto-resolution return the same set. On
+macOS/Windows the `keyring` crate cannot enumerate, so an index at
+`~/.orderly-cli/keys-index.json` is used as a fallback; secrets themselves only
+ever live in the keychain.
+
+## Compatibility
+
+This is a behavioral replacement for the legacy TypeScript CLI
+(`@orderly.network/cli` ≤ 1.2.0): same commands, flags, output, config path
+(`~/.orderly-cli/config.json`), keychain entries and wire signatures.
+
+Known divergences — all restricted to **invalid input**; valid usage is
+byte-identical:
+
+| Case | TypeScript | Rust |
+| --- | --- | --- |
+| Non-numeric value for a numeric arg/flag (e.g. `leverage SYM abc`, `--size abc`) | `parseFloat`/`parseInt` → `NaN`, propagated (often silently omitted or sent as `null`) | rejected at parse time with a clear error |
+| Unexpected extra positional (`orderly settle-pnl-history x`) | ignored by cac | rejected |
+| `--network bogus` | crashes with a JS `TypeError` | clean error message |
+| `--version` | `orderly/<v> <platform> node-<ver>` | `orderly <v>` |
+| Network/DNS failure | Node's `getaddrinfo ...` text | reqwest's error text |
+
+The top-level `--help` text, the `Commands:` list and the "missing required
+args" diagnostic are byte-for-byte reproductions of the TypeScript CLI.
 
 ## Development
 
 ```bash
-yarn dev          # Watch mode build
-yarn build        # Production build
-yarn lint         # Check for issues
-yarn format       # Format code
-yarn typecheck    # TypeScript check
-yarn test         # Run tests
+cargo build --release          # -> target/release/orderly (~5 MB)
+cargo test                     # unit + offline parity fixtures
+cargo clippy --all-targets     # must be warning-free
+cargo fmt --check
 ```
+
+Live tests (`tests/api_live.rs`, `tests/ws_live.rs`,
+`tests/keychain_interop.rs`) skip automatically when offline.
+
+`Cargo.toml` uses a size-optimized profile (`opt-level = "z"`, LTO,
+`panic = "abort"`, `strip`).
+
+### Parity fixtures
+
+`parity/fixtures/` holds output recorded from the real TypeScript implementation
+before it was removed (JSON/CSV rendering, Ed25519, EIP-712, Solana signing, and
+the full `--help` text). The tests diff the Rust implementation against those
+recorded bytes offline, so behavior is pinned without a Node.js toolchain.
 
 ## License
 

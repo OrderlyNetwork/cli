@@ -166,14 +166,33 @@ fn global_flags_accepted_after_subcommand() {
     assert_eq!(cli.network.as_deref(), Some("mainnet"));
 }
 
+/// Keep every byte of the recorded fixture except the version banner, which
+/// tracks `CARGO_PKG_VERSION` (the fixture was recorded at 1.2.0).
+fn normalize_version_line(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim_end_matches(['\n', '\r']);
+        let is_version = trimmed.strip_prefix("orderly/").is_some_and(|rest| {
+            !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit() || c == '.')
+        });
+        if is_version {
+            let newline = if line.ends_with('\n') { "\n" } else { "" };
+            out.push_str(&format!("orderly/{}{newline}", env!("CARGO_PKG_VERSION")));
+        } else {
+            out.push_str(line);
+        }
+    }
+    out
+}
+
 #[test]
 fn help_output_matches_typescript() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("parity/fixtures/help.txt");
-    let expected = std::fs::read_to_string(&path)
-        .expect("run `node rust/parity/gen_help_fixture.mjs` to generate the fixture");
+    let expected =
+        std::fs::read_to_string(&path).expect("missing parity fixture; see parity/README.md");
     assert_eq!(
         orderly::help::full_help(),
-        expected,
+        normalize_version_line(&expected),
         "`orderly --help` differs from the TypeScript output"
     );
 }

@@ -6,8 +6,8 @@ use serde_json::Value;
 
 fn fixture() -> Value {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("parity/fixtures/evm.json");
-    let text = std::fs::read_to_string(&path)
-        .expect("run `node rust/parity/gen_evm_fixtures.mjs` to generate fixtures");
+    let text =
+        std::fs::read_to_string(&path).expect("missing parity fixture; see parity/README.md");
     serde_json::from_str(&text).expect("valid fixture json")
 }
 

@@ -1,9 +1,12 @@
 [package]
 name = "orderly"
-version = "1.2.0"
+version = "2.0.0"
 edition = "2021"
 description = "CLI tool for Orderly Network trading - secure keychain-based authentication"
 license = "MIT"
+repository = "https://github.com/OrderlyNetwork/cli"
+homepage = "https://github.com/OrderlyNetwork/cli"
+readme = "README.md"
 
 [[bin]]
 name = "orderly"

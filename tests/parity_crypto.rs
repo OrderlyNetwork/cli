@@ -7,8 +7,8 @@ use serde_json::Value;
 #[test]
 fn crypto_matches_ts_fixtures() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("parity/fixtures/crypto.json");
-    let text = std::fs::read_to_string(&path)
-        .expect("run `node rust/parity/gen_crypto_fixtures.mjs` to generate fixtures");
+    let text =
+        std::fs::read_to_string(&path).expect("missing parity fixture; see parity/README.md");
     let fixture: Value = serde_json::from_str(&text).expect("valid fixture json");
 
     let private_key = fixture["privateKey"].as_str().unwrap();

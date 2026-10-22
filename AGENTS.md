@@ -21,36 +21,14 @@ Keychain backends: macOS Keychain, Windows Credential Manager, Linux libsecret/g
 
 ## Architecture
 
+Rust, single static binary, no Node runtime (the TypeScript implementation was
+removed in v2.0.0).
+
 ```
 src/
-├── index.ts              # CLI entry point (cac)
-├── types.ts              # TypeScript interfaces
-├── commands/             # One file per command group
-│   ├── auth.ts, wallet.ts, account.ts, order.ts, algo.ts,
-│   ├── positions.ts, market.ts, assets.ts, leverage.ts,
-│   ├── trades.ts, funding.ts, settle.ts, faucet.ts
-└── lib/
-    ├── keychain.ts       # OS keychain (keytar)
-    ├── crypto.ts         # Ed25519 key gen & signing (@noble/curves)
-    ├── evm.ts            # EIP-712 signing (ethers)
-    ├── solana.ts         # Ed25519 signing for Solana
-    ├── config.ts         # ~/.orderly-cli/config.json
-    ├── api.ts            # REST client with auto-signing
-    └── account-select.ts # Account resolution
-```
-
-## Rust CLI (replacement)
-
-A 1:1 Rust rewrite lives in `rust/` and is published as a static binary (no
-Node runtime required). It is the recommended install path; the TypeScript
-implementation remains as the parity oracle until the Rust CLI is fully signed
-off, then it will be removed.
-
-```
-rust/src/
-├── main.rs               # tokio entry + clap error mapping
+├── main.rs               # entry point, clap error mapping
 ├── cli.rs                # clap command tree (all 72 commands)
-├── commands/             # one module per TS command file
+├── commands/             # one module per command group
 ├── api.rs                # REST client, byte-identical signing
 ├── dex_api.rs            # Orderly One (broker) API
 ├── contracts.rs          # chain/token metadata (cached)
@@ -60,35 +38,29 @@ rust/src/
 ├── solana.rs             # keccak+ABI+Ed25519 signing
 ├── keychain.rs           # Secret Service (keytar-compatible, enumerable on Linux)
 ├── output.rs             # JSON/CSV rendering, JS-compatible numbers
+├── help.rs               # cac-format help text
 └── account_select.rs     # Account resolution
 ```
 
-Verification: `cargo test` (unit + offline TS parity fixtures), `cargo clippy
---all-targets`, and `rust/parity/compare_live.sh` (diffs the Rust and TS binaries
-against testnet). See `rust/README.md`.
+`tests/parity_*.rs` diff the implementation against fixtures recorded from the
+legacy TypeScript CLI; see `parity/README.md`.
 
 ## Build & Quality
 
 ```bash
-yarn build          # esbuild bundle
-yarn lint           # ESLint
-yarn format         # Prettier
-yarn typecheck      # tsc --noEmit
-yarn test:run       # Vitest
-```
-
-Rust:
-
-```bash
-cd rust
 cargo build --release
 cargo test
-cargo clippy --all-targets
+cargo clippy --all-targets -- -D warnings
+cargo fmt --check
 ```
+
+Releasing: push a tag matching `Cargo.toml` (e.g. `v2.0.0`). The release
+workflow builds six targets, signs with cosign, attests build provenance and
+publishes the release. See `INSTALL.md`.
 
 ## Troubleshooting
 
-- **Linux keychain**: requires `libsecret` (`sudo apt-get install libsecret-1-0 libsecret-1-dev`)
+- **Linux keychain**: requires a running Secret Service (gnome-keyring / KWallet)
 - **401**: API key not registered. Run `wallet-add-key`.
 - **403**: Signature invalid/expired. Check system clock.
-- **Build errors**: `rm -rf dist && yarn build`
+- **Build errors**: `cargo clean && cargo build --release`

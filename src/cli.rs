@@ -254,6 +254,27 @@ pub struct OrderPlaceArgs {
     #[arg(long)]
     pub reduce_only: bool,
 
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
+
+    #[command(flatten)]
+    pub acct: AccountArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct OrderCancelArgs {
+    #[arg(value_name = "order-id")]
+    pub order_id: String,
+
+    /// Symbol of the order (auto-fetched if not provided)
+    #[arg(long, value_name = "symbol")]
+    pub symbol: Option<String>,
+
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
+
     #[command(flatten)]
     pub acct: AccountArgs,
 }
@@ -287,6 +308,10 @@ pub struct OrderEditArgs {
     /// New order quantity
     #[arg(long, value_name = "quantity")]
     pub quantity: Option<String>,
+
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
 
     #[command(flatten)]
     pub acct: AccountArgs,
@@ -346,6 +371,10 @@ pub struct BatchPlaceArgs {
     #[arg(value_name = "orders")]
     pub orders: String,
 
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
+
     #[command(flatten)]
     pub acct: AccountArgs,
 }
@@ -354,6 +383,10 @@ pub struct BatchPlaceArgs {
 pub struct BatchCancelArgs {
     #[arg(value_name = "order-ids", num_args = 1.., required = true)]
     pub order_ids: Vec<String>,
+
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
 
     #[command(flatten)]
     pub acct: AccountArgs,
@@ -402,6 +435,10 @@ pub struct PositionsCloseArgs {
     #[arg(long, value_name = "n")]
     pub quantity: Option<f64>,
 
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
+
     #[command(flatten)]
     pub acct: AccountArgs,
 }
@@ -439,6 +476,10 @@ pub struct LeverageArgs {
 
     #[arg(value_name = "value")]
     pub value: Option<f64>,
+
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
 
     #[command(flatten)]
     pub acct: AccountArgs,
@@ -493,6 +534,10 @@ pub struct AlgoOrderPlaceArgs {
     /// Custom client order ID (optional)
     #[arg(long = "client-order-id", value_name = "id")]
     pub client_order_id: Option<String>,
+
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
 
     #[command(flatten)]
     pub acct: AccountArgs,
@@ -817,6 +862,20 @@ pub struct WithdrawArgs {
     #[arg(long = "allow-cross-chain")]
     pub allow_cross_chain: bool,
 
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
+
+    #[command(flatten)]
+    pub acct: AccountArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct SettlePnlArgs {
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
+
     #[command(flatten)]
     pub acct: AccountArgs,
 }
@@ -845,6 +904,13 @@ pub struct AssetHistoryArgs {
 
     #[command(flatten)]
     pub acct: AccountArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct SchemaArgs {
+    /// Machine-readable JSON manifest (default output)
+    #[arg(long)]
+    pub json: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -913,7 +979,7 @@ pub enum CliCommand {
     /// Place a new order
     OrderPlace(OrderPlaceArgs),
     /// Cancel an order
-    OrderCancel(OrderIdSymbolArgs),
+    OrderCancel(OrderCancelArgs),
     /// Edit a pending order (only specify what to change)
     OrderEdit(OrderEditArgs),
     /// Cancel all orders
@@ -939,7 +1005,7 @@ pub enum CliCommand {
     )]
     AlgoOrderPlace(AlgoOrderPlaceArgs),
     /// Cancel an algo order
-    AlgoOrderCancel(OrderIdSymbolArgs),
+    AlgoOrderCancel(OrderCancelArgs),
     /// Edit a pending algo order (only specify what to change)
     #[command(
         about = "Edit a pending algo order (only specify what to change: price, quantity, trigger-price, callback-rate)"
@@ -1023,7 +1089,7 @@ pub enum CliCommand {
     AssetHistory(AssetHistoryArgs),
 
     /// Settle unrealized PnL into account balance
-    SettlePnl(AccountOnlyArgs),
+    SettlePnl(SettlePnlArgs),
     /// Get on-chain PnL settlement history
     SettlePnlHistory(SettlePnlHistoryArgs),
     /// Get referral information (referrer/referee stats and codes)
@@ -1037,4 +1103,7 @@ pub enum CliCommand {
     NotificationInbox(NotificationInboxArgs),
     /// Get unread notification count and messages
     NotificationUnread(AccountOnlyArgs),
+
+    /// Print a machine-readable manifest of the entire CLI surface
+    Schema(SchemaArgs),
 }

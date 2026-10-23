@@ -94,6 +94,87 @@ async fn check_is_bracket_root(client: &OrderlyClient, order_id: &str) -> bool {
     }
 }
 
+/// Reject TP/SL triggers on the wrong side of the current mark price.
+#[allow(clippy::too_many_arguments)]
+async fn check_trigger_prices(
+    client: &OrderlyClient,
+    symbol: &str,
+    valid_side: &str,
+    valid_algo_type: &str,
+    tp_trigger_price: Option<&str>,
+    sl_trigger_price: Option<&str>,
+) -> Result<(), AppError> {
+    if !matches!(valid_algo_type, "TP_SL" | "POSITIONAL_TP_SL" | "BRACKET")
+        || (tp_trigger_price.is_none() && sl_trigger_price.is_none())
+    {
+        return Ok(());
+    }
+
+    let upper = symbol.to_uppercase();
+    let Ok(raw) = client.get_market_price(&upper).await else {
+        return Ok(());
+    };
+    let market_data = raw.get("data").unwrap_or(&raw);
+    let Some(mark) = market_data.get("mark_price") else {
+        return Ok(());
+    };
+    let Some(mark_price) = mark
+        .as_f64()
+        .or_else(|| mark.as_str().and_then(|s| s.parse::<f64>().ok()))
+    else {
+        return Ok(());
+    };
+
+    let mark_label = crate::commands::order::js_string_of(mark);
+    let tp = tp_trigger_price.map(super::js_number);
+    let sl = sl_trigger_price.map(super::js_number);
+
+    let is_closing = valid_algo_type == "TP_SL" || valid_algo_type == "POSITIONAL_TP_SL";
+    let is_long = if is_closing {
+        valid_side == "SELL"
+    } else {
+        valid_side == "BUY"
+    };
+
+    if is_long {
+        if let Some(tp) = tp {
+            if tp <= mark_price {
+                return Err(super::fail(format!(
+                    "Take-profit trigger price ({}) must be above current mark price ({mark_label}) for a long position.",
+                    crate::output::js_f64_to_string(tp)
+                )));
+            }
+        }
+        if let Some(sl) = sl {
+            if sl >= mark_price {
+                return Err(super::fail(format!(
+                    "Stop-loss trigger price ({}) must be below current mark price ({mark_label}) for a long position.",
+                    crate::output::js_f64_to_string(sl)
+                )));
+            }
+        }
+    } else {
+        if let Some(tp) = tp {
+            if tp >= mark_price {
+                return Err(super::fail(format!(
+                    "Take-profit trigger price ({}) must be below current mark price ({mark_label}) for a short position.",
+                    crate::output::js_f64_to_string(tp)
+                )));
+            }
+        }
+        if let Some(sl) = sl {
+            if sl <= mark_price {
+                return Err(super::fail(format!(
+                    "Stop-loss trigger price ({}) must be above current mark price ({mark_label}) for a short position.",
+                    crate::output::js_f64_to_string(sl)
+                )));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn place_algo_order(
     symbol: &str,
@@ -108,6 +189,7 @@ pub async fn place_algo_order(
     sl_trigger_price: Option<&str>,
     sl_price: Option<&str>,
     reduce_only: bool,
+    dry_run: bool,
     client_order_id: Option<&str>,
     account: Option<&str>,
     ctx: Ctx,
@@ -172,72 +254,21 @@ pub async fn place_algo_order(
         }
     }
 
-    let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
-
-    if matches!(
-        valid_algo_type.as_str(),
-        "TP_SL" | "POSITIONAL_TP_SL" | "BRACKET"
-    ) && (tp_trigger_price.is_some() || sl_trigger_price.is_some())
-    {
-        let upper = symbol.to_uppercase();
-        if let Ok(raw) = client.get_market_price(&upper).await {
-            let market_data = raw.get("data").unwrap_or(&raw);
-            if let Some(mark) = market_data.get("mark_price") {
-                if let Some(mark_price) = mark
-                    .as_f64()
-                    .or_else(|| mark.as_str().and_then(|s| s.parse::<f64>().ok()))
-                {
-                    let mark_label = crate::commands::order::js_string_of(mark);
-                    let tp = tp_trigger_price.map(super::js_number);
-                    let sl = sl_trigger_price.map(super::js_number);
-
-                    let is_closing =
-                        valid_algo_type == "TP_SL" || valid_algo_type == "POSITIONAL_TP_SL";
-                    let is_long = if is_closing {
-                        valid_side == "SELL"
-                    } else {
-                        valid_side == "BUY"
-                    };
-
-                    if is_long {
-                        if let Some(tp) = tp {
-                            if tp <= mark_price {
-                                return Err(super::fail(format!(
-                                    "Take-profit trigger price ({}) must be above current mark price ({mark_label}) for a long position.",
-                                    crate::output::js_f64_to_string(tp)
-                                )));
-                            }
-                        }
-                        if let Some(sl) = sl {
-                            if sl >= mark_price {
-                                return Err(super::fail(format!(
-                                    "Stop-loss trigger price ({}) must be below current mark price ({mark_label}) for a long position.",
-                                    crate::output::js_f64_to_string(sl)
-                                )));
-                            }
-                        }
-                    } else {
-                        if let Some(tp) = tp {
-                            if tp >= mark_price {
-                                return Err(super::fail(format!(
-                                    "Take-profit trigger price ({}) must be below current mark price ({mark_label}) for a short position.",
-                                    crate::output::js_f64_to_string(tp)
-                                )));
-                            }
-                        }
-                        if let Some(sl) = sl {
-                            if sl <= mark_price {
-                                return Err(super::fail(format!(
-                                    "Stop-loss trigger price ({}) must be above current mark price ({mark_label}) for a short position.",
-                                    crate::output::js_f64_to_string(sl)
-                                )));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    let client = if dry_run {
+        None
+    } else {
+        let (_, _, c) = create_authenticated_client(account, ctx.network).await?;
+        check_trigger_prices(
+            &c,
+            symbol,
+            &valid_side,
+            &valid_algo_type,
+            tp_trigger_price,
+            sl_trigger_price,
+        )
+        .await?;
+        Some(c)
+    };
 
     let body = if valid_algo_type == "TP_SL" || valid_algo_type == "POSITIONAL_TP_SL" {
         let is_positional = valid_algo_type == "POSITIONAL_TP_SL";
@@ -383,6 +414,15 @@ pub async fn place_algo_order(
         obj(pairs)
     };
 
+    if dry_run {
+        return super::dry_run::emit(
+            &OrderlyClient::place_algo_order_spec(&body),
+            Some("Trigger prices are validated against the live mark price only on a real run."),
+            &[],
+        );
+    }
+
+    let client = client.expect("client is created when not in dry-run mode");
     let result = client.place_algo_order(&body).await?;
     output(&result, ctx.format);
     Ok(())
@@ -391,9 +431,24 @@ pub async fn place_algo_order(
 pub async fn cancel_algo_order(
     order_id: &str,
     symbol: Option<&str>,
+    dry_run: bool,
     account: Option<&str>,
     ctx: Ctx,
 ) -> Result<(), AppError> {
+    if dry_run {
+        let spec = OrderlyClient::cancel_algo_order_spec(order_id, symbol.unwrap_or(""));
+        let (note, requires) = match symbol {
+            Some(_) => (None, &[][..]),
+            None => (
+                Some(
+                    "--symbol omitted: the live command resolves the symbol with GET /v1/algo/order/{order_id} before cancelling.",
+                ),
+                &["GET /v1/algo/order/{order_id} (authenticated)"][..],
+            ),
+        };
+        return super::dry_run::emit(&spec, note, requires);
+    }
+
     let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
 
     let mut order_symbol = symbol.filter(|s| !s.is_empty()).map(String::from);

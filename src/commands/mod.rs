@@ -11,6 +11,7 @@ pub mod algo;
 pub mod assets;
 pub mod auth;
 pub mod broker;
+pub mod dry_run;
 pub mod faucet;
 pub mod funding;
 pub mod leverage;
@@ -19,6 +20,7 @@ pub mod notification;
 pub mod order;
 pub mod positions;
 pub mod referral;
+pub mod schema;
 pub mod settle;
 pub mod stats;
 pub mod trades;
@@ -64,44 +66,118 @@ pub fn now_ms() -> u64 {
 // ---------------------------------------------------------------------------
 
 pub mod prompt {
-    use super::{fail, AppError};
+    use super::AppError;
+    use crate::error::OutputError;
+    use std::io::IsTerminal;
 
-    fn wrap(e: impl std::fmt::Display) -> AppError {
-        fail(format!("Prompt failed: {e}"))
+    /// The non-interactive flag/argument that avoids a prompt. Named in the
+    /// error so agents can retry without guessing.
+    pub fn non_interactive_hint(message: &str) -> &'static str {
+        let m = message.to_lowercase();
+        if m.contains("logout") && m.contains("account") {
+            "<account-id> (positional)"
+        } else if m.contains("remove") && (m.contains("key") || m.contains("confirm")) {
+            "--force"
+        } else if m.contains("wallet to remove") {
+            "the <address> positional argument (and --force to skip confirmation)"
+        } else if m.contains("account") {
+            "--account <id>"
+        } else if m.contains("broker") {
+            "--broker-id <id>"
+        } else if m.contains("wallet type") {
+            "--type EVM|SOL"
+        } else if m.contains("private key") {
+            "--private-key <key>"
+        } else if m.contains("payment chain") {
+            "--chain <chain> or --chain-id <id>"
+        } else if m.contains("payment token") {
+            "--payment-type <type>"
+        } else if m.contains("transaction hash") {
+            "--tx-hash <hash>"
+        } else if m.contains("wallet") {
+            "--address <address>"
+        } else if m.contains("export") {
+            "an interactive TTY (intentional safeguard; no flag bypasses it)"
+        } else if m.contains("delete")
+            || m.contains("confirm")
+            || m.contains("overwrite")
+            || m.contains("remove")
+        {
+            "--force"
+        } else {
+            "explicit flags (e.g. --account, --broker-id, --force)"
+        }
+    }
+
+    /// Refuse to prompt when stdin is not a terminal. A closed stdin would
+    /// otherwise error inside dialoguer or block forever.
+    fn ensure_tty(message: &str) -> Result<(), AppError> {
+        if std::io::stdin().is_terminal() {
+            return Ok(());
+        }
+        let hint = non_interactive_hint(message);
+        Err(AppError::User(OutputError::with_hints(
+            format!(
+                "Cannot prompt in non-interactive mode: {message}. Pass {hint} to avoid the prompt."
+            ),
+            vec![format!("Hint: use {hint}.")],
+        )))
     }
 
     /// Select one of `items`; returns the chosen index.
     pub fn select(message: &str, items: &[String]) -> Result<usize, AppError> {
+        ensure_tty(message)?;
         dialoguer::Select::new()
             .with_prompt(message)
             .items(items)
             .interact()
-            .map_err(wrap)
+            .map_err(|e| output_error(format!("Prompt failed: {e}")))
     }
 
     /// Free-text input.
     pub fn input(message: &str) -> Result<String, AppError> {
+        ensure_tty(message)?;
         dialoguer::Input::<String>::new()
             .with_prompt(message)
             .interact_text()
-            .map_err(wrap)
+            .map_err(|e| output_error(format!("Prompt failed: {e}")))
     }
 
     /// Masked input for secrets.
     pub fn password(message: &str) -> Result<String, AppError> {
+        ensure_tty(message)?;
         dialoguer::Password::new()
             .with_prompt(message)
             .interact()
-            .map_err(wrap)
+            .map_err(|e| output_error(format!("Prompt failed: {e}")))
     }
 
     /// Yes/no confirmation.
     pub fn confirm(message: &str, default: bool) -> Result<bool, AppError> {
+        ensure_tty(message)?;
         dialoguer::Confirm::new()
             .with_prompt(message)
             .default(default)
             .interact()
-            .map_err(wrap)
+            .map_err(|e| output_error(format!("Prompt failed: {e}")))
+    }
+
+    fn output_error(message: String) -> AppError {
+        AppError::User(OutputError::new(message))
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::non_interactive_hint;
+
+        #[test]
+        fn hints_name_the_non_interactive_flag() {
+            assert!(non_interactive_hint("Select account").contains("--account"));
+            assert!(non_interactive_hint("Enter your Broker ID").contains("--broker-id"));
+            assert!(non_interactive_hint("Select wallet type").contains("--type"));
+            assert!(non_interactive_hint("Select wallet to remove").contains("<address>"));
+            assert!(non_interactive_hint("Remove key for account 0x1?").contains("--force"));
+        }
     }
 }
 
@@ -206,6 +282,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
                 args.price.as_deref(),
                 args.client_order_id.as_deref(),
                 args.reduce_only,
+                args.dry_run,
                 args.acct.account.as_deref(),
                 ctx,
             )
@@ -217,6 +294,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
             order::cancel(
                 &args.order_id,
                 symbol.as_deref(),
+                args.dry_run,
                 args.acct.account.as_deref(),
                 ctx,
             )
@@ -230,6 +308,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
                 symbol.as_deref(),
                 args.price.as_deref(),
                 args.quantity.as_deref(),
+                args.dry_run,
                 args.acct.account.as_deref(),
                 ctx,
             )
@@ -264,10 +343,22 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
             .await
         }
         C::BatchOrderPlace(args) => {
-            order::batch_place(&args.orders, args.acct.account.as_deref(), ctx).await
+            order::batch_place(
+                &args.orders,
+                args.dry_run,
+                args.acct.account.as_deref(),
+                ctx,
+            )
+            .await
         }
         C::BatchOrderCancel(args) => {
-            order::batch_cancel(&args.order_ids, args.acct.account.as_deref(), ctx).await
+            order::batch_cancel(
+                &args.order_ids,
+                args.dry_run,
+                args.acct.account.as_deref(),
+                ctx,
+            )
+            .await
         }
         C::BatchOrderCancelByClientId(args) => {
             order::batch_cancel_by_client_id(
@@ -315,6 +406,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
                 args.sl_trigger_price.as_deref(),
                 args.sl_price.as_deref(),
                 args.reduce_only,
+                args.dry_run,
                 args.client_order_id.as_deref(),
                 args.acct.account.as_deref(),
                 ctx,
@@ -327,6 +419,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
             algo::cancel_algo_order(
                 &args.order_id,
                 symbol.as_deref(),
+                args.dry_run,
                 args.acct.account.as_deref(),
                 ctx,
             )
@@ -401,8 +494,14 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
         }
         C::PositionsClose(args) => {
             let symbol = normalize_symbol(&args.symbol).map_err(AppError::from)?;
-            positions::close_position(&symbol, args.acct.account.as_deref(), ctx, args.quantity)
-                .await
+            positions::close_position(
+                &symbol,
+                args.acct.account.as_deref(),
+                ctx,
+                args.quantity,
+                args.dry_run,
+            )
+            .await
         }
         C::PositionsHistory(args) => {
             let symbol = crate::output::normalize_optional_symbol(args.symbol.as_deref())
@@ -421,8 +520,14 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
 
         C::Leverage(args) => {
             let symbol = normalize_symbol(&args.symbol).map_err(AppError::from)?;
-            leverage::get_or_set_leverage(&symbol, args.value, args.acct.account.as_deref(), ctx)
-                .await
+            leverage::get_or_set_leverage(
+                &symbol,
+                args.value,
+                args.dry_run,
+                args.acct.account.as_deref(),
+                ctx,
+            )
+            .await
         }
         C::Trades(args) => {
             let symbol = crate::output::normalize_optional_symbol(args.symbol.as_deref())
@@ -539,6 +644,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
                 ctx,
                 args.raw,
                 args.allow_cross_chain,
+                args.dry_run,
             )
             .await
         }
@@ -555,7 +661,9 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
             .await
         }
 
-        C::SettlePnl(args) => settle::settle_pnl(args.acct.account.as_deref(), ctx).await,
+        C::SettlePnl(args) => {
+            settle::settle_pnl(args.dry_run, args.acct.account.as_deref(), ctx).await
+        }
         C::SettlePnlHistory(args) => {
             settle::settle_pnl_history(args.page, args.size, args.acct.account.as_deref(), ctx)
                 .await
@@ -588,6 +696,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
         C::NotificationUnread(args) => {
             notification::inbox_unread(args.acct.account.as_deref(), ctx).await
         }
+        C::Schema(_) => schema::emit(),
     }
 }
 

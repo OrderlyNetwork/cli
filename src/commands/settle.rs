@@ -176,7 +176,31 @@ pub async fn has_negative_unsettled_pnl(client: &OrderlyClient) -> bool {
     })
 }
 
-pub async fn settle_pnl(account: Option<&str>, ctx: Ctx) -> Result<(), AppError> {
+pub async fn settle_pnl(dry_run: bool, account: Option<&str>, ctx: Ctx) -> Result<(), AppError> {
+    if dry_run {
+        let body = obj(vec![
+            ("message", Value::Null),
+            ("signature", Value::Null),
+            ("userAddress", Value::Null),
+            (
+                "verifyingContract",
+                Value::String(verifying_contract(ctx.network).to_string()),
+            ),
+        ]);
+        return super::dry_run::emit(
+            &crate::api::RequestSpec::new("POST", "/v1/settle_pnl", Some(body)),
+            Some(
+                "message/signature/userAddress require the account's broker_id, the settle nonce and a wallet signature; none are produced in dry-run mode.",
+            ),
+            &[
+                "account resolution (--account avoids the prompt)",
+                "GET /v1/public/account?account_id={account} (broker_id)",
+                "GET /v1/settle_nonce",
+                "wallet signature (EIP-712 or Ed25519)",
+            ],
+        );
+    }
+
     let (_, key_pair, client) = create_authenticated_client(account, ctx.network).await?;
     let result = perform_settle_pnl(&client, &key_pair, ctx.network).await?;
     output(&result, ctx.format);

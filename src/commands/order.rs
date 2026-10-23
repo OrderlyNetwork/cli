@@ -67,6 +67,7 @@ pub async fn place(
     price: Option<&str>,
     client_order_id: Option<&str>,
     reduce_only: bool,
+    dry_run: bool,
     account: Option<&str>,
     ctx: Ctx,
 ) -> Result<(), AppError> {
@@ -95,8 +96,6 @@ pub async fn place(
         return Err(super::fail("Quantity must be a positive number."));
     }
 
-    let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
-
     let mut pairs: Vec<(&str, Value)> = vec![
         ("symbol", Value::String(symbol.to_uppercase())),
         ("order_type", Value::String(valid_type)),
@@ -112,8 +111,19 @@ pub async fn place(
     if reduce_only {
         pairs.push(("reduce_only", Value::Bool(true)));
     }
+    let body = obj(pairs);
 
-    let result = client.place_order(&obj(pairs)).await?;
+    if dry_run {
+        return super::dry_run::emit(
+            &crate::api::OrderlyClient::place_order_spec(&body),
+            None,
+            &[],
+        );
+    }
+
+    let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
+
+    let result = client.place_order(&body).await?;
 
     let success = result.get("success").and_then(|s| s.as_bool()) == Some(true);
     let order_data = if success && result.get("data").map(|d| !d.is_null()).unwrap_or(false) {
@@ -137,9 +147,24 @@ pub async fn place(
 pub async fn cancel(
     order_id: &str,
     symbol: Option<&str>,
+    dry_run: bool,
     account: Option<&str>,
     ctx: Ctx,
 ) -> Result<(), AppError> {
+    if dry_run {
+        let spec = crate::api::OrderlyClient::cancel_order_spec(order_id, symbol);
+        let (note, requires) = match symbol {
+            Some(_) => (None, &[][..]),
+            None => (
+                Some(
+                    "--symbol omitted: the live command resolves the symbol with GET /v1/order/{order_id} before cancelling.",
+                ),
+                &["GET /v1/order/{order_id} (authenticated)"][..],
+            ),
+        };
+        return super::dry_run::emit(&spec, note, requires);
+    }
+
     let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
 
     let mut order_symbol = symbol.filter(|s| !s.is_empty()).map(String::from);
@@ -168,6 +193,7 @@ pub async fn edit(
     symbol: Option<&str>,
     price: Option<&str>,
     quantity: Option<&str>,
+    dry_run: bool,
     account: Option<&str>,
     ctx: Ctx,
 ) -> Result<(), AppError> {
@@ -184,6 +210,41 @@ pub async fn edit(
                 "  orderly order-edit 123456 --price 3500 --quantity 0.02".to_string(),
             ],
         ));
+    }
+
+    if let Some(p) = price {
+        let num_price = super::js_number(p);
+        if num_price.is_nan() || num_price <= 0.0 {
+            return Err(super::fail("Price must be a positive number."));
+        }
+    }
+    if let Some(q) = quantity {
+        let num_qty = super::js_number(q);
+        if num_qty.is_nan() || num_qty <= 0.0 {
+            return Err(super::fail("Quantity must be a positive number."));
+        }
+    }
+
+    if dry_run {
+        let mut updates: Vec<(&str, Value)> = Vec::new();
+        if let Some(p) = price {
+            updates.push(("order_price", number_value(super::js_number(p))));
+        }
+        if let Some(q) = quantity {
+            updates.push(("order_quantity", number_value(super::js_number(q))));
+        }
+        let spec = crate::api::OrderlyClient::edit_order_spec(
+            order_id,
+            &obj(updates),
+            symbol.unwrap_or(""),
+        );
+        return super::dry_run::emit(
+            &spec,
+            Some(
+                "order_type, side, visible_quantity and client_order_id are copied from the live order; an omitted --symbol is resolved from it too.",
+            ),
+            &["GET /v1/order/{order_id} (authenticated)"],
+        );
     }
 
     let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
@@ -219,19 +280,6 @@ pub async fn edit(
         .get("client_order_id")
         .filter(|v| !v.is_null())
         .map(js_string_of);
-
-    if let Some(p) = price {
-        let num_price = super::js_number(p);
-        if num_price.is_nan() || num_price <= 0.0 {
-            return Err(super::fail("Price must be a positive number."));
-        }
-    }
-    if let Some(q) = quantity {
-        let num_qty = super::js_number(q);
-        if num_qty.is_nan() || num_qty <= 0.0 {
-            return Err(super::fail("Quantity must be a positive number."));
-        }
-    }
 
     let order_price = match price {
         Some(p) => number_value(super::js_number(p)),
@@ -400,6 +448,7 @@ fn normalize_batch_order(order: &Value, index: usize) -> Result<Value, AppError>
 
 pub async fn batch_place(
     orders_input: &str,
+    dry_run: bool,
     account: Option<&str>,
     ctx: Ctx,
 ) -> Result<(), AppError> {
@@ -431,6 +480,14 @@ pub async fn batch_place(
         normalized.push(normalize_batch_order(order, i)?);
     }
 
+    if dry_run {
+        return super::dry_run::emit(
+            &crate::api::OrderlyClient::place_batch_order_spec(&normalized),
+            None,
+            &[],
+        );
+    }
+
     let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
     let result = client.place_batch_order(&normalized).await?;
     output(&result, ctx.format);
@@ -439,12 +496,22 @@ pub async fn batch_place(
 
 pub async fn batch_cancel(
     order_ids: &[String],
+    dry_run: bool,
     account: Option<&str>,
     ctx: Ctx,
 ) -> Result<(), AppError> {
     if order_ids.is_empty() {
         return Err(super::fail("At least one order ID is required."));
     }
+
+    if dry_run {
+        return super::dry_run::emit(
+            &crate::api::OrderlyClient::cancel_batch_orders_spec(order_ids),
+            None,
+            &[],
+        );
+    }
+
     let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
     let result = client.cancel_batch_orders(order_ids).await?;
     output(&result, ctx.format);

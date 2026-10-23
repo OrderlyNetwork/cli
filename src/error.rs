@@ -3,7 +3,7 @@
 use crate::colors;
 use serde_json::Value;
 
-/// A user-facing error: red message to stderr, optional dim hints, exit code 1.
+/// A user-facing error: red message to stderr, optional dim hints.
 #[derive(Debug, Clone)]
 pub struct OutputError {
     pub message: String,
@@ -35,17 +35,27 @@ impl OutputError {
     }
 
     pub fn report(&self) -> ! {
-        error(&self.message, &self.hints)
+        let code = if is_auth_message(&self.message) {
+            exit_code::AUTH
+        } else {
+            exit_code::USAGE
+        };
+        error_with_code(&self.message, &self.hints, code)
     }
 }
 
 /// Print a red error message (and dim hints) to stderr, then exit 1.
 pub fn error(message: &str, hints: &[String]) -> ! {
+    error_with_code(message, hints, 1)
+}
+
+/// Same output as [`error`], with an explicit process exit status.
+pub fn error_with_code(message: &str, hints: &[String], code: i32) -> ! {
     eprintln!("{}", colors::red(message));
     for hint in hints {
         eprintln!("{}", colors::dim(hint));
     }
-    std::process::exit(1);
+    std::process::exit(code);
 }
 
 /// Convenience for `error(msg)` with no hints.
@@ -61,6 +71,94 @@ pub enum AppError {
     Msg(String),
     /// A user-facing error carrying message + hints (mirrors `error(msg, hints)`).
     User(OutputError),
+}
+
+/// Stable process exit codes (documented for agents and scripts).
+pub mod exit_code {
+    /// Success.
+    pub const SUCCESS: i32 = 0;
+    /// Generic / unexpected failure.
+    pub const GENERIC: i32 = 1;
+    /// Usage or validation error (bad flags, invalid symbol, missing argument).
+    pub const USAGE: i32 = 2;
+    /// Authentication / authorization error.
+    pub const AUTH: i32 = 3;
+    /// Trading rejection (margin, balance, engine rejection).
+    pub const TRADING: i32 = 4;
+    /// Transient failure (429, 5xx, timeout, connection reset).
+    pub const TRANSIENT: i32 = 5;
+}
+
+fn is_auth_message(message: &str) -> bool {
+    let m = message.to_lowercase();
+    m.contains("no accounts found")
+        || m.contains("no key found")
+        || m.contains("no key pair")
+        || m.contains("not authenticated")
+        || m.contains("unauthorized")
+        || (m.contains("api key")
+            && (m.contains("invalid")
+                || m.contains("expired")
+                || m.contains("revoked")
+                || m.contains("missing")))
+}
+
+fn is_transient_message(message: &str) -> bool {
+    let m = message.to_lowercase();
+    m.contains("timed out")
+        || m.contains("timeout")
+        || m.contains("connection reset")
+        || m.contains("connection refused")
+        || m.contains("connection closed")
+        || m.contains("broken pipe")
+        || m.contains("dns error")
+}
+
+fn is_trading_rejection(body: &str) -> bool {
+    let body = body.to_lowercase();
+    [
+        "insufficient",
+        "not enough",
+        "margin",
+        "balance",
+        "reject",
+        "reduce-only",
+        "reduce only",
+    ]
+    .iter()
+    .any(|needle| body.contains(needle))
+}
+
+impl AppError {
+    /// Map an error onto the stable exit-code taxonomy.
+    pub fn exit_code(&self) -> i32 {
+        match self {
+            AppError::Api { status, body } => match status {
+                401 | 403 => exit_code::AUTH,
+                408 | 429 => exit_code::TRANSIENT,
+                500..=599 => exit_code::TRANSIENT,
+                400 | 422 if is_trading_rejection(body) => exit_code::TRADING,
+                400..=499 => exit_code::USAGE,
+                _ => exit_code::GENERIC,
+            },
+            AppError::Msg(message) => {
+                if is_auth_message(message) {
+                    exit_code::AUTH
+                } else if is_transient_message(message) {
+                    exit_code::TRANSIENT
+                } else {
+                    exit_code::GENERIC
+                }
+            }
+            AppError::User(e) => {
+                if is_auth_message(&e.message) {
+                    exit_code::AUTH
+                } else {
+                    exit_code::USAGE
+                }
+            }
+        }
+    }
 }
 
 impl From<OutputError> for AppError {
@@ -139,15 +237,16 @@ pub fn format_api_error(status: u16, body: &str) -> (String, Vec<String>) {
     (parts.join(" "), vec![])
 }
 
-/// Mirrors `handleError`: prints and exits.
+/// Mirrors `handleError`: prints and exits with the taxonomy code.
 pub fn handle_error(err: AppError) -> ! {
+    let code = err.exit_code();
     match err {
         AppError::Api { status, body } => {
             let (message, hints) = format_api_error(status, &body);
-            error(&message, &hints);
+            error_with_code(&message, &hints, code);
         }
-        AppError::Msg(message) => error(&message, &[]),
-        AppError::User(e) => e.report(),
+        AppError::Msg(message) => error_with_code(&message, &[], code),
+        AppError::User(e) => error_with_code(&e.message, &e.hints, code),
     }
 }
 #[cfg(test)]
@@ -183,5 +282,57 @@ mod tests {
     fn api_error_rate_limited() {
         let (msg, _) = format_api_error(429, "anything");
         assert_eq!(msg, "Rate limited. Please wait before trying again.");
+    }
+
+    fn api(status: u16, body: &str) -> AppError {
+        AppError::Api {
+            status,
+            body: body.to_string(),
+        }
+    }
+
+    #[test]
+    fn exit_code_taxonomy_for_api_errors() {
+        use exit_code::*;
+        assert_eq!(api(401, "{}").exit_code(), AUTH);
+        assert_eq!(api(403, "{}").exit_code(), AUTH);
+        assert_eq!(api(429, "{}").exit_code(), TRANSIENT);
+        assert_eq!(api(500, "{}").exit_code(), TRANSIENT);
+        assert_eq!(api(503, "<html>down</html>").exit_code(), TRANSIENT);
+        assert_eq!(
+            api(400, r#"{"code":1001,"message":"Insufficient margin"}"#).exit_code(),
+            TRADING
+        );
+        assert_eq!(
+            api(422, r#"{"message":"order rejected by engine"}"#).exit_code(),
+            TRADING
+        );
+        assert_eq!(
+            api(400, r#"{"message":"invalid symbol"}"#).exit_code(),
+            USAGE
+        );
+        assert_eq!(api(404, "{}").exit_code(), USAGE);
+    }
+
+    #[test]
+    fn exit_code_taxonomy_for_application_errors() {
+        use exit_code::*;
+        assert_eq!(AppError::Msg("boom".into()).exit_code(), GENERIC);
+        assert_eq!(
+            AppError::Msg("No key pair set. Please authenticate first.".into()).exit_code(),
+            AUTH
+        );
+        assert_eq!(
+            AppError::Msg("error sending request: connection reset by peer".into()).exit_code(),
+            TRANSIENT
+        );
+        assert_eq!(
+            AppError::User(OutputError::invalid_symbol("nope")).exit_code(),
+            USAGE
+        );
+        assert_eq!(
+            AppError::User(OutputError::new("No key found for account 0x1")).exit_code(),
+            AUTH
+        );
     }
 }

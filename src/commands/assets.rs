@@ -185,7 +185,55 @@ pub async fn withdraw(
     ctx: Ctx,
     raw_amount: bool,
     allow_cross_chain: bool,
+    dry_run: bool,
 ) -> Result<(), AppError> {
+    if dry_run {
+        let amount_num = super::js_number(amount);
+        if amount.is_empty() || amount_num.is_nan() || (!raw_amount && amount_num <= 0.0) {
+            let hint = if raw_amount {
+                "Amount must be a valid positive number."
+            } else {
+                "Amount must be a valid positive number (e.g., 10.5)"
+            };
+            return Err(super::fail_hints(
+                format!("Invalid amount: {amount}"),
+                vec![hint.to_string()],
+            ));
+        }
+
+        let mut body_pairs = vec![
+            ("message", Value::Null),
+            ("signature", Value::Null),
+            ("userAddress", Value::Null),
+            (
+                "verifyingContract",
+                Value::String(contracts::get_verifying_contract(ctx.network).to_string()),
+            ),
+        ];
+        if allow_cross_chain {
+            body_pairs.push(("allow_cross_chain_withdrawal", Value::Bool(true)));
+        }
+        let receiver = receiver.filter(|r| !r.is_empty());
+        let note = format!(
+            "Withdrawal message/signature/userAddress require the account wallet. token={} chain_id={} amount={} raw={} receiver={}.",
+            token.to_uppercase(),
+            chain_id,
+            amount,
+            raw_amount,
+            receiver.unwrap_or("<wallet address>"),
+        );
+        return super::dry_run::emit(
+            &crate::api::RequestSpec::new("POST", "/v1/withdraw_request", Some(obj(body_pairs))),
+            Some(&note),
+            &[
+                "account resolution (--account avoids the prompt)",
+                "GET /v1/public/token (decimals, unless --raw)",
+                "GET /v1/withdraw_nonce",
+                "wallet signature (EIP-712 or Ed25519)",
+            ],
+        );
+    }
+
     let (_, key_pair, client) = create_authenticated_client(account, ctx.network).await?;
 
     let broker_id = client.get_broker_id(&key_pair.account_id).await?;

@@ -10,6 +10,7 @@ pub fn version_line() -> String {
 /// TypeScript registration order (from `src/index.ts`), which is the order cac
 /// prints commands in.
 const ORDER: &[&str] = &[
+    "schema",
     "wallet-create",
     "wallet-import",
     "wallet-list",

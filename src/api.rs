@@ -121,6 +121,36 @@ pub struct OrderlyClient {
     key_pair: Option<KeyPair>,
 }
 
+/// A request that can be inspected before it is sent (`--dry-run`).
+#[derive(Debug, Clone)]
+pub struct RequestSpec {
+    pub method: String,
+    pub path: String,
+    pub body: Option<Value>,
+}
+
+impl RequestSpec {
+    pub fn new(method: &str, path: impl Into<String>, body: Option<Value>) -> Self {
+        RequestSpec {
+            method: method.to_string(),
+            path: path.into(),
+            body,
+        }
+    }
+
+    /// The `--dry-run` document: clearly a request, never a response.
+    pub fn to_json(&self, note: Option<&str>, requires: &[&str]) -> Value {
+        serde_json::json!({
+            "dryRun": true,
+            "method": self.method,
+            "path": self.path,
+            "body": self.body,
+            "note": note,
+            "requires": requires,
+        })
+    }
+}
+
 impl OrderlyClient {
     pub fn new(network: Network) -> Self {
         OrderlyClient {
@@ -178,8 +208,23 @@ impl OrderlyClient {
         data: Option<&Value>,
         requires_auth: bool,
     ) -> Result<Value, AppError> {
-        let method_upper = method.to_uppercase();
-        let body_string = data.map(|d| serde_json::to_string(d).unwrap_or_default());
+        let spec = RequestSpec::new(method, path, data.cloned());
+        self.send_spec(&spec, requires_auth).await
+    }
+
+    /// Send a pre-built [`RequestSpec`]. The signer covers the exact method,
+    /// path and serialized body, so callers that build a spec (including
+    /// `--dry-run`) share the same payload logic.
+    pub async fn send_spec(
+        &self,
+        spec: &RequestSpec,
+        requires_auth: bool,
+    ) -> Result<Value, AppError> {
+        let method_upper = spec.method.to_uppercase();
+        let body_string = spec
+            .body
+            .as_ref()
+            .map(|d| serde_json::to_string(d).unwrap_or_default());
 
         let content_type = if method_upper == "GET" || method_upper == "DELETE" {
             "application/x-www-form-urlencoded"
@@ -187,7 +232,7 @@ impl OrderlyClient {
             "application/json"
         };
 
-        let url = format!("{}{}", self.base_url, path);
+        let url = format!("{}{}", self.base_url, spec.path);
         let mut req = self
             .http
             .request(
@@ -198,8 +243,12 @@ impl OrderlyClient {
             .header("Content-Type", content_type);
 
         if requires_auth {
-            let headers =
-                self.signature_headers(&method_upper, path, body_string.as_deref(), now_ms())?;
+            let headers = self.signature_headers(
+                &method_upper,
+                &spec.path,
+                body_string.as_deref(),
+                now_ms(),
+            )?;
             for (k, v) in headers {
                 req = req.header(k, v);
             }
@@ -347,8 +396,20 @@ impl OrderlyClient {
         self.get(&format!("/v1/order/{order_id}")).await
     }
 
+    pub fn place_order_spec(order: &Value) -> RequestSpec {
+        RequestSpec::new("POST", "/v1/order", Some(order.clone()))
+    }
+
     pub async fn place_order(&self, order: &Value) -> Result<Value, AppError> {
-        self.post("/v1/order", Some(order)).await
+        self.send_spec(&Self::place_order_spec(order), true).await
+    }
+
+    pub fn cancel_order_spec(order_id: &str, symbol: Option<&str>) -> RequestSpec {
+        let path = match symbol {
+            Some(s) => format!("/v1/order?order_id={order_id}&symbol={s}"),
+            None => format!("/v1/order?order_id={order_id}"),
+        };
+        RequestSpec::new("DELETE", path, None)
     }
 
     pub async fn cancel_order(
@@ -356,19 +417,11 @@ impl OrderlyClient {
         order_id: &str,
         symbol: Option<&str>,
     ) -> Result<Value, AppError> {
-        let path = match symbol {
-            Some(s) => format!("/v1/order?order_id={order_id}&symbol={s}"),
-            None => format!("/v1/order?order_id={order_id}"),
-        };
-        self.delete(&path).await
+        self.send_spec(&Self::cancel_order_spec(order_id, symbol), true)
+            .await
     }
 
-    pub async fn edit_order(
-        &self,
-        order_id: &str,
-        updates: &Value,
-        symbol: &str,
-    ) -> Result<Value, AppError> {
+    pub fn edit_order_spec(order_id: &str, updates: &Value, symbol: &str) -> RequestSpec {
         let mut m = Map::new();
         m.insert(
             "order_id".to_string(),
@@ -380,7 +433,17 @@ impl OrderlyClient {
                 m.insert(k.clone(), v.clone());
             }
         }
-        self.put("/v1/order", Some(&Value::Object(m))).await
+        RequestSpec::new("PUT", "/v1/order", Some(Value::Object(m)))
+    }
+
+    pub async fn edit_order(
+        &self,
+        order_id: &str,
+        updates: &Value,
+        symbol: &str,
+    ) -> Result<Value, AppError> {
+        self.send_spec(&Self::edit_order_spec(order_id, updates, symbol), true)
+            .await
     }
 
     pub async fn cancel_all_orders(&self, symbol: Option<&str>) -> Result<Value, AppError> {
@@ -391,17 +454,27 @@ impl OrderlyClient {
         self.delete(&path).await
     }
 
-    pub async fn place_batch_order(&self, orders: &[Value]) -> Result<Value, AppError> {
+    pub fn place_batch_order_spec(orders: &[Value]) -> RequestSpec {
         let body = obj(vec![("orders", Value::Array(orders.to_vec()))]);
-        self.post("/v1/batch-order", Some(&body)).await
+        RequestSpec::new("POST", "/v1/batch-order", Some(body))
+    }
+
+    pub async fn place_batch_order(&self, orders: &[Value]) -> Result<Value, AppError> {
+        self.send_spec(&Self::place_batch_order_spec(orders), true)
+            .await
+    }
+
+    pub fn cancel_batch_orders_spec(order_ids: &[String]) -> RequestSpec {
+        RequestSpec::new(
+            "DELETE",
+            format!("/v1/batch-order?order_ids={}", order_ids.join(",")),
+            None,
+        )
     }
 
     pub async fn cancel_batch_orders(&self, order_ids: &[String]) -> Result<Value, AppError> {
-        self.delete(&format!(
-            "/v1/batch-order?order_ids={}",
-            order_ids.join(",")
-        ))
-        .await
+        self.send_spec(&Self::cancel_batch_orders_spec(order_ids), true)
+            .await
     }
 
     pub async fn cancel_batch_orders_by_client_ids(
@@ -480,6 +553,18 @@ impl OrderlyClient {
             .get("position_qty")
             .and_then(|q| q.as_f64())
             .unwrap_or(0.0);
+        let body = Self::close_position_body(symbol, qty, partial_quantity)?;
+        self.place_order(&body).await
+    }
+
+    /// The reduce-only MARKET order that closes (part of) a position. Kept
+    /// separate from the lookup so `--dry-run` can describe the request.
+    pub fn close_position_body(
+        symbol: &str,
+        position_qty: f64,
+        partial_quantity: Option<f64>,
+    ) -> Result<Value, AppError> {
+        let qty = position_qty;
         if qty == 0.0 {
             return Err(AppError::Msg(format!(
                 "No open position found for {symbol}"
@@ -501,14 +586,13 @@ impl OrderlyClient {
             Some(pq) => js_f64_to_js_string(pq),
             None => js_f64_to_js_string(abs_qty),
         };
-        let body = obj(vec![
+        Ok(obj(vec![
             ("symbol", Value::String(symbol.to_string())),
             ("order_type", Value::String("MARKET".to_string())),
             ("side", Value::String(side.to_string())),
             ("order_quantity", Value::String(quantity)),
             ("reduce_only", Value::Bool(true)),
-        ]);
-        self.place_order(&body).await
+        ]))
     }
 
     // -----------------------------------------------------------------------
@@ -587,12 +671,17 @@ impl OrderlyClient {
             .await
     }
 
-    pub async fn set_leverage(&self, symbol: &str, leverage: f64) -> Result<Value, AppError> {
+    pub fn set_leverage_spec(symbol: &str, leverage: f64) -> RequestSpec {
         let body = obj(vec![
             ("symbol", Value::String(symbol.to_string())),
             ("leverage", js_number(leverage)),
         ]);
-        self.post("/v1/client/leverage", Some(&body)).await
+        RequestSpec::new("POST", "/v1/client/leverage", Some(body))
+    }
+
+    pub async fn set_leverage(&self, symbol: &str, leverage: f64) -> Result<Value, AppError> {
+        self.send_spec(&Self::set_leverage_spec(symbol, leverage), true)
+            .await
     }
 
     pub async fn get_trades(
@@ -645,8 +734,13 @@ impl OrderlyClient {
     // Algo orders
     // -----------------------------------------------------------------------
 
+    pub fn place_algo_order_spec(order: &Value) -> RequestSpec {
+        RequestSpec::new("POST", "/v1/algo/order", Some(order.clone()))
+    }
+
     pub async fn place_algo_order(&self, order: &Value) -> Result<Value, AppError> {
-        self.post("/v1/algo/order", Some(order)).await
+        self.send_spec(&Self::place_algo_order_spec(order), true)
+            .await
     }
 
     pub async fn cancel_algo_order_by_client_id(
@@ -661,11 +755,17 @@ impl OrderlyClient {
         .await
     }
 
+    pub fn cancel_algo_order_spec(order_id: &str, symbol: &str) -> RequestSpec {
+        RequestSpec::new(
+            "DELETE",
+            format!("/v1/algo/order?order_id={order_id}&symbol={symbol}"),
+            None,
+        )
+    }
+
     pub async fn cancel_algo_order(&self, order_id: &str, symbol: &str) -> Result<Value, AppError> {
-        self.delete(&format!(
-            "/v1/algo/order?order_id={order_id}&symbol={symbol}"
-        ))
-        .await
+        self.send_spec(&Self::cancel_algo_order_spec(order_id, symbol), true)
+            .await
     }
 
     pub async fn cancel_all_algo_orders(
@@ -706,12 +806,7 @@ impl OrderlyClient {
         }
     }
 
-    pub async fn edit_algo_order(
-        &self,
-        order_id: &str,
-        updates: &Value,
-        symbol: &str,
-    ) -> Result<Value, AppError> {
+    pub fn edit_algo_order_spec(order_id: &str, updates: &Value, symbol: &str) -> RequestSpec {
         let mut m = Map::new();
         m.insert(
             "order_id".to_string(),
@@ -723,7 +818,17 @@ impl OrderlyClient {
                 m.insert(k.clone(), v.clone());
             }
         }
-        self.put("/v1/algo/order", Some(&Value::Object(m))).await
+        RequestSpec::new("PUT", "/v1/algo/order", Some(Value::Object(m)))
+    }
+
+    pub async fn edit_algo_order(
+        &self,
+        order_id: &str,
+        updates: &Value,
+        symbol: &str,
+    ) -> Result<Value, AppError> {
+        self.send_spec(&Self::edit_algo_order_spec(order_id, updates, symbol), true)
+            .await
     }
 
     pub async fn find_algo_order_by_id(&self, order_id: &str) -> Result<Value, AppError> {

@@ -43,7 +43,7 @@ fn check_negative_number_args() {
                 "Error: Invalid argument \"{arg}\". Negative numbers look like CLI flags.\n\
                  Use a positive value, or quote the value to avoid shell parsing issues."
             );
-            std::process::exit(1);
+            std::process::exit(orderly::error::exit_code::USAGE);
         }
     }
 }
@@ -63,9 +63,10 @@ fn handle_clap_error(err: clap::Error) -> ! {
 
     if err.kind() == ErrorKind::InvalidSubcommand {
         if let Some(ContextValue::String(command)) = err.get(ContextKind::InvalidSubcommand) {
-            orderly::error::error(
+            orderly::error::error_with_code(
                 &format!("Unknown command: {command}"),
                 &["Run orderly --help to see available commands.".to_string()],
+                orderly::error::exit_code::USAGE,
             );
         }
     }
@@ -75,18 +76,23 @@ fn handle_clap_error(err: clap::Error) -> ! {
         let raw: Vec<String> = std::env::args().skip(1).collect();
         if let Some(name) = raw.first() {
             if let Some(spec) = orderly::help::usage_spec(name) {
-                orderly::error::error(
+                orderly::error::error_with_code(
                     &format!("missing required args for command `{spec}`"),
                     &[
                         "Usage examples:".to_string(),
                         format!("  orderly {spec} --help"),
                     ],
+                    orderly::error::exit_code::USAGE,
                 );
             }
         }
     }
 
-    let exit_code = if err.exit_code() == 0 { 0 } else { 1 };
+    let exit_code = if err.exit_code() == 0 {
+        orderly::error::exit_code::SUCCESS
+    } else {
+        orderly::error::exit_code::USAGE
+    };
     let _ = err.print();
     std::process::exit(exit_code);
 }

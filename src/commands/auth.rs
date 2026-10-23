@@ -263,7 +263,8 @@ pub async fn show(account: Option<&str>, network: Network, ctx: Ctx) -> Result<(
             ctx.format,
         );
         // TS sets `process.exitCode = 1` here while still printing to stdout.
-        std::process::exit(1);
+        // v2 uses the typed taxonomy: a missing key is an auth failure.
+        std::process::exit(crate::error::exit_code::AUTH);
     };
 
     let client = OrderlyClient::new(network);

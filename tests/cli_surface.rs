@@ -60,6 +60,7 @@ const EXPECTED_COMMANDS: &[&str] = &[
     "positions-list",
     "price-changes",
     "referral-info",
+    "schema",
     "settle-pnl",
     "settle-pnl-history",
     "symbols",
@@ -91,7 +92,7 @@ fn exposes_exactly_the_typescript_command_surface() {
     let mut expected: Vec<String> = EXPECTED_COMMANDS.iter().map(|s| s.to_string()).collect();
     expected.sort();
 
-    assert_eq!(got.len(), 72, "expected 72 subcommands, got {}", got.len());
+    assert_eq!(got.len(), 73, "expected 73 subcommands, got {}", got.len());
     assert_eq!(got, expected);
 }
 
@@ -150,6 +151,125 @@ fn parses_representative_invocations() {
 }
 
 #[test]
+fn schema_manifest_describes_the_command_surface() {
+    let manifest = orderly::commands::schema::build_manifest();
+    let json = serde_json::to_string(&manifest).expect("manifest must serialize as JSON");
+    assert!(json.starts_with('{'));
+
+    let commands = manifest
+        .get("commands")
+        .and_then(|c| c.as_array())
+        .expect("commands array");
+    // The CLI surface is flat kebab-case, so the human form "order place" is
+    // invoked as "order-place". Map it once, in the test, to keep both names
+    // visible.
+    let find = |human: &str| {
+        let path = human.replace(' ', "-");
+        commands
+            .iter()
+            .find(|c| c.get("path").and_then(|p| p.as_str()) == Some(path.as_str()))
+            .unwrap_or_else(|| panic!("missing schema entry for {human} ({path})"))
+    };
+
+    let order_place = find("order place");
+    let market_price = find("market price");
+    assert_eq!(
+        order_place.get("mutates").and_then(|m| m.as_bool()),
+        Some(true)
+    );
+    assert_eq!(
+        market_price.get("mutates").and_then(|m| m.as_bool()),
+        Some(false)
+    );
+
+    let args = |cmd: &serde_json::Value| -> Vec<String> {
+        cmd.get("args")
+            .and_then(|a| a.as_array())
+            .unwrap()
+            .iter()
+            .filter_map(|a| a.get("long").and_then(|l| l.as_str()).map(String::from))
+            .collect()
+    };
+    let order_flags = args(order_place);
+    for flag in ["price", "client-order-id", "reduce-only", "account"] {
+        assert!(order_flags.contains(&flag.to_string()), "missing --{flag}");
+    }
+
+    let globals: Vec<String> = manifest
+        .get("globalArgs")
+        .and_then(|a| a.as_array())
+        .unwrap()
+        .iter()
+        .filter_map(|a| a.get("long").and_then(|l| l.as_str()).map(String::from))
+        .collect();
+    assert!(globals.contains(&"network".to_string()));
+    assert!(globals.contains(&"csv".to_string()));
+
+    // Every arg exposes the documented keys, and clap's enum surface is a JSON array.
+    for arg in order_place.get("args").and_then(|a| a.as_array()).unwrap() {
+        assert!(arg.get("possibleValues").unwrap().is_array());
+        assert!(arg.get("takesValue").unwrap().is_boolean());
+    }
+
+    // Boolean flags expose clap's true/false value parser; positionals take values.
+    let reduce_only = order_place
+        .get("args")
+        .and_then(|a| a.as_array())
+        .unwrap()
+        .iter()
+        .find(|a| a.get("long").and_then(|l| l.as_str()) == Some("reduce-only"))
+        .expect("--reduce-only");
+    assert_eq!(
+        reduce_only.get("possibleValues").unwrap(),
+        &serde_json::json!(["true", "false"])
+    );
+    assert_eq!(
+        reduce_only.get("takesValue").and_then(|t| t.as_bool()),
+        Some(false)
+    );
+
+    // Enums the CLI validates as free-form strings must still be enumerated, so
+    // an agent can construct a valid order from the manifest alone.
+    let possible = |cmd: &serde_json::Value, name: &str| -> Vec<String> {
+        cmd.get("args")
+            .and_then(|a| a.as_array())
+            .unwrap()
+            .iter()
+            .find(|a| a.get("name").and_then(|n| n.as_str()) == Some(name))
+            .and_then(|a| a.get("possibleValues"))
+            .and_then(|v| v.as_array())
+            .unwrap()
+            .iter()
+            .filter_map(|v| v.as_str().map(String::from))
+            .collect()
+    };
+    assert_eq!(possible(order_place, "side"), vec!["BUY", "SELL"]);
+    assert_eq!(
+        possible(order_place, "type_"),
+        vec!["LIMIT", "MARKET", "IOC", "FOK", "POST_ONLY", "ASK", "BID"]
+    );
+    assert_eq!(
+        possible(find("algo order place"), "algo_type"),
+        vec![
+            "STOP",
+            "TP_SL",
+            "POSITIONAL_TP_SL",
+            "TRAILING_STOP",
+            "BRACKET"
+        ]
+    );
+    assert_eq!(possible(find("wallet create"), "type_"), vec!["EVM", "SOL"]);
+    assert_eq!(
+        order_place.get("path").and_then(|p| p.as_str()),
+        Some("order-place")
+    );
+    assert_eq!(
+        find("schema").get("mutates").and_then(|m| m.as_bool()),
+        Some(false)
+    );
+}
+
+#[test]
 fn global_flags_accepted_after_subcommand() {
     let cli = Cli::try_parse_from([
         "orderly",
@@ -190,9 +310,42 @@ fn help_output_matches_typescript() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("parity/fixtures/help.txt");
     let expected =
         std::fs::read_to_string(&path).expect("missing parity fixture; see parity/README.md");
+
+    // `schema` is a Rust-only command with no TypeScript equivalent, so it is
+    // intentionally absent from the frozen parity fixture. Strip its two lines
+    // before diffing and assert they were present, so the command cannot
+    // silently disappear from `--help`.
+    let current = orderly::help::full_help();
+    let (current, removed) = strip_rust_only_help_additions(&current);
     assert_eq!(
-        orderly::help::full_help(),
+        removed, 2,
+        "expected `schema` command row and example row in `orderly --help`"
+    );
+
+    assert_eq!(
+        current,
         normalize_version_line(&expected),
         "`orderly --help` differs from the TypeScript output"
     );
+}
+
+/// Remove the `schema` command row and its example line from the help text.
+fn strip_rust_only_help_additions(text: &str) -> (String, usize) {
+    let mut out = String::with_capacity(text.len());
+    let mut removed = 0;
+
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim_end_matches(['\n', '\r']);
+        let is_command_row = trimmed.starts_with("  schema ") && !trimmed.contains('$');
+        let is_example_row = trimmed == "  $ orderly schema --help";
+
+        if is_command_row || is_example_row {
+            removed += 1;
+            continue;
+        }
+
+        out.push_str(line);
+    }
+
+    (out, removed)
 }

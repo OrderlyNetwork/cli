@@ -189,6 +189,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cp install.sh dist/install.sh
           cd dist
           rm -f SHA256SUMS
           sha256sum -- * > SHA256SUMS

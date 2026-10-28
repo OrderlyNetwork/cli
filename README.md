@@ -12,25 +12,24 @@ as a single static binary — no Node.js runtime required.
 
 ## Install
 
-Download the archive for your platform from the latest release and put the
-binary on your `PATH`. Full instructions (all platforms, verification, and
-building from source) are in [`INSTALL.md`](INSTALL.md).
+One line — detects Linux/macOS and x86_64/arm64, verifies the release checksum,
+and installs to `~/.local/bin`:
 
 ```bash
-# Linux x86_64
-curl -fsSL https://github.com/OrderlyNetwork/cli/releases/latest/download/orderly-x86_64-unknown-linux-musl.tar.gz | tar -xz
-install -m 0755 orderly ~/.local/bin/orderly
-
-# macOS (Apple silicon; use x86_64-apple-darwin on Intel)
-curl -fsSL https://github.com/OrderlyNetwork/cli/releases/latest/download/orderly-aarch64-apple-darwin.tar.gz | tar -xz
-install -m 0755 orderly ~/.local/bin/orderly
+curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/master/install.sh | sh
 ```
+
+Override the target with `ORDERLY_INSTALL_DIR=/usr/local/bin`, or pin a release
+with `ORDERLY_VERSION=v2.0.1`. Windows has no shell installer yet:
 
 ```powershell
 # Windows x86_64 (use aarch64-pc-windows-msvc on ARM)
 Invoke-WebRequest https://github.com/OrderlyNetwork/cli/releases/latest/download/orderly-x86_64-pc-windows-msvc.zip -OutFile orderly.zip
 Expand-Archive orderly.zip -DestinationPath "$env:LOCALAPPDATA\orderly"
 ```
+
+Manual archives, per-platform assets, verification and building from source are
+in [`INSTALL.md`](INSTALL.md).
 
 Every release asset is covered by SHA-256 checksums, a GitHub build-provenance
 attestation and a cosign signature — see [`INSTALL.md`](INSTALL.md#verify-the-download).

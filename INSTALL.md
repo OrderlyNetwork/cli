@@ -4,6 +4,19 @@
 from the [latest release](https://github.com/OrderlyNetwork/cli/releases/latest),
 extract it, and put the binary on your `PATH`. There is nothing else to install.
 
+## One-line install (Linux and macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/master/install.sh | sh
+```
+
+The script detects the OS and architecture, verifies the archive against the
+release's `SHA256SUMS`, and installs to `~/.local/bin` (override with
+`ORDERLY_INSTALL_DIR`, pin a tag with `ORDERLY_VERSION`). Windows is not
+supported by the shell script — use the zip below.
+
+## Manual install
+
 | Platform | Asset |
 | --- | --- |
 | Linux x86_64 | `orderly-x86_64-unknown-linux-musl.tar.gz` |

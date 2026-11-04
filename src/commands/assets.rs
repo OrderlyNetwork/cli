@@ -175,6 +175,17 @@ async fn resolve_raw_amount(
     evm::parse_units(amount, decimals.max(0) as u32).map_err(|_| invalid())
 }
 
+/// The withdrawal API reads the cross-chain permission from the message object
+/// (code 22 otherwise); the top-level body flag alone is not enough. The flag
+/// is not part of the EIP-712 struct, so signatures stay over the usual fields.
+fn allow_cross_chain_message(message: &mut Value, allow_cross_chain: bool) {
+    if allow_cross_chain {
+        if let Value::Object(map) = message {
+            map.insert("allowCrossChainWithdraw".to_string(), Value::Bool(true));
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn withdraw(
     token: &str,
@@ -355,7 +366,7 @@ pub async fn withdraw(
     }
 
     let token_upper = token.to_uppercase();
-    let (message, signature) = if wallet_type == "SOL" {
+    let (mut message, signature) = if wallet_type == "SOL" {
         let wallet =
             solana::create_solana_wallet_from_private_key(&wallet_key.private_key, ctx.network)
                 .map_err(AppError::Msg)?;
@@ -396,6 +407,8 @@ pub async fn withdraw(
         let signature = evm::sign_withdraw(&wallet, &map, ctx.network);
         (Value::Object(map), signature)
     };
+
+    allow_cross_chain_message(&mut message, allow_cross_chain);
 
     let mut body_pairs = vec![
         ("message", message),
@@ -488,4 +501,24 @@ pub async fn asset_history(
     let result = client.get(&format!("/v1/asset/history?{params}")).await?;
     output(&result, ctx.format);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn cross_chain_flag_is_added_to_the_signed_message() {
+        let mut message = json!({"brokerId": "demo", "chainId": 421614});
+        allow_cross_chain_message(&mut message, true);
+        assert_eq!(message["allowCrossChainWithdraw"], Value::Bool(true));
+    }
+
+    #[test]
+    fn cross_chain_flag_is_absent_by_default() {
+        let mut message = json!({"brokerId": "demo", "chainId": 421614});
+        allow_cross_chain_message(&mut message, false);
+        assert!(message.get("allowCrossChainWithdraw").is_none());
+    }
 }

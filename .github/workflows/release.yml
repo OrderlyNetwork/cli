@@ -221,12 +221,29 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+
+          # Surface gh's error as a check annotation, which is readable from the
+          # public API even when job logs are not.
+          fail() {
+            local msg
+            msg=$(printf '%s' "$1" | tr '\n' ' ' | sed 's/%/%25/g')
+            printf '::error title=release publish failed::%s\n' "$msg"
+            exit 1
+          }
+
           extra=()
           case "$TAG" in *-*) extra+=(--prerelease) ;; esac
-          gh release view "$TAG" >/dev/null 2>&1 || \
-            gh release create "$TAG" --draft --title "$TAG" --generate-notes "${extra[@]}"
-          gh release upload "$TAG" dist/* --clobber
-          gh release edit "$TAG" --draft=false
+
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            out=$(gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --draft --title "$TAG" --generate-notes "${extra[@]}" 2>&1) \
+              || fail "create: $out"
+          fi
+
+          out=$(gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY" 2>&1) \
+            || fail "upload: $out"
+          out=$(gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY" 2>&1) \
+            || fail "edit: $out"
 
   # Reads the assets back from the published release and verifies them, so a
   # broken signature or missing attestation fails the workflow.

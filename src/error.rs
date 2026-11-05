@@ -126,6 +126,7 @@ fn is_trading_rejection(body: &str) -> bool {
         "reduce only",
         "round_closed",
         "round closed",
+        "round is closed",
         "binary_order",
         "binary_margin",
     ]
@@ -309,6 +310,10 @@ mod tests {
         );
         assert_eq!(
             api(422, r#"{"message":"order rejected by engine"}"#).exit_code(),
+            TRADING
+        );
+        assert_eq!(
+            api(400, r#"{"code":-1110,"message":"Binary round is closed."}"#).exit_code(),
             TRADING
         );
         assert_eq!(

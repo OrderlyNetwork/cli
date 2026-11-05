@@ -11,6 +11,9 @@ Run `orderly --help` for complete command reference. The CLI is self-documenting
 - **Symbol names must be uppercase**: `PERP_ETH_USDC`, not `PERP_ETH_usdc`.
 - **Default output is compact JSON**. Use `--csv` for tabular data. API wrapper `{ success, data }` is auto-unwrapped.
 - **`auth-export-key` blocks AI agents**: requires interactive TTY + typing "EXPORT".
+- **Orderly Predict uses per-round symbols**: read the symbol from `predict-rounds` / `predict-round`; never construct or reuse one.
+- **Predict only accepts LIMIT/IOC/POST_ONLY with `margin_mode=ISOLATED`**: use `predict-buy` / `predict-sell` / `predict-close`, not `order-place` or `positions-close`.
+- **DOWN orders are converted to the UP book**: buying DOWN at `d` is `SELL UP @ 1-d`. Use `predict-orderbook` to read `down_asks` / `down_bids`.
 
 ## Security Architecture
 
@@ -27,7 +30,7 @@ removed in v2.0.0).
 ```
 src/
 ├── main.rs               # entry point, clap error mapping
-├── cli.rs                # clap command tree (all 72 commands)
+├── cli.rs                # clap command tree (all 80 commands)
 ├── commands/             # one module per command group
 ├── api.rs                # REST client, byte-identical signing
 ├── dex_api.rs            # Orderly One (broker) API

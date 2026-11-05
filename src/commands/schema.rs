@@ -33,9 +33,14 @@ pub const MUTATING_COMMANDS: &[&str] = &[
     "positions-close",
     "leverage",
     "settle-pnl",
+    // Orderly Predict
+    "predict-buy",
+    "predict-sell",
+    "predict-close",
     // funds
     "withdraw",
     "faucet-usdc",
+    "faucet-account",
     // wallets / auth / broker (server or keychain mutations)
     "wallet-create",
     "wallet-import",
@@ -78,6 +83,7 @@ fn known_possible_values(path: &str, arg: &str) -> &'static [&'static str] {
     const KLINE_INTERVALS: &[&str] = &[
         "1m", "5m", "15m", "30m", "1h", "4h", "12h", "1d", "1w", "1mon",
     ];
+    const PRODUCT_TYPES: &[&str] = &["PERP", "BINARY"];
 
     match (path, arg) {
         ("order-place", "side") | ("order-list", "side") | ("algo-order-place", "side") => SIDES,
@@ -87,6 +93,17 @@ fn known_possible_values(path: &str, arg: &str) -> &'static [&'static str] {
         | ("algo-order-list", "algo_type") => ALGO_TYPES,
         ("wallet-create", "type_") | ("wallet-import", "type_") => WALLET_TYPES,
         ("kline", "type_") => KLINE_INTERVALS,
+        ("predict-buy", "direction") | ("predict-sell", "direction") => {
+            crate::commands::predict::DIRECTIONS
+        }
+        ("predict-buy", "type_") | ("predict-sell", "type_") => {
+            crate::commands::predict::PREDICT_ORDER_TYPES
+        }
+        ("predict-rounds", "status") => crate::commands::predict::PREDICT_STATUSES,
+        ("order-list", "product_type")
+        | ("positions-list", "product_type")
+        | ("positions-history", "product_type")
+        | ("trades", "product_type") => PRODUCT_TYPES,
         _ => &[],
     }
 }

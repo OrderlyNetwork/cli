@@ -340,6 +340,7 @@ pub async fn list_orders(
     sort_by: Option<&str>,
     page: Option<i64>,
     size: Option<i64>,
+    product_type: Option<&str>,
     account: Option<&str>,
     ctx: Ctx,
 ) -> Result<(), AppError> {
@@ -357,6 +358,7 @@ pub async fn list_orders(
             sort_by,
             page,
             size,
+            product_type,
         )
         .await?;
     output(&result, ctx.format);

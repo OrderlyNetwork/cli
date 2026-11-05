@@ -5,19 +5,21 @@ use crate::cli::Ctx;
 use crate::error::AppError;
 use crate::output::output;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn list_trades(
     symbol: Option<&str>,
     start_t: Option<i64>,
     end_t: Option<i64>,
     page: Option<i64>,
     size: Option<i64>,
+    product_type: Option<&str>,
     account: Option<&str>,
     ctx: Ctx,
 ) -> Result<(), AppError> {
     let (_, _, client) = create_authenticated_client(account, ctx.network).await?;
     let upper = symbol.map(|s| s.to_uppercase());
     let result = client
-        .get_trades(upper.as_deref(), start_t, end_t, page, size)
+        .get_trades(upper.as_deref(), start_t, end_t, page, size, product_type)
         .await?;
     output(&result, ctx.format);
     Ok(())

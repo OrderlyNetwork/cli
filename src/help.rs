@@ -75,7 +75,14 @@ const ORDER: &[&str] = &[
     "open-interest",
     "liquidated-positions",
     "system-status",
+    "predict-rounds",
+    "predict-round",
+    "predict-orderbook",
+    "predict-buy",
+    "predict-sell",
+    "predict-close",
     "faucet-usdc",
+    "faucet-account",
     "broker-create",
     "broker-status",
     "chains",
@@ -245,6 +252,9 @@ pub fn top_level_help() -> String {
     out.push_str(&colors::yellow("Market Data:"));
     out.push_str("\n  market-price, market-orderbook, market-trades, funding-rates, kline, symbols\n  price-changes, open-interest, liquidated-positions, system-status\n");
     out.push('\n');
+    out.push_str(&colors::yellow("Prediction:"));
+    out.push_str("\n  predict-rounds, predict-round, predict-orderbook\n  predict-buy, predict-sell, predict-close\n");
+    out.push('\n');
     out.push_str(&colors::yellow("Assets:"));
     out.push_str("\n  chains, tokens, deposit-info, withdraw, asset-history\n");
     out.push('\n');
@@ -260,7 +270,7 @@ pub fn top_level_help() -> String {
     );
     out.push('\n');
     out.push_str(&colors::yellow("Testnet Only:"));
-    out.push_str("\n  faucet-usdc\n");
+    out.push_str("\n  faucet-usdc\n  faucet-account\n");
     out.push('\n');
     out.push_str(&colors::yellow("Orderly One:"));
     out.push_str("\n  broker-create\n");

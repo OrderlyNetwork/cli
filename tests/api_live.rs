@@ -20,6 +20,26 @@ async fn public_market_price() {
 }
 
 #[tokio::test]
+async fn public_predict_rounds() {
+    let client = OrderlyClient::new(Network::Testnet);
+    match client.get_predict_rounds().await {
+        Ok(v) => {
+            let rows = v
+                .get("data")
+                .and_then(|d| d.get("rows"))
+                .and_then(|r| r.as_array())
+                .expect("Predict rounds response must contain data.rows");
+            assert!(
+                rows.iter()
+                    .any(|row| row.get("product_type").and_then(|p| p.as_str()) == Some("BINARY")),
+                "expected at least one BINARY round"
+            );
+        }
+        Err(e) => eprintln!("SKIP: network unavailable: {e}"),
+    }
+}
+
+#[tokio::test]
 async fn signed_account_info_uses_correct_signature() {
     let kp = match keychain::get_key(FUNDED_ACCOUNT, "testnet").await {
         Ok(Some(kp)) => kp,

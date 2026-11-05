@@ -375,6 +375,7 @@ impl OrderlyClient {
         sort_by: Option<&str>,
         page: Option<i64>,
         size: Option<i64>,
+        product_type: Option<&str>,
     ) -> Result<Value, AppError> {
         let mut p = Params::new();
         p.add_if("symbol", symbol);
@@ -384,6 +385,7 @@ impl OrderlyClient {
         p.add_if("sort_by", sort_by);
         p.add_if("page", page);
         p.add_if("size", size);
+        p.add_if("product_type", product_type);
         let q = p.to_string();
         if q.is_empty() {
             self.get("/v1/orders").await
@@ -524,12 +526,29 @@ impl OrderlyClient {
     // Positions
     // -----------------------------------------------------------------------
 
-    pub async fn get_positions(&self) -> Result<Value, AppError> {
-        self.get("/v1/positions").await
+    pub async fn get_positions(&self, product_type: Option<&str>) -> Result<Value, AppError> {
+        match product_type {
+            Some(product_type) => {
+                self.get(&format!("/v1/positions?product_type={product_type}"))
+                    .await
+            }
+            None => self.get("/v1/positions").await,
+        }
     }
 
     pub async fn get_position(&self, symbol: &str) -> Result<Value, AppError> {
         self.get(&format!("/v1/position/{symbol}")).await
+    }
+
+    /// `GET /v1/position/{symbol}` defaults to CROSS margin. Predict positions
+    /// are always ISOLATED, so they must be requested explicitly.
+    pub async fn get_position_with_margin_mode(
+        &self,
+        symbol: &str,
+        margin_mode: &str,
+    ) -> Result<Value, AppError> {
+        self.get(&format!("/v1/position/{symbol}?margin_mode={margin_mode}"))
+            .await
     }
 
     pub async fn close_position(
@@ -537,22 +556,28 @@ impl OrderlyClient {
         symbol: &str,
         partial_quantity: Option<f64>,
     ) -> Result<Value, AppError> {
-        let pos = self.get_position(symbol).await?;
-        let ok = pos
-            .get("success")
-            .and_then(|s| s.as_bool())
-            .unwrap_or(false);
-        let data = pos.get("data").filter(|d| !d.is_null());
-        if !ok || data.is_none() {
+        // The single-position endpoint defaults to CROSS margin, so use the
+        // positions list, which includes both CROSS and ISOLATED rows.
+        let positions = self.get_positions(None).await?;
+        let qty = positions
+            .get("data")
+            .and_then(|d| d.get("rows"))
+            .and_then(|r| r.as_array())
+            .and_then(|rows| {
+                rows.iter()
+                    .find(|row| row.get("symbol").and_then(|s| s.as_str()) == Some(symbol))
+            })
+            .and_then(|row| row.get("position_qty"))
+            .and_then(|q| {
+                q.as_f64()
+                    .or_else(|| q.as_str().and_then(|s| s.parse().ok()))
+            })
+            .unwrap_or(0.0);
+        if qty == 0.0 {
             return Err(AppError::Msg(format!(
                 "No open position found for {symbol}"
             )));
         }
-        let data = data.unwrap();
-        let qty = data
-            .get("position_qty")
-            .and_then(|q| q.as_f64())
-            .unwrap_or(0.0);
         let body = Self::close_position_body(symbol, qty, partial_quantity)?;
         self.place_order(&body).await
     }
@@ -601,6 +626,15 @@ impl OrderlyClient {
 
     pub async fn get_market_price(&self, symbol: &str) -> Result<Value, AppError> {
         self.get_public(&format!("/v1/public/futures/{symbol}"))
+            .await
+    }
+
+    pub async fn get_predict_rounds(&self) -> Result<Value, AppError> {
+        self.get_public("/v1/public/binary/info").await
+    }
+
+    pub async fn get_predict_round(&self, symbol: &str) -> Result<Value, AppError> {
+        self.get_public(&format!("/v1/public/binary/info/{symbol}"))
             .await
     }
 
@@ -691,6 +725,7 @@ impl OrderlyClient {
         end_t: Option<i64>,
         page: Option<i64>,
         size: Option<i64>,
+        product_type: Option<&str>,
     ) -> Result<Value, AppError> {
         let mut p = Params::new();
         p.add_if("symbol", symbol);
@@ -698,6 +733,7 @@ impl OrderlyClient {
         p.add_if("end_t", end_t);
         p.add_if("page", page);
         p.add_if("size", size);
+        p.add_if("product_type", product_type);
         let q = p.to_string();
         if q.is_empty() {
             self.get("/v1/trades").await
@@ -713,11 +749,13 @@ impl OrderlyClient {
         end_t: Option<i64>,
         page: Option<i64>,
         limit: Option<i64>,
+        product_type: Option<&str>,
     ) -> Result<Value, AppError> {
         let mut p = Params::new();
         p.add_if("symbol", symbol);
         p.add_if("start_t", start_t);
         p.add_if("end_t", end_t);
+        p.add_if("product_type", product_type);
         p.add("page", page.unwrap_or(1));
         p.add("limit", limit.unwrap_or(25));
         let mut result = self.get(&format!("/v1/position_history?{}", p)).await?;

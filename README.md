@@ -8,6 +8,7 @@ as a single static binary — no Node.js runtime required.
 - **Secure key storage** — wallet and API keys live in the OS keychain, never in files
 - **AI-friendly** — keys are never exposed in output; the CLI returns only results
 - **Full trading support** — place/cancel orders, algo orders, positions, leverage
+- **Orderly Predict** — 5-minute BTC Up/Down rounds, UP/DOWN order books, protected closes
 - **Multi-chain** — EVM (Arbitrum, Base, Optimism, …) and Solana
 
 ## Install
@@ -59,6 +60,13 @@ orderly account-balance --account <account-id> --network testnet
 orderly order-place PERP_ETH_USDC BUY MARKET 0.01 --account <account-id> --network testnet
 ```
 
+If the account already has an API key, you can credit the Orderly account
+directly and wait for the balance to arrive:
+
+```bash
+orderly faucet-account --account <account-id> --chain-id 421614 --wait --network testnet
+```
+
 **Note:** `--account` is required for all authenticated commands. Use
 `auth-list` to see available accounts.
 
@@ -84,6 +92,18 @@ orderly algo-order-list --account <account-id>
 orderly positions-list --account <account-id>
 orderly positions-close PERP_ETH_USDC --account <account-id>
 
+# Orderly Predict (5-minute BTC Up/Down; mainnet and testnet)
+orderly predict-rounds --current
+orderly predict-round
+orderly predict-orderbook
+orderly predict-buy <round-symbol> UP 5 --price 0.53 --type IOC --account <account-id>
+orderly predict-buy <round-symbol> DOWN 5 --price 0.58 --type IOC --account <account-id>
+orderly positions-list --product-type BINARY --account <account-id>
+orderly predict-close <round-symbol> --account <account-id>
+orderly order-list --product-type BINARY --account <account-id>
+orderly positions-history --product-type BINARY --account <account-id>
+orderly order-cancel-all --symbol <round-symbol> --account <account-id>
+
 # Market data
 orderly market-price PERP_ETH_USDC
 orderly market-trades PERP_ETH_USDC --limit 20
@@ -91,6 +111,23 @@ orderly funding-rates
 orderly kline PERP_ETH_USDC 1h --limit 100 --account <account-id>
 orderly symbols
 ```
+
+### Orderly Predict notes
+
+- Round symbols are permanent and per-round. Always read the symbol from
+  `predict-rounds` / `predict-round`; never construct or reuse one.
+- The matching engine only has the UP book. `--price` is always in the selected
+  direction: buying DOWN at `d` is sent as `SELL UP @ 1-d`, and selling DOWN at
+  `d` is sent as `BUY UP @ 1-d`. `predict-orderbook` shows both sides.
+- Use `down_asks` to buy DOWN and `down_bids` to sell DOWN. `predict-close`
+  computes a protected IOC price two ticks beyond the best bid/ask.
+- The minimum notional is always checked against the UP-book price, even for
+  DOWN orders.
+- `order-place` and `positions-close` are perpetual-futures commands. Use
+  `predict-buy` / `predict-sell` / `predict-close` for Predict rounds. MARKET
+  orders are rejected by Predict.
+- `fee-tier` includes a `predict` block with the account's binary maker/taker
+  rates.
 
 Run `orderly --help` for the complete command reference.
 
@@ -155,7 +192,9 @@ byte-identical:
 | Network/DNS failure | Node's `getaddrinfo ...` text | reqwest's error text |
 
 The top-level `--help` text, the `Commands:` list and the "missing required
-args" diagnostic are byte-for-byte reproductions of the TypeScript CLI.
+args" diagnostic reproduce the TypeScript CLI for the legacy command surface.
+Rust-only additions (`schema`, the `predict-*` commands and `faucet-account`)
+are listed in `--help` and stripped in the parity test.
 
 ## Development
 

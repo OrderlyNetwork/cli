@@ -124,6 +124,10 @@ fn is_trading_rejection(body: &str) -> bool {
         "reject",
         "reduce-only",
         "reduce only",
+        "round_closed",
+        "round closed",
+        "binary_order",
+        "binary_margin",
     ]
     .iter()
     .any(|needle| body.contains(needle))

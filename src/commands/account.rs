@@ -93,6 +93,13 @@ fn extract_fee_tier(info: &Value) -> Value {
             ]),
         ),
         (
+            "predict",
+            obj(vec![
+                ("maker_fee_rate", get("binary_maker_fee_rate")),
+                ("taker_fee_rate", get("binary_taker_fee_rate")),
+            ]),
+        ),
+        (
             "default",
             obj(vec![
                 ("maker_fee_rate", get("maker_fee_rate")),

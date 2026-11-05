@@ -19,6 +19,7 @@ pub mod market;
 pub mod notification;
 pub mod order;
 pub mod positions;
+pub mod predict;
 pub mod referral;
 pub mod schema;
 pub mod settle;
@@ -51,6 +52,22 @@ pub fn js_number(value: &str) -> f64 {
 /// JS `String(number)` for interpolating numbers into messages.
 pub fn js_num_str(value: f64) -> String {
     crate::output::js_f64_to_string(value)
+}
+
+/// Validate the optional `--product-type` filter. The API only accepts
+/// uppercase `PERP` or `BINARY`.
+pub fn normalize_product_type(value: Option<&str>) -> Result<Option<String>, AppError> {
+    match value.filter(|v| !v.is_empty()) {
+        None => Ok(None),
+        Some(value) => {
+            let upper = value.to_ascii_uppercase();
+            if upper == "PERP" || upper == "BINARY" {
+                Ok(Some(upper))
+            } else {
+                Err(fail("Invalid product type. Use PERP or BINARY."))
+            }
+        }
+    }
 }
 
 /// Current Unix time in milliseconds (`Date.now()`).
@@ -322,6 +339,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
         C::OrderList(args) => {
             let symbol = crate::output::normalize_optional_symbol(args.symbol.as_deref())
                 .map_err(AppError::from)?;
+            let product_type = normalize_product_type(args.product_type.as_deref())?;
             let status = args.status.or_else(|| {
                 if args.all {
                     None
@@ -337,6 +355,7 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
                 args.sort_by.as_deref(),
                 args.page,
                 args.size,
+                product_type.as_deref(),
                 args.acct.account.as_deref(),
                 ctx,
             )
@@ -490,7 +509,9 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
         }
 
         C::PositionsList(args) => {
-            positions::list_positions(args.acct.account.as_deref(), ctx).await
+            let product_type = normalize_product_type(args.product_type.as_deref())?;
+            positions::list_positions(args.acct.account.as_deref(), product_type.as_deref(), ctx)
+                .await
         }
         C::PositionsClose(args) => {
             let symbol = normalize_symbol(&args.symbol).map_err(AppError::from)?;
@@ -506,12 +527,14 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
         C::PositionsHistory(args) => {
             let symbol = crate::output::normalize_optional_symbol(args.symbol.as_deref())
                 .map_err(AppError::from)?;
+            let product_type = normalize_product_type(args.product_type.as_deref())?;
             positions::position_history(
                 symbol.as_deref(),
                 args.start_time,
                 args.end_time,
                 args.page,
                 args.size,
+                product_type.as_deref(),
                 args.acct.account.as_deref(),
                 ctx,
             )
@@ -532,12 +555,14 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
         C::Trades(args) => {
             let symbol = crate::output::normalize_optional_symbol(args.symbol.as_deref())
                 .map_err(AppError::from)?;
+            let product_type = normalize_product_type(args.product_type.as_deref())?;
             trades::list_trades(
                 symbol.as_deref(),
                 args.start_time,
                 args.end_time,
                 args.page,
                 args.size,
+                product_type.as_deref(),
                 args.acct.account.as_deref(),
                 ctx,
             )
@@ -611,12 +636,98 @@ pub async fn dispatch(cli: crate::cli::Cli) -> Result<(), AppError> {
         }
         C::SystemStatus => market::get_system_status(ctx).await,
 
+        C::PredictRounds(args) => {
+            predict::rounds(
+                args.status.as_deref(),
+                args.current,
+                args.limit,
+                args.all,
+                ctx,
+            )
+            .await
+        }
+        C::PredictRound(args) => {
+            let symbol = args
+                .symbol
+                .as_deref()
+                .map(normalize_symbol)
+                .transpose()
+                .map_err(AppError::from)?;
+            predict::round(symbol.as_deref(), ctx).await
+        }
+        C::PredictOrderbook(args) => {
+            let symbol = args
+                .symbol
+                .as_deref()
+                .map(normalize_symbol)
+                .transpose()
+                .map_err(AppError::from)?;
+            predict::orderbook(symbol.as_deref(), args.depth, ctx).await
+        }
+        C::PredictBuy(args) => {
+            let symbol = normalize_symbol(&args.symbol).map_err(AppError::from)?;
+            predict::place(
+                &symbol,
+                &args.direction,
+                &args.shares,
+                args.price.as_deref(),
+                args.type_.as_deref(),
+                args.client_order_id.as_deref(),
+                args.post_only_adjust,
+                predict::Action::Buy,
+                args.dry_run,
+                args.acct.account.as_deref(),
+                ctx,
+            )
+            .await
+        }
+        C::PredictSell(args) => {
+            let symbol = normalize_symbol(&args.symbol).map_err(AppError::from)?;
+            predict::place(
+                &symbol,
+                &args.direction,
+                &args.shares,
+                args.price.as_deref(),
+                args.type_.as_deref(),
+                args.client_order_id.as_deref(),
+                args.post_only_adjust,
+                predict::Action::Sell,
+                args.dry_run,
+                args.acct.account.as_deref(),
+                ctx,
+            )
+            .await
+        }
+        C::PredictClose(args) => {
+            let symbol = normalize_symbol(&args.symbol).map_err(AppError::from)?;
+            predict::close(
+                &symbol,
+                args.shares.as_deref(),
+                args.protect_ticks,
+                args.dry_run,
+                args.acct.account.as_deref(),
+                ctx,
+            )
+            .await
+        }
+
         C::FaucetUsdc(args) => {
             faucet::faucet_usdc(
                 &args.address,
                 args.chain_id.as_deref(),
                 ctx,
                 args.broker_id.as_deref(),
+            )
+            .await
+        }
+        C::FaucetAccount(args) => {
+            faucet::faucet_account(
+                args.acct.account.as_deref(),
+                args.chain_id.as_deref(),
+                args.broker_id.as_deref(),
+                args.wait,
+                args.timeout,
+                ctx,
             )
             .await
         }

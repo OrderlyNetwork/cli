@@ -33,6 +33,7 @@ const EXPECTED_COMMANDS: &[&str] = &[
     "chains",
     "deposit-info",
     "distribution-history",
+    "faucet-account",
     "faucet-usdc",
     "fee-tier",
     "funding-history",
@@ -58,6 +59,12 @@ const EXPECTED_COMMANDS: &[&str] = &[
     "positions-close",
     "positions-history",
     "positions-list",
+    "predict-buy",
+    "predict-close",
+    "predict-orderbook",
+    "predict-round",
+    "predict-rounds",
+    "predict-sell",
     "price-changes",
     "referral-info",
     "schema",
@@ -92,7 +99,7 @@ fn exposes_exactly_the_typescript_command_surface() {
     let mut expected: Vec<String> = EXPECTED_COMMANDS.iter().map(|s| s.to_string()).collect();
     expected.sort();
 
-    assert_eq!(got.len(), 73, "expected 73 subcommands, got {}", got.len());
+    assert_eq!(got.len(), 80, "expected 80 subcommands, got {}", got.len());
     assert_eq!(got, expected);
 }
 
@@ -141,6 +148,52 @@ fn parses_representative_invocations() {
         vec!["orderly", "symbols", "--csv"],
         vec!["orderly", "withdraw", "USDC", "421614", "--amount", "10"],
         vec!["orderly", "batch-order-cancel", "1", "2", "3"],
+        vec![
+            "orderly",
+            "predict-rounds",
+            "--current",
+            "--network",
+            "testnet",
+        ],
+        vec![
+            "orderly",
+            "predict-buy",
+            "PERP_BTC5M2611050940_USDC",
+            "UP",
+            "5",
+            "--price",
+            "0.61",
+            "--type",
+            "IOC",
+        ],
+        vec![
+            "orderly",
+            "predict-sell",
+            "PERP_BTC5M2611050940_USDC",
+            "DOWN",
+            "5",
+            "--price",
+            "0.39",
+        ],
+        vec![
+            "orderly",
+            "predict-close",
+            "PERP_BTC5M2611050940_USDC",
+            "--shares",
+            "5",
+        ],
+        vec![
+            "orderly",
+            "faucet-account",
+            "--account",
+            "0xabc",
+            "--chain-id",
+            "421614",
+            "--wait",
+        ],
+        vec!["orderly", "order-list", "--product-type", "BINARY"],
+        vec!["orderly", "positions-list", "--product-type", "BINARY"],
+        vec!["orderly", "trades", "--product-type", "BINARY"],
     ];
     for args in cases {
         assert!(
@@ -259,6 +312,31 @@ fn schema_manifest_describes_the_command_surface() {
         ]
     );
     assert_eq!(possible(find("wallet create"), "type_"), vec!["EVM", "SOL"]);
+
+    let predict_buy = find("predict buy");
+    let predict_rounds = find("predict rounds");
+    assert_eq!(
+        predict_buy.get("mutates").and_then(|m| m.as_bool()),
+        Some(true)
+    );
+    assert_eq!(
+        predict_rounds.get("mutates").and_then(|m| m.as_bool()),
+        Some(false)
+    );
+    assert_eq!(possible(predict_buy, "direction"), vec!["UP", "DOWN"]);
+    assert_eq!(
+        possible(predict_buy, "type_"),
+        vec!["LIMIT", "IOC", "POST_ONLY"]
+    );
+    assert_eq!(
+        possible(predict_rounds, "status"),
+        vec!["ACTIVE", "DELISTING", "RECYCLING", "DELISTED"]
+    );
+    assert_eq!(
+        possible(find("order list"), "product_type"),
+        vec!["PERP", "BINARY"]
+    );
+
     assert_eq!(
         order_place.get("path").and_then(|p| p.as_str()),
         Some("order-place")
@@ -311,15 +389,21 @@ fn help_output_matches_typescript() {
     let expected =
         std::fs::read_to_string(&path).expect("missing parity fixture; see parity/README.md");
 
-    // `schema` is a Rust-only command with no TypeScript equivalent, so it is
-    // intentionally absent from the frozen parity fixture. Strip its two lines
-    // before diffing and assert they were present, so the command cannot
-    // silently disappear from `--help`.
-    let current = orderly::help::full_help();
-    let (current, removed) = strip_rust_only_help_additions(&current);
-    assert_eq!(
-        removed, 2,
-        "expected `schema` command row and example row in `orderly --help`"
+    // `schema` and the Orderly Predict commands are Rust-only additions with no
+    // TypeScript equivalent, so they are intentionally absent from the frozen
+    // parity fixture. Strip their rows before diffing and assert they were
+    // present, so the commands cannot silently disappear from `--help`.
+    let full = orderly::help::full_help();
+    for name in RUST_ONLY_COMMANDS {
+        assert!(
+            full.contains(name),
+            "missing Rust-only command in help: {name}"
+        );
+    }
+    let (current, removed) = strip_rust_only_help_additions(&full);
+    assert!(
+        removed >= 16,
+        "expected Rust-only help additions to be stripped, removed {removed}"
     );
 
     assert_eq!(
@@ -329,23 +413,67 @@ fn help_output_matches_typescript() {
     );
 }
 
-/// Remove the `schema` command row and its example line from the help text.
+const RUST_ONLY_COMMANDS: &[&str] = &[
+    "schema",
+    "predict-rounds",
+    "predict-round",
+    "predict-orderbook",
+    "predict-buy",
+    "predict-sell",
+    "predict-close",
+    "faucet-account",
+];
+
+/// Remove the rows and example lines for commands that only exist in the Rust
+/// CLI, plus the Prediction category block.
 fn strip_rust_only_help_additions(text: &str) -> (String, usize) {
     let mut out = String::with_capacity(text.len());
     let mut removed = 0;
+    let mut lines = text.split_inclusive('\n').peekable();
 
-    for line in text.split_inclusive('\n') {
+    while let Some(line) = lines.next() {
         let trimmed = line.trim_end_matches(['\n', '\r']);
-        let is_command_row = trimmed.starts_with("  schema ") && !trimmed.contains('$');
-        let is_example_row = trimmed == "  $ orderly schema --help";
 
-        if is_command_row || is_example_row {
+        // The Prediction category block includes one blank line of spacing that
+        // the TypeScript fixture does not have. Remove the heading, its command
+        // list, and the trailing blank together.
+        if trimmed == "Prediction:" {
             removed += 1;
+            while let Some(next) = lines.peek() {
+                let next = next.trim_end_matches(['\n', '\r']);
+                if next.starts_with("  predict-") {
+                    lines.next();
+                    removed += 1;
+                } else {
+                    break;
+                }
+            }
+            if let Some(next) = lines.peek() {
+                if next.trim_end_matches(['\n', '\r']).is_empty() {
+                    lines.next();
+                    removed += 1;
+                }
+            }
             continue;
         }
 
+        if is_rust_only_help_line(trimmed) {
+            removed += 1;
+            continue;
+        }
         out.push_str(line);
     }
 
     (out, removed)
+}
+
+fn is_rust_only_help_line(trimmed: &str) -> bool {
+    if trimmed == "Prediction:" || trimmed.starts_with("  predict-") {
+        return true;
+    }
+    RUST_ONLY_COMMANDS.iter().any(|name| {
+        trimmed == format!("  {name}")
+            || trimmed.starts_with(&format!("  {name} "))
+            || trimmed == format!("  $ orderly {name} --help")
+    })
 }

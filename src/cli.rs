@@ -357,6 +357,10 @@ pub struct OrderListArgs {
     #[arg(long, value_name = "n")]
     pub size: Option<i64>,
 
+    /// Filter by product type: PERP or BINARY
+    #[arg(long = "product-type", value_name = "type")]
+    pub product_type: Option<String>,
+
     /// Show all orders (overrides default INCOMPLETE filter)
     #[arg(long)]
     pub all: bool,
@@ -464,6 +468,46 @@ pub struct HistoryArgs {
     /// Page size (default: 25)
     #[arg(long, value_name = "n")]
     pub size: Option<i64>,
+
+    #[command(flatten)]
+    pub acct: AccountArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct PositionsListArgs {
+    /// Filter by product type: PERP or BINARY
+    #[arg(long = "product-type", value_name = "type")]
+    pub product_type: Option<String>,
+
+    #[command(flatten)]
+    pub acct: AccountArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct ProductHistoryArgs {
+    /// Filter by symbol
+    #[arg(long, value_name = "symbol")]
+    pub symbol: Option<String>,
+
+    /// Start timestamp (Unix ms)
+    #[arg(long = "start-time", value_name = "timestamp")]
+    pub start_time: Option<i64>,
+
+    /// End timestamp (Unix ms)
+    #[arg(long = "end-time", value_name = "timestamp")]
+    pub end_time: Option<i64>,
+
+    /// Page number (default: 1)
+    #[arg(long, value_name = "n")]
+    pub page: Option<i64>,
+
+    /// Page size (default: 25)
+    #[arg(long, value_name = "n")]
+    pub size: Option<i64>,
+
+    /// Filter by product type: PERP or BINARY
+    #[arg(long = "product-type", value_name = "type")]
+    pub product_type: Option<String>,
 
     #[command(flatten)]
     pub acct: AccountArgs,
@@ -761,6 +805,125 @@ pub struct FaucetArgs {
 }
 
 #[derive(Args, Debug)]
+pub struct FaucetAccountArgs {
+    /// Destination chain ID for EVM (default: 421614, Arbitrum Sepolia)
+    #[arg(long = "chain-id", value_name = "id")]
+    pub chain_id: Option<String>,
+
+    /// Broker ID (auto-resolved from the account if omitted)
+    #[arg(long, value_name = "id")]
+    pub broker_id: Option<String>,
+
+    /// Wait for the USDC to appear in the Orderly account balance
+    #[arg(long)]
+    pub wait: bool,
+
+    /// Maximum seconds to wait for the balance (default: 120)
+    #[arg(long, value_name = "seconds", default_value_t = 120)]
+    pub timeout: u64,
+
+    #[command(flatten)]
+    pub acct: AccountArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct PredictRoundsArgs {
+    /// Filter by status: ACTIVE, DELISTING, RECYCLING, DELISTED
+    #[arg(long, value_name = "status")]
+    pub status: Option<String>,
+
+    /// Only show the round currently in its observation window
+    #[arg(long)]
+    pub current: bool,
+
+    /// Maximum rows to print (default: 20, max: 300)
+    #[arg(long, value_name = "n")]
+    pub limit: Option<usize>,
+
+    /// Print all rounds (overrides --limit)
+    #[arg(long)]
+    pub all: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct PredictRoundArgs {
+    /// Round symbol (defaults to the current round)
+    #[arg(value_name = "symbol")]
+    pub symbol: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct PredictOrderbookArgs {
+    /// Round symbol (defaults to the current round)
+    #[arg(value_name = "symbol")]
+    pub symbol: Option<String>,
+
+    /// Number of price levels per side (default: all)
+    #[arg(long, value_name = "n")]
+    pub depth: Option<i64>,
+}
+
+#[derive(Args, Debug)]
+pub struct PredictOrderArgs {
+    /// Round symbol
+    #[arg(value_name = "symbol")]
+    pub symbol: String,
+
+    /// Direction: UP or DOWN
+    #[arg(value_name = "direction")]
+    pub direction: String,
+
+    /// Number of shares
+    #[arg(value_name = "shares")]
+    pub shares: String,
+
+    /// Limit price in the selected direction (0.01-0.99)
+    #[arg(long, value_name = "price")]
+    pub price: Option<String>,
+
+    /// Order type: LIMIT, IOC, POST_ONLY (default: LIMIT)
+    #[arg(long = "type", value_name = "type")]
+    pub type_: Option<String>,
+
+    /// Adjust a POST_ONLY price by one tick toward the best price
+    #[arg(long = "post-only-adjust")]
+    pub post_only_adjust: bool,
+
+    /// Custom client order ID (optional)
+    #[arg(long = "client-order-id", value_name = "id")]
+    pub client_order_id: Option<String>,
+
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
+
+    #[command(flatten)]
+    pub acct: AccountArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct PredictCloseArgs {
+    /// Round symbol
+    #[arg(value_name = "symbol")]
+    pub symbol: String,
+
+    /// Shares to close (default: full position)
+    #[arg(long, value_name = "n")]
+    pub shares: Option<String>,
+
+    /// Price protection in ticks (default: 2)
+    #[arg(long = "protect-ticks", value_name = "n", default_value_t = 2)]
+    pub protect_ticks: i64,
+
+    /// Print the request payload without signing or sending it
+    #[arg(long)]
+    pub dry_run: bool,
+
+    #[command(flatten)]
+    pub acct: AccountArgs,
+}
+
+#[derive(Args, Debug)]
 #[allow(clippy::struct_field_names)]
 pub struct BrokerCreateArgs {
     /// Desired broker ID
@@ -972,11 +1135,17 @@ pub enum CliCommand {
     /// Get registered API key info and scopes
     KeyInfo(AccountOnlyArgs),
     /// Get current fee rates (futures, RWA, default)
+    #[command(
+        long_about = "Get current fee rates (futures, RWA, predict, default).\n\nThe predict block reports binary_maker_fee_rate and binary_taker_fee_rate in bps."
+    )]
     FeeTier(AccountOnlyArgs),
     /// Get account liquidation history
     AccountLiquidations(AccountLiquidationsArgs),
 
     /// Place a new order
+    #[command(
+        long_about = "Place a new perpetual-futures order.\n\nFor Orderly Predict rounds, use `predict-buy` or `predict-sell`; Predict requires margin_mode=ISOLATED and only accepts LIMIT, IOC and POST_ONLY."
+    )]
     OrderPlace(OrderPlaceArgs),
     /// Cancel an order
     OrderCancel(OrderCancelArgs),
@@ -1023,16 +1192,28 @@ pub enum CliCommand {
     AlgoOrderCancelByClientId(ClientOrderIdSymbolArgs),
 
     /// List open positions
-    PositionsList(AccountOnlyArgs),
+    #[command(
+        long_about = "List open positions.\n\nFor Orderly Predict positions, position_qty > 0 is UP and position_qty < 0 is DOWN; margin_mode is always ISOLATED. Use --product-type BINARY to show Predict positions only."
+    )]
+    PositionsList(PositionsListArgs),
     /// Close a position
+    #[command(
+        long_about = "Close a position with a reduce-only MARKET order.\n\nMARKET orders are not supported for Orderly Predict rounds. Use `orderly predict-close <symbol>` for Predict positions."
+    )]
     PositionsClose(PositionsCloseArgs),
     /// Get position history
-    PositionsHistory(HistoryArgs),
+    #[command(
+        long_about = "Get position history.\n\nFor Orderly Predict positions, settlement rows include outcome, settlement_price_per_share and settled_at. Use --product-type BINARY to filter."
+    )]
+    PositionsHistory(ProductHistoryArgs),
 
     /// Get or set leverage for a symbol
     Leverage(LeverageArgs),
     /// Get trade history
-    Trades(HistoryArgs),
+    #[command(
+        long_about = "Get trade history.\n\nFor Orderly Predict fills, fee is the per-fill fee in USDC; expiry settlements appear at price 0, 0.5 or 1. Use --product-type BINARY to filter."
+    )]
+    Trades(ProductHistoryArgs),
     /// Get funding fee history
     FundingHistory(HistoryArgs),
 
@@ -1066,8 +1247,38 @@ pub enum CliCommand {
     /// Get Orderly system maintenance status (no auth required)
     SystemStatus,
 
+    /// List Orderly Predict rounds (5-minute BTC Up/Down)
+    PredictRounds(PredictRoundsArgs),
+    /// Show a Predict round (defaults to the current round)
+    PredictRound(PredictRoundArgs),
+    /// Show the UP and DOWN order books for a Predict round
+    #[command(
+        long_about = "Show the UP and DOWN order books for an Orderly Predict round.\n\nUse down_asks to buy DOWN and down_bids to sell DOWN. The best object summarizes all four sides. Defaults to the current round."
+    )]
+    PredictOrderbook(PredictOrderbookArgs),
+    /// Buy UP or DOWN shares in a Predict round
+    #[command(
+        long_about = "Buy UP or DOWN shares in an Orderly Predict round.\n\n--price is in the selected direction. DOWN buys are sent to the UP book as SELL orders at 1 - price. Only LIMIT, IOC and POST_ONLY are supported; margin_mode is always ISOLATED. The minimum notional is checked against the UP-book price."
+    )]
+    PredictBuy(PredictOrderArgs),
+    /// Sell (reduce) an existing Predict position
+    #[command(
+        long_about = "Sell (reduce) an existing UP or DOWN Orderly Predict position.\n\nThe order is always reduce_only. --price is in the selected direction. DOWN sells are sent to the UP book as BUY orders at 1 - price."
+    )]
+    PredictSell(PredictOrderArgs),
+    /// Close (part of) a Predict position with a protected IOC order
+    #[command(
+        long_about = "Close (part of) an Orderly Predict position with an IOC reduce-only order.\n\nBy default the protection price is 2 ticks beyond the best bid/ask. Use --shares for a partial close; the default is the full position."
+    )]
+    PredictClose(PredictCloseArgs),
+
     /// Get test USDC from faucet (testnet only)
     FaucetUsdc(FaucetArgs),
+    /// Request testnet USDC for a stored Orderly account
+    #[command(
+        long_about = "Request testnet USDC for a stored Orderly account.\n\nResolves the wallet address and broker ID from the stored account, calls the testnet operator faucet, and optionally waits for the USDC to appear in the Orderly account balance. Requires an API key with read scope for the balance check."
+    )]
+    FaucetAccount(FaucetAccountArgs),
 
     /// Create a broker ID via Orderly One
     BrokerCreate(BrokerCreateArgs),

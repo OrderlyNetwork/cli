@@ -138,6 +138,7 @@ fn is_trading_rejection(body: &str) -> bool {
         "exceed the position size",
         "below the round minimum",
         "faucet limit",
+        "no pnl to settle",
         "notional",
         "-1103",
         "-1104",
@@ -411,6 +412,13 @@ mod tests {
         );
         assert_eq!(
             AppError::User(OutputError::new("Shares 5 exceed the position size 2.68.")).exit_code(),
+            TRADING
+        );
+        assert_eq!(
+            AppError::User(OutputError::new(
+                "Settle PnL failed: PNL settlement failed - no PNL to settle"
+            ))
+            .exit_code(),
             TRADING
         );
     }

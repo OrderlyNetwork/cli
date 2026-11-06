@@ -112,6 +112,7 @@ fn is_transient_message(message: &str) -> bool {
         || m.contains("connection closed")
         || m.contains("broken pipe")
         || m.contains("dns error")
+        || m.contains("rate limit")
 }
 
 fn is_trading_rejection(body: &str) -> bool {
@@ -133,6 +134,10 @@ fn is_trading_rejection(body: &str) -> bool {
         "exceeds the maximum",
         "maximum allowed",
         "no open position",
+        "no open predict position",
+        "exceed the position size",
+        "below the round minimum",
+        "faucet limit",
         "notional",
         "-1103",
         "-1104",
@@ -167,6 +172,10 @@ impl AppError {
             AppError::User(e) => {
                 if is_auth_message(&e.message) {
                     exit_code::AUTH
+                } else if is_transient_message(&e.message) {
+                    exit_code::TRANSIENT
+                } else if is_trading_rejection(&e.message) {
+                    exit_code::TRADING
                 } else {
                     exit_code::USAGE
                 }
@@ -371,6 +380,38 @@ mod tests {
         assert_eq!(
             AppError::User(OutputError::new("No key found for account 0x1")).exit_code(),
             AUTH
+        );
+        assert_eq!(
+            AppError::User(OutputError::new(
+                "You have exceeded the account faucet limit"
+            ))
+            .exit_code(),
+            TRADING
+        );
+        assert_eq!(
+            AppError::User(OutputError::new(
+                "Settle PnL failed: You have exceeded your rate limit to Settle PnL (once every 10 min)."
+            ))
+            .exit_code(),
+            TRANSIENT
+        );
+        assert_eq!(
+            AppError::User(OutputError::new(
+                "Order notional 0.5 is below the round minimum 1 (UP-book 0.5 x 1 shares)."
+            ))
+            .exit_code(),
+            TRADING
+        );
+        assert_eq!(
+            AppError::User(OutputError::new(
+                "No open Predict position for PERP_BTC5M_USDC."
+            ))
+            .exit_code(),
+            TRADING
+        );
+        assert_eq!(
+            AppError::User(OutputError::new("Shares 5 exceed the position size 2.68.")).exit_code(),
+            TRADING
         );
     }
 }

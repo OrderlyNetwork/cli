@@ -1,6 +1,6 @@
 [package]
 name = "orderly"
-version = "2.1.0"
+version = "2.1.1"
 edition = "2021"
 description = "CLI tool for Orderly Network trading - secure keychain-based authentication"
 license = "MIT"

@@ -108,12 +108,17 @@ impl DexApiClient {
             .get("message")
             .and_then(|m| m.as_str())
             .ok_or_else(|| crate::commands::fail("DEX API did not return a nonce message."))?;
+        let challenge = nonce_res
+            .get("challenge")
+            .and_then(|c| c.as_str())
+            .ok_or_else(|| crate::commands::fail("DEX API did not return a challenge."))?;
 
         let signature = wallet.sign_message(message);
 
         let verify_body = crate::api::obj(vec![
             ("address", Value::String(wallet.address.clone())),
             ("signature", Value::String(signature)),
+            ("challenge", Value::String(challenge.to_string())),
         ]);
         let verify_res = self
             .send_json(

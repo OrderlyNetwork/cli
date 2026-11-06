@@ -59,6 +59,32 @@ fn order_place_dry_run_prints_the_request_not_a_response() {
 }
 
 #[test]
+fn order_place_bid_short_form_dry_run_is_a_market_order() {
+    let out = run(&[
+        "order-place",
+        "PERP_ETH_USDC",
+        "BID",
+        "0.01",
+        "--dry-run",
+        "--account",
+        NO_SUCH_ACCOUNT,
+        "--network",
+        "testnet",
+    ]);
+    assert!(
+        out.status.success(),
+        "dry-run failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let v: Value = serde_json::from_slice(&out.stdout).expect("dry-run must print JSON");
+    assert_eq!(v["body"]["order_type"], "MARKET");
+    assert_eq!(v["body"]["side"], "BUY");
+    assert_eq!(v["body"]["order_quantity"], "0.01");
+    assert!(v["body"].get("order_price").is_none());
+}
+
+#[test]
 fn algo_order_place_dry_run_prints_the_request() {
     let out = run(&[
         "algo-order-place",

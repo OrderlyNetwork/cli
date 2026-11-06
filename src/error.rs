@@ -129,6 +129,13 @@ fn is_trading_rejection(body: &str) -> bool {
         "round is closed",
         "binary_order",
         "binary_margin",
+        "price scope",
+        "exceeds the maximum",
+        "maximum allowed",
+        "no open position",
+        "notional",
+        "-1103",
+        "-1104",
     ]
     .iter()
     .any(|needle| body.contains(needle))
@@ -151,6 +158,8 @@ impl AppError {
                     exit_code::AUTH
                 } else if is_transient_message(message) {
                     exit_code::TRANSIENT
+                } else if is_trading_rejection(message) {
+                    exit_code::TRADING
                 } else {
                     exit_code::GENERIC
                 }
@@ -317,6 +326,22 @@ mod tests {
             TRADING
         );
         assert_eq!(
+            api(
+                400,
+                r#"{"code":-1103,"message":"The order does not meet the price scope requirement."}"#
+            )
+            .exit_code(),
+            TRADING
+        );
+        assert_eq!(
+            api(
+                400,
+                r#"{"code":-1104,"message":"Order quantity exceeds the maximum allowed amount 320."}"#
+            )
+            .exit_code(),
+            TRADING
+        );
+        assert_eq!(
             api(400, r#"{"message":"invalid symbol"}"#).exit_code(),
             USAGE
         );
@@ -334,6 +359,10 @@ mod tests {
         assert_eq!(
             AppError::Msg("error sending request: connection reset by peer".into()).exit_code(),
             TRANSIENT
+        );
+        assert_eq!(
+            AppError::Msg("No open position found for PERP_ETH_USDC".into()).exit_code(),
+            TRADING
         );
         assert_eq!(
             AppError::User(OutputError::invalid_symbol("nope")).exit_code(),

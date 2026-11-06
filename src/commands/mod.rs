@@ -833,8 +833,7 @@ fn resolve_order_place(
     }
 
     let resolved_quantity = type_.to_string();
-    let resolved_type = side.to_uppercase();
-    let resolved_side = match resolved_type.as_str() {
+    let resolved_side = match side.to_uppercase().as_str() {
         "BID" => "BUY".to_string(),
         "ASK" => "SELL".to_string(),
         _ => {
@@ -848,5 +847,7 @@ fn resolve_order_place(
             ))
         }
     };
-    Ok((resolved_side, resolved_type, resolved_quantity))
+    // The short form is a market order. Sending order_type=BID/ASK to the API
+    // creates a resting limit order instead of filling immediately.
+    Ok((resolved_side, "MARKET".to_string(), resolved_quantity))
 }

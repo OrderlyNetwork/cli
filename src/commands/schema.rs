@@ -128,6 +128,12 @@ fn arg_json(arg: &Arg, path: &str) -> Value {
         .get_default_values()
         .first()
         .map(|v| v.to_string_lossy().to_string());
+    let num_args = arg.get_num_args().map(|r| {
+        json!({
+            "min": r.min_values(),
+            "max": r.max_values(),
+        })
+    });
 
     json!({
         "name": arg.get_id().to_string(),
@@ -138,6 +144,7 @@ fn arg_json(arg: &Arg, path: &str) -> Value {
         "takesValue": arg.get_action().takes_values(),
         "possibleValues": possible_values,
         "defaultValue": default_value,
+        "numArgs": num_args,
         "help": help_of(arg),
     })
 }
@@ -169,6 +176,7 @@ fn command_json(cmd: &Command, path: &str, global_ids: &[String]) -> Value {
     json!({
         "path": path,
         "about": cmd.get_about().map(|s| s.to_string()),
+        "longAbout": cmd.get_long_about().map(|s| s.to_string()),
         "mutates": mutates(path),
         "args": collect_args(cmd, path, global_ids),
         "subcommands": subcommands,
@@ -236,5 +244,38 @@ mod tests {
             assert!(paths.contains(name), "unknown mutating command: {name}");
         }
         assert!(!mutates("schema"));
+    }
+
+    #[test]
+    fn manifest_exposes_long_about_and_variadic_positionals() {
+        let manifest = build_manifest();
+        let commands = manifest["commands"].as_array().unwrap();
+        let find = |path: &str| {
+            commands
+                .iter()
+                .find(|c| c["path"] == path)
+                .unwrap_or_else(|| panic!("missing command: {path}"))
+        };
+
+        let order_place = find("order-place");
+        assert!(
+            order_place["longAbout"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("perpetual-futures"),
+            "order-place should expose its long_about text"
+        );
+
+        let batch_cancel = find("batch-order-cancel");
+        let order_ids = batch_cancel["args"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|a| a["name"] == "order_ids")
+            .expect("missing order_ids arg");
+        assert!(
+            order_ids["numArgs"]["max"].as_u64().unwrap_or(0) > 1,
+            "batch-order-cancel order_ids should be variadic"
+        );
     }
 }

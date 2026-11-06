@@ -362,6 +362,7 @@ fn build_order(
     order_type: &str,
     client_order_id: Option<&str>,
     post_only_adjust: bool,
+    allow_below_min: bool,
 ) -> Result<BuiltOrder, AppError> {
     let quote_min = num_field(round, "quote_min")?;
     let quote_max = num_field(round, "quote_max")?;
@@ -430,7 +431,7 @@ fn build_order(
     }
 
     let notional = book_price * shares;
-    if notional + 1e-9 < min_notional {
+    if !allow_below_min && notional + 1e-9 < min_notional {
         let mut hints = vec![
             "Increase the share quantity.".to_string(),
             "For DOWN orders the minimum is always checked against the UP-book price (1 - DOWN price).".to_string(),
@@ -891,6 +892,7 @@ pub async fn place(
         &order_type,
         client_order_id,
         post_only_adjust,
+        dry_run,
     )?;
 
     if dry_run {
@@ -1014,6 +1016,7 @@ pub async fn close(
         "IOC",
         None,
         false,
+        dry_run || size >= absolute_qty - 1e-9,
     )?;
 
     if dry_run {
@@ -1071,6 +1074,7 @@ mod tests {
             "IOC",
             None,
             false,
+            false,
         )
         .unwrap();
         assert_eq!(built.body["side"], "SELL");
@@ -1093,6 +1097,7 @@ mod tests {
             "LIMIT",
             None,
             false,
+            false,
         )
         .unwrap();
         assert_eq!(built.body["side"], "BUY");
@@ -1110,6 +1115,7 @@ mod tests {
             0.531,
             "LIMIT",
             None,
+            false,
             false
         )
         .is_err());
@@ -1125,9 +1131,28 @@ mod tests {
             0.53,
             "LIMIT",
             None,
+            false,
             false
         )
         .is_err());
+    }
+
+    #[test]
+    fn allows_a_dust_close_when_requested() {
+        let built = build_order(
+            &round(),
+            Direction::Up,
+            Action::Sell,
+            1.0,
+            0.53,
+            "IOC",
+            None,
+            false,
+            true,
+        )
+        .unwrap();
+        assert_eq!(built.body["order_quantity"], "1.00");
+        assert_eq!(built.body["reduce_only"], true);
     }
 
     #[test]
@@ -1140,6 +1165,7 @@ mod tests {
             0.53,
             "MARKET",
             None,
+            false,
             false
         )
         .is_err());

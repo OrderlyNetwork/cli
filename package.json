@@ -34,7 +34,7 @@
     "build": "node scripts/build-sdk.mjs",
     "test": "node --test sdk/tests/*.test.mjs",
     "version": "node scripts/sync-cli-version.mjs",
-    "prepublishOnly": "pnpm test && pnpm verify:artifacts",
+    "prepublishOnly": "node --test sdk/tests/*.test.mjs && node scripts/verify-sdk.mjs",
     "verify:artifacts": "node scripts/verify-sdk.mjs"
   },
   "keywords": [

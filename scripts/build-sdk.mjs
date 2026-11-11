@@ -78,11 +78,28 @@ const sourceFiles = [
   "sdk/index.ts",
   "sdk/tsconfig.json",
 ];
+
+function normalizedSource(file) {
+  const text = readFileSync(path.join(jsDir, file), "utf8");
+  // A release bumps only the package version; that must not invalidate the
+  // prebuilt WASM. Normalize the CLI package version fields before hashing.
+  if (file === "Cargo.toml") {
+    return text.replace(/^version = ".*"$/m, 'version = "0.0.0"');
+  }
+  if (file.endsWith("Cargo.lock")) {
+    return text.replace(
+      /(\[\[package\]\]\nname = "orderly"\nversion = ")[^"]+(")/,
+      (_match, before, after) => `${before}0.0.0${after}`,
+    );
+  }
+  return text;
+}
+
 const hash = createHash("sha256");
 for (const file of sourceFiles) {
   hash.update(file);
   hash.update("\0");
-  hash.update(readFileSync(path.join(jsDir, file)));
+  hash.update(normalizedSource(file));
   hash.update("\0");
 }
 writeFileSync(path.join(outDir, "source-hash.txt"), `${hash.digest("hex")}\n`);

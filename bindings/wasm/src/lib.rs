@@ -3,6 +3,9 @@
 //! The native CLI keeps reqwest and the OS keychain. This crate exposes the
 //! portable pieces: request construction, signing, and auth headers. The
 //! JavaScript transport owns `fetch` and the signer.
+//!
+//! The perps request builders mirror `src/api.rs`. When an endpoint changes,
+//! update both and keep the body-shape tests in sync.
 
 use orderly::request::{self, RequestSpec, SigningKey};
 use serde::Serialize;
@@ -252,10 +255,7 @@ fn prepare_request(kind: &str, params: &Value) -> Result<(RequestSpec, bool), St
                     "side",
                     Value::String(if position_qty > 0.0 { "SELL" } else { "BUY" }.into()),
                 ),
-                (
-                    "order_quantity",
-                    Value::String(js_num_str(quantity)),
-                ),
+                ("order_quantity", Value::String(js_num_str(quantity))),
                 ("reduce_only", Value::Bool(true)),
             ]);
             RequestSpec::new("POST", "/v1/order", Some(body))
@@ -273,10 +273,7 @@ fn prepare_request(kind: &str, params: &Value) -> Result<(RequestSpec, bool), St
             let symbol = string(params, "symbol")?.to_uppercase();
             RequestSpec::new(
                 "GET",
-                format!(
-                    "/v1/client/leverage?symbol={}",
-                    encode_component(&symbol)
-                ),
+                format!("/v1/client/leverage?symbol={}", encode_component(&symbol)),
                 None,
             )
         }
@@ -334,12 +331,8 @@ pub fn headers(
     signature: &str,
     timestamp: f64,
 ) -> Result<JsValue, JsValue> {
-    let headers = request::auth_headers(
-        account_id,
-        public_key_base64,
-        signature,
-        timestamp as u128,
-    );
+    let headers =
+        request::auth_headers(account_id, public_key_base64, signature, timestamp as u128);
     let map: Map<String, Value> = headers
         .into_iter()
         .map(|(key, value)| (key, Value::String(value)))
@@ -392,14 +385,8 @@ pub fn sign_headers(
         public_key: public_key_base64.to_string(),
         private_key: private_key_base64.to_string(),
     };
-    let headers = request::sign_headers(
-        &key,
-        method,
-        path,
-        body.as_deref(),
-        timestamp as u128,
-    )
-    .map_err(|error| js_error(format!("{error}")))?;
+    let headers = request::sign_headers(&key, method, path, body.as_deref(), timestamp as u128)
+        .map_err(|error| js_error(format!("{error}")))?;
     let map: Map<String, Value> = headers
         .into_iter()
         .map(|(key, value)| (key, Value::String(value)))

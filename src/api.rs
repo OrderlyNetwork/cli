@@ -6,12 +6,14 @@
 //! including any query string.
 
 use crate::config::get_api_base_url;
-use crate::crypto;
 use crate::error::AppError;
 use crate::keychain::KeyPair;
+use crate::request::{self, SigningKey};
 use crate::types::Network;
 use serde_json::{Map, Value};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+pub use crate::request::RequestSpec;
 
 /// Build a `Value::Object` preserving key insertion order.
 pub fn obj(pairs: Vec<(&str, Value)>) -> Value {
@@ -121,36 +123,6 @@ pub struct OrderlyClient {
     key_pair: Option<KeyPair>,
 }
 
-/// A request that can be inspected before it is sent (`--dry-run`).
-#[derive(Debug, Clone)]
-pub struct RequestSpec {
-    pub method: String,
-    pub path: String,
-    pub body: Option<Value>,
-}
-
-impl RequestSpec {
-    pub fn new(method: &str, path: impl Into<String>, body: Option<Value>) -> Self {
-        RequestSpec {
-            method: method.to_string(),
-            path: path.into(),
-            body,
-        }
-    }
-
-    /// The `--dry-run` document: clearly a request, never a response.
-    pub fn to_json(&self, note: Option<&str>, requires: &[&str]) -> Value {
-        serde_json::json!({
-            "dryRun": true,
-            "method": self.method,
-            "path": self.path,
-            "body": self.body,
-            "note": note,
-            "requires": requires,
-        })
-    }
-}
-
 impl OrderlyClient {
     pub fn new(network: Network) -> Self {
         OrderlyClient {
@@ -184,20 +156,12 @@ impl OrderlyClient {
             .key_pair
             .as_ref()
             .ok_or_else(|| AppError::Msg("No key pair set. Please authenticate first.".into()))?;
-        let message = format!(
-            "{ts}{}{}{}",
-            method.to_uppercase(),
-            path,
-            body.unwrap_or("")
-        );
-        let signature = crypto::sign(&message, &kp.private_key);
-        let pubkey_b58 = crypto::get_public_key_base58(&kp.public_key);
-        Ok(vec![
-            ("orderly-timestamp".to_string(), ts.to_string()),
-            ("orderly-account-id".to_string(), kp.account_id.clone()),
-            ("orderly-key".to_string(), format!("ed25519:{pubkey_b58}")),
-            ("orderly-signature".to_string(), signature),
-        ])
+        let key = SigningKey {
+            account_id: kp.account_id.clone(),
+            public_key: kp.public_key.clone(),
+            private_key: kp.private_key.clone(),
+        };
+        request::sign_headers(&key, method, path, body, ts)
     }
 
     /// Core request routine. `path` is the relative URL (may include a query).

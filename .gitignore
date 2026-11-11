@@ -12,6 +12,11 @@ dist/
 build/
 *.tsbuildinfo
 
+# WASM binding build output
+bindings/js/dist/
+bindings/js/wasm/
+bindings/wasm/pkg/
+
 # IDE and editor files
 .idea/
 .vscode/*

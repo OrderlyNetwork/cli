@@ -131,6 +131,46 @@ orderly symbols
 
 Run `orderly --help` for the complete command reference.
 
+## JavaScript/TypeScript SDK (WASM)
+
+The CLI's signing and request layer is also published as a WebAssembly package.
+It uses the same Rust code as the binary, but takes a signer instead of reading
+the OS keychain.
+
+```ts
+import { MemorySigner, OrderlyClient } from "@orderly.network/orderly";
+
+const client = new OrderlyClient({
+  network: "testnet",
+  signer: new MemorySigner({ accountId, privateKey }),
+});
+
+const candles = await client.klines("PERP_BTC_USDC", "5m", 200);
+const position = await client.positions("PERP");
+await client.setLeverage("PERP_BTC_USDC", 3);
+await client.placeOrder({
+  symbol: "PERP_BTC_USDC",
+  side: "BUY",
+  orderType: "MARKET",
+  quantity: 0.002,
+});
+```
+
+The package lives in `bindings/js` and is built from `bindings/wasm`. It runs in
+Node, Bun, browsers, and Cloudflare Workers. The signer interface keeps key
+material outside the WebAssembly module; `MemorySigner` is intended for testnet
+and local use. The native binary remains the keychain-backed path for
+interactive and long-lived local use.
+
+Build and test it:
+
+```bash
+cd bindings/js
+pnpm install
+pnpm build
+pnpm test
+```
+
 ## Output Format
 
 By default, output is compact JSON (no whitespace) for AI/programmatic use:

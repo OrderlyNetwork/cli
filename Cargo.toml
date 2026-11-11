@@ -16,8 +16,24 @@ path = "src/main.rs"
 name = "orderly"
 path = "src/lib.rs"
 
+[features]
+default = ["native"]
+native = [
+  "dep:clap",
+  "dep:dialoguer",
+  "dep:reqwest",
+  "dep:tokio",
+  "dep:futures-util",
+  "dep:tokio-tungstenite",
+  "dep:primitive-types",
+  "dep:k256",
+  "dep:secret-service",
+  "dep:keyring",
+]
+wasm = []
+
 [dependencies]
-clap = { version = "4", features = ["derive", "wrap_help"] }
+clap = { version = "4", features = ["derive", "wrap_help"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = "1"
@@ -26,20 +42,23 @@ rand = "0.8"
 bs58 = "0.5"
 base64 = "0.22"
 sha3 = "0.10"
-k256 = { version = "0.13", features = ["ecdsa"] }
-primitive-types = "0.12"
+k256 = { version = "0.13", features = ["ecdsa"], optional = true }
+primitive-types = { version = "0.12", optional = true }
 hex = "0.4"
-dialoguer = "0.11"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
-futures-util = "0.3"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+dialoguer = { version = "0.11", optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"], optional = true }
+futures-util = { version = "0.3", optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"], optional = true }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"], optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-secret-service = { version = "4", features = ["rt-tokio-crypto-rust"] }
+secret-service = { version = "4", features = ["rt-tokio-crypto-rust"], optional = true }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-keyring = { version = "3", features = ["apple-native", "windows-native"] }
+keyring = { version = "3", features = ["apple-native", "windows-native"], optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
 
 [profile.release]
 opt-level = "z"

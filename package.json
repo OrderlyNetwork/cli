@@ -1,6 +1,6 @@
 {
   "name": "@orderly.network/orderly",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "WebAssembly SDK for Orderly Network, built from the Orderly CLI core",
   "type": "module",
   "main": "./dist/index.js",

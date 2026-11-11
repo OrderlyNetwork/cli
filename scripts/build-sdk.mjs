@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,6 +10,19 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const jsDir = path.resolve(here, "..");
 const wasmCrate = path.resolve(jsDir, "bindings/wasm");
 const outDir = path.resolve(jsDir, "wasm");
+
+// Rust embeds absolute source paths in panic locations. Remap the checkout,
+// Cargo home, and Rustup home so a CI rebuild is byte-identical to a local one.
+const cargoHome = process.env.CARGO_HOME || path.join(homedir(), ".cargo");
+const rustupHome = process.env.RUSTUP_HOME || path.join(homedir(), ".rustup");
+const remaps = [
+  `${jsDir}=/orderly`,
+  `${cargoHome}=/cargo`,
+  `${rustupHome}=/rustup`,
+].map((entry) => `--remap-path-prefix=${entry}`);
+process.env.RUSTFLAGS = [process.env.RUSTFLAGS, ...remaps]
+  .filter(Boolean)
+  .join(" ");
 
 execFileSync(
   "cargo",
@@ -44,3 +59,30 @@ execFileSync("pnpm", ["exec", "tsc", "-p", "sdk/tsconfig.json"], {
   cwd: jsDir,
   stdio: "inherit",
 });
+
+// A path-independent fingerprint of the inputs that affect the artifacts.
+// wasm-bindgen output is not byte-identical across checkout paths (Rust embeds
+// path-derived symbol metadata), so CI compares this hash instead.
+const sourceFiles = [
+  "Cargo.toml",
+  "Cargo.lock",
+  "src/lib.rs",
+  "src/colors.rs",
+  "src/crypto.rs",
+  "src/error.rs",
+  "src/request.rs",
+  "src/types.rs",
+  "bindings/wasm/Cargo.toml",
+  "bindings/wasm/Cargo.lock",
+  "bindings/wasm/src/lib.rs",
+  "sdk/index.ts",
+  "sdk/tsconfig.json",
+];
+const hash = createHash("sha256");
+for (const file of sourceFiles) {
+  hash.update(file);
+  hash.update("\0");
+  hash.update(readFileSync(path.join(jsDir, file)));
+  hash.update("\0");
+}
+writeFileSync(path.join(outDir, "source-hash.txt"), `${hash.digest("hex")}\n`);

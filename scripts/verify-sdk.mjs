@@ -10,6 +10,7 @@ const required = [
   "wasm/orderly_wasm.js",
   "wasm/orderly_wasm_base64.js",
   "wasm/orderly_wasm_bg.wasm",
+  "wasm/source-hash.txt",
 ];
 
 const missing = required.filter((file) => !existsSync(path.join(root, file)));

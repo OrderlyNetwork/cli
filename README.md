@@ -274,6 +274,11 @@ toolchain. GitLab is canonical and uses the shared `npm-release.yaml` pipeline.
 `Cargo.lock` to the same version, so a `vX.Y.Z` tag matches both the npm package
 and the GitHub binary release.
 
+WASM builds are path-dependent at the byte level (Rust embeds path-derived
+symbol metadata), so CI compares `wasm/source-hash.txt` and `dist/` instead of
+diffing `orderly_wasm_bg.wasm`. Commit the regenerated hash and artifacts when
+SDK inputs change.
+
 ## License
 
 MIT

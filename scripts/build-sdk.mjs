@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const jsDir = path.resolve(here, "..");
-const wasmCrate = path.resolve(jsDir, "../wasm");
+const wasmCrate = path.resolve(jsDir, "bindings/wasm");
 const outDir = path.resolve(jsDir, "wasm");
 
 execFileSync(
@@ -40,7 +40,7 @@ writeFileSync(
   "export declare const wasmBase64: string;\n",
 );
 
-execFileSync("pnpm", ["exec", "tsc", "-p", "tsconfig.json"], {
+execFileSync("pnpm", ["exec", "tsc", "-p", "sdk/tsconfig.json"], {
   cwd: jsDir,
   stdio: "inherit",
 });

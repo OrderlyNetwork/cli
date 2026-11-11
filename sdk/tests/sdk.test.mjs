@@ -5,7 +5,7 @@ import {
   OrderlyClient,
   crypto,
   prepare,
-} from "../dist/index.js";
+} from "../../dist/index.js";
 
 const PRIVATE_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 const ACCOUNT_ID = "0xabc";

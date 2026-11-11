@@ -33,10 +33,10 @@ only sends the exact message and consumes the signature.
 
 ## Build
 
-The crate lives in `bindings/wasm`; this package lives in `bindings/js`.
+The crate lives in `bindings/wasm`; the TypeScript wrapper lives in `sdk/`. The
+published package is the repository root.
 
 ```bash
-cd bindings/js
 pnpm install
 pnpm build   # cargo build + wasm-bindgen + tsc
 pnpm test

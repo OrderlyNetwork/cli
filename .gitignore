@@ -12,9 +12,12 @@ dist/
 build/
 *.tsbuildinfo
 
+# The published WASM package commits its build output so the npm release
+# pipeline does not need a Rust toolchain.
+!/dist/
+!/dist/**
+
 # WASM binding build output
-bindings/js/dist/
-bindings/js/wasm/
 bindings/wasm/pkg/
 
 # IDE and editor files

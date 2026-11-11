@@ -156,16 +156,15 @@ await client.placeOrder({
 });
 ```
 
-The package lives in `bindings/js` and is built from `bindings/wasm`. It runs in
-Node, Bun, browsers, and Cloudflare Workers. The signer interface keeps key
-material outside the WebAssembly module; `MemorySigner` is intended for testnet
-and local use. The native binary remains the keychain-backed path for
-interactive and long-lived local use.
+The package is published from the repository root and built from `sdk/` plus
+`bindings/wasm`. It runs in Node, Bun, browsers, and Cloudflare Workers. The
+signer interface keeps key material outside the WebAssembly module;
+`MemorySigner` is intended for testnet and local use. The native binary remains
+the keychain-backed path for interactive and long-lived local use.
 
 Build and test it:
 
 ```bash
-cd bindings/js
 pnpm install
 pnpm build
 pnpm test
@@ -257,6 +256,23 @@ Live tests (`tests/api_live.rs`, `tests/ws_live.rs`,
 before it was removed (JSON/CSV rendering, Ed25519, EIP-712, Solana signing, and
 the full `--help` text). The tests diff the Rust implementation against those
 recorded bytes offline, so behavior is pinned without a Node.js toolchain.
+
+### WASM SDK release
+
+The npm package `@orderly.network/orderly` is the repository root. Its TypeScript
+wrapper lives in `sdk/`; the Rust binding crate lives in `bindings/wasm`.
+
+```bash
+pnpm install
+pnpm build          # cargo + wasm-bindgen + tsc -> dist/, wasm/
+pnpm test
+```
+
+`dist/` and `wasm/` are committed so the npm release job does not need a Rust
+toolchain. GitLab is canonical and uses the shared `npm-release.yaml` pipeline.
+`npm version` runs `scripts/sync-cli-version.mjs`, which updates `Cargo.toml` and
+`Cargo.lock` to the same version, so a `vX.Y.Z` tag matches both the npm package
+and the GitHub binary release.
 
 ## License
 

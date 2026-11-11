@@ -1,0 +1,54 @@
+{
+  "name": "@orderly.network/orderly",
+  "version": "2.1.2",
+  "description": "WebAssembly SDK for Orderly Network, built from the Orderly CLI core",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/orderlynetwork/orderly-fe/cli.git"
+  },
+  "homepage": "https://github.com/OrderlyNetwork/cli",
+  "bugs": {
+    "url": "https://github.com/OrderlyNetwork/cli/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@12.18.0",
+  "scripts": {
+    "build": "node scripts/build-sdk.mjs",
+    "test": "node --test sdk/tests/*.test.mjs",
+    "version": "node scripts/sync-cli-version.mjs",
+    "prepublishOnly": "pnpm test && pnpm verify:artifacts",
+    "verify:artifacts": "node scripts/verify-sdk.mjs"
+  },
+  "keywords": [
+    "orderly",
+    "orderly-network",
+    "trading",
+    "perps",
+    "wasm",
+    "sdk",
+    "cli"
+  ],
+  "author": "Orderly Network",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,68 @@
+# GitLab is the canonical repository and publishes the WASM SDK to npm.
+# GitHub remains the binary release target; matching vX.Y.Z tags are mirrored.
+#
+# Required CI/CD variables (group or project):
+#   PUBLIC_NPM_REGISTRY, PUBLIC_NPM_TOKEN, GIT_USERNAME, GIT_TOKEN
+#   GITHUB_MIRROR_TOKEN (PAT with contents:write on OrderlyNetwork/cli)
+# Optional:
+#   INTERNAL_NPM_REGISTRY, INTERNAL_NPM_TOKEN, SLACK_WEBHOOK_URL
+include:
+  - project: "orderlynetwork/orderly-fe/common-ci"
+    ref: main
+    file: "/npm-release.yaml"
+
+variables:
+  GIT_DEPTH: "0"
+
+verify:
+  stage: release
+  image:
+    name: node:22.23.4
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH =~ /^npm\//'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - npm install -g "pnpm@${PNPM_VERSION:-12}"
+    - pnpm install --frozen-lockfile
+    - pnpm test
+    - pnpm verify:artifacts
+    - npm pack --dry-run
+  tags:
+    - dev
+    - build
+
+npm_patch_alpha:
+  needs: [verify]
+
+npm_patch_stable:
+  needs: [verify]
+
+npm_minor_alpha:
+  needs: [verify]
+
+npm_minor_stable:
+  needs: [verify]
+
+npm_major_alpha:
+  needs: [verify]
+
+npm_major_stable:
+  needs: [verify]
+
+# The shared npm-release template bumps package.json, runs `npm version`
+# (which syncs Cargo.toml/Cargo.lock), tags vX.Y.Z, and publishes npm.
+# Mirror only the tag; GitHub Actions builds the CLI binary from it.
+mirror_github_tag:
+  stage: release
+  image:
+    name: node:22.23.4
+  needs: []
+  rules:
+    - if: '$CI_COMMIT_TAG'
+  script:
+    - test -n "$GITHUB_MIRROR_TOKEN"
+    - git fetch --tags origin
+    - git push "https://x-access-token:${GITHUB_MIRROR_TOKEN}@github.com/OrderlyNetwork/cli.git" "refs/tags/${CI_COMMIT_TAG}:refs/tags/${CI_COMMIT_TAG}"
+  tags:
+    - dev
+    - build

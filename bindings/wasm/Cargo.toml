@@ -1,0 +1,18 @@
+[package]
+name = "orderly-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "WebAssembly bindings for the Orderly CLI core"
+license = "MIT"
+repository = "https://github.com/OrderlyNetwork/cli"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+orderly = { path = "../..", default-features = false, features = ["wasm"] }
+wasm-bindgen = "=0.2.130"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde-wasm-bindgen = "0.6"
+base64 = "0.22"

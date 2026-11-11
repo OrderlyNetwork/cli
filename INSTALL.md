@@ -7,7 +7,7 @@ extract it, and put the binary on your `PATH`. There is nothing else to install.
 ## One-line install (Linux and macOS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/master/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/main/install.sh | sh
 ```
 
 The script detects the OS and architecture, verifies the archive against the

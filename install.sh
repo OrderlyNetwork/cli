@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install the Orderly trading CLI from the latest signed GitHub release.
 #
-#   curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/master/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/main/install.sh | sh
 #
 # Environment:
 #   ORDERLY_INSTALL_DIR  target directory (default: ~/.local/bin)
@@ -55,7 +55,7 @@ case "$os" in
   Linux) os_part="unknown-linux-musl" ;;
   Darwin) os_part="apple-darwin" ;;
   *)
-    err "unsupported OS: $os. On Windows see https://github.com/$REPO/blob/master/INSTALL.md"
+    err "unsupported OS: $os. On Windows see https://github.com/$REPO/blob/main/INSTALL.md"
     ;;
 esac
 

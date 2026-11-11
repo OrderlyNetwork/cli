@@ -17,7 +17,7 @@ One line — detects Linux/macOS and x86_64/arm64, verifies the release checksum
 and installs to `~/.local/bin`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/master/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/main/install.sh | sh
 ```
 
 Override the target with `ORDERLY_INSTALL_DIR=/usr/local/bin`, or pin a release

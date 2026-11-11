@@ -31,23 +31,46 @@ verify:
     - dev
     - build
 
+verify_wasm:
+  stage: release
+  image:
+    name: node:22.23.4
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^npm\//'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends build-essential curl
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.99.1
+    - . "$HOME/.cargo/env"
+    - rustup target add wasm32-unknown-unknown
+    - cargo install wasm-bindgen-cli --version 0.2.130 --locked
+    - npm install -g "pnpm@${PNPM_VERSION:-12}"
+    - pnpm install --frozen-lockfile
+  script:
+    - pnpm build
+    - git diff --exit-code -- dist wasm
+  tags:
+    - dev
+    - build
+
 npm_patch_alpha:
-  needs: [verify]
+  needs: [verify, verify_wasm]
 
 npm_patch_stable:
-  needs: [verify]
+  needs: [verify, verify_wasm]
 
 npm_minor_alpha:
-  needs: [verify]
+  needs: [verify, verify_wasm]
 
 npm_minor_stable:
-  needs: [verify]
+  needs: [verify, verify_wasm]
 
 npm_major_alpha:
-  needs: [verify]
+  needs: [verify, verify_wasm]
 
 npm_major_stable:
-  needs: [verify]
+  needs: [verify, verify_wasm]
 
 # The shared npm-release template bumps package.json, runs `npm version`
 # (which syncs Cargo.toml/Cargo.lock), tags vX.Y.Z, and publishes npm.

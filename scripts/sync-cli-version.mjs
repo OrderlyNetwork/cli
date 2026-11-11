@@ -31,23 +31,39 @@ const nextCargo = cargo.replace(
 );
 writeFileSync(cargoPath, nextCargo);
 
-const lockPath = path.join(root, "Cargo.lock");
-const lock = readFileSync(lockPath, "utf8");
-if (!/\[\[package\]\]\nname = "orderly"\nversion = "[^"]+"/.test(lock)) {
-  console.error('Could not find the "orderly" package in Cargo.lock');
-  process.exit(1);
+const lockPaths = [
+  path.join(root, "Cargo.lock"),
+  path.join(root, "bindings/wasm/Cargo.lock"),
+];
+for (const lockPath of lockPaths) {
+  const lock = readFileSync(lockPath, "utf8");
+  if (!/\[\[package\]\]\nname = "orderly"\nversion = "[^"]+"/.test(lock)) {
+    console.error(`Could not find the "orderly" package in ${lockPath}`);
+    process.exit(1);
+  }
+  writeFileSync(
+    lockPath,
+    lock.replace(
+      /(\[\[package\]\]\nname = "orderly"\nversion = ")[^"]+(")/,
+      `$1${version}$2`,
+    ),
+  );
 }
-const nextLock = lock.replace(
-  /(\[\[package\]\]\nname = "orderly"\nversion = ")[^"]+(")/,
-  `$1${version}$2`,
-);
-writeFileSync(lockPath, nextLock);
 
 try {
-  execFileSync("git", ["add", "Cargo.toml", "Cargo.lock"], {
-    cwd: root,
-    stdio: "inherit",
-  });
+  execFileSync(
+    "git",
+    [
+      "add",
+      "Cargo.toml",
+      "Cargo.lock",
+      "bindings/wasm/Cargo.lock",
+    ],
+    {
+      cwd: root,
+      stdio: "inherit",
+    },
+  );
 } catch {
   // Not a git checkout (for example an npm tarball). The file updates still apply.
 }

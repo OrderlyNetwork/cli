@@ -62,3 +62,33 @@ test("authenticated requests require a signer before fetching", async () => {
   const client = new OrderlyClient({ network: "testnet" });
   await assert.rejects(() => client.request("balance"), /requires a signer/);
 });
+
+test("uses an async signer and sends signed headers", async () => {
+  const publicKey = crypto.publicKeyFromPrivateKey(PRIVATE_KEY);
+  const calls = [];
+  const signer = {
+    accountId: ACCOUNT_ID,
+    publicKey,
+    async sign(message) {
+      return crypto.sign(message, PRIVATE_KEY);
+    },
+  };
+  const client = new OrderlyClient({
+    network: "testnet",
+    signer,
+    fetch: async (url, init) => {
+      calls.push({ url, init });
+      return new Response(JSON.stringify({ success: true, data: { holding: [] } }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    },
+  });
+
+  const result = await client.request("balance");
+  assert.deepEqual(result, { holding: [] });
+  assert.equal(calls.length, 1);
+  assert.match(String(calls[0].url), /\/v1\/client\/holding$/);
+  assert.equal(calls[0].init.headers["orderly-account-id"], ACCOUNT_ID);
+  assert.match(calls[0].init.headers["orderly-key"], /^ed25519:/);
+});

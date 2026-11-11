@@ -15,7 +15,6 @@
     "dist",
     "wasm"
   ],
-  "sideEffects": false,
   "engines": {
     "node": ">=18"
   },

@@ -32,7 +32,7 @@
   "packageManager": "pnpm@12.18.0",
   "scripts": {
     "build": "node scripts/build-sdk.mjs",
-    "test": "node --test sdk/tests/*.test.mjs",
+    "test": "node --test sdk/tests/*.test.mjs scripts/tests/*.test.mjs",
     "version": "node scripts/sync-cli-version.mjs",
     "prepublishOnly": "node --test sdk/tests/*.test.mjs && node scripts/verify-sdk.mjs",
     "verify:artifacts": "node scripts/verify-sdk.mjs"

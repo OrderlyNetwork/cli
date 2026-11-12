@@ -99,7 +99,22 @@ jobs:
 
       - name: Install musl toolchain
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
+        shell: bash
+        # apt exits 100 when the archive mirror flakes, which is exactly how
+        # v2.2.1 lost its two Linux builds. Retry instead of failing the tag.
+        run: |
+          set -uo pipefail
+          for attempt in 1 2 3 4 5; do
+            if sudo apt-get -o Acquire::Retries=5 update \
+              && sudo apt-get -o Acquire::Retries=5 install -y --no-install-recommends musl-tools; then
+              musl-gcc --version | head -1
+              exit 0
+            fi
+            echo "::warning title=musl-tools::apt attempt ${attempt} failed, retrying"
+            sleep $((attempt * 15))
+          done
+          echo "::error title=musl-tools::could not install musl-tools after 5 attempts"
+          exit 1
 
       - name: Point musl targets at musl-gcc
         if: runner.os == 'Linux'

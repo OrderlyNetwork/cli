@@ -59,12 +59,12 @@ cargo fmt --check
 
 Releasing: push a tag matching `Cargo.toml` (e.g. `v2.0.0`). The release
 workflow builds six targets, signs with cosign, attests build provenance and
-publishes the release. It then packs the same binaries as
-`@orderly.network/cli-<os>-<cpu>` npm packages (`scripts/npm-platforms.mjs`) and
-publishes them, so npm consumers such as the trading MCP can depend on them via
-`optionalDependencies` + `os`/`cpu`. That job needs an `NPM_TOKEN` secret with
-publish rights for `@orderly.network`; it fails loudly when the secret is
-missing. See `INSTALL.md`.
+publishes the release. A separate manual GitLab job, `npm_platforms`, downloads
+those six archives and republishes them as `@orderly.network/cli-<os>-<cpu>` npm
+packages (`scripts/npm-platforms.mjs`), so consumers such as the trading MCP can
+depend on them via `optionalDependencies` + `os`/`cpu`. npm publishing runs in
+GitLab because `PUBLIC_NPM_TOKEN` lives there; GitHub has no npm credential. Run
+the job on the tag pipeline once the GitHub release exists. See `INSTALL.md`.
 
 ## Troubleshooting
 

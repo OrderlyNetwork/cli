@@ -20,6 +20,10 @@ build/
 # WASM binding build output
 bindings/wasm/pkg/
 
+# npm platform packages and extracted release binaries (built in CI)
+npm-platforms/
+binaries/
+
 # IDE and editor files
 .idea/
 .vscode/*

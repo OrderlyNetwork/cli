@@ -142,6 +142,7 @@ function parseArgs(argv) {
     outDir: null,
     version: null,
     verifyHost: false,
+    printTargets: false,
     targets: [],
   };
   for (let index = 0; index < argv.length; index += 1) {
@@ -150,6 +151,7 @@ function parseArgs(argv) {
     else if (flag === '--out') args.outDir = argv[++index];
     else if (flag === '--version') args.version = argv[++index];
     else if (flag === '--verify-host') args.verifyHost = true;
+    else if (flag === '--print-targets') args.printTargets = true;
     else if (flag === '--target') args.targets.push(argv[++index]);
     else throw new Error(`unknown argument: ${flag}`);
   }
@@ -158,6 +160,10 @@ function parseArgs(argv) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.printTargets) {
+    for (const entry of TARGETS) process.stdout.write(`${entry.target}\n`);
+    return;
+  }
   if (!args.binariesDir || !args.outDir) {
     throw new Error('usage: npm-platforms.mjs --binaries <dir> --out <dir> [--version X.Y.Z] [--verify-host]');
   }

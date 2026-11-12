@@ -90,3 +90,64 @@ mirror_github_tag:
   tags:
     - dev
     - build
+
+# Publishes the six released binaries as npm platform packages
+# (@orderly.network/cli-<os>-<cpu>), which is how consumers such as the trading
+# MCP get the CLI without a separate install.
+#
+# Runs here rather than in GitHub Actions because the npm token lives in GitLab
+# CI. GitHub still builds, signs and publishes the archives; this job downloads
+# the release assets for the tag and republishes them to npm.
+#
+# Manual on the tag pipeline: start it after the GitHub release for the tag
+# exists. The curl retries cover the gap while GitHub Actions builds.
+npm_platforms:
+  stage: release
+  image:
+    name: node:22.23.4
+  needs: []
+  rules:
+    - if: '$CI_COMMIT_TAG'
+  when: manual
+  variables:
+    GH_REPO: OrderlyNetwork/cli
+  script:
+    - command -v unzip >/dev/null || (apt-get update && apt-get install -y --no-install-recommends unzip)
+    - |
+      set -euo pipefail
+      base="https://github.com/${GH_REPO}/releases/download/${CI_COMMIT_TAG}"
+      mkdir -p binaries
+      for target in $(node scripts/npm-platforms.mjs --print-targets); do
+        mkdir -p "binaries/${target}"
+        case "$target" in
+          *windows*)
+            curl -fsSL --retry 60 --retry-delay 15 --retry-all-errors \
+              -o /tmp/orderly.zip "${base}/orderly-${target}.zip"
+            unzip -j -o /tmp/orderly.zip orderly.exe -d "binaries/${target}"
+            ;;
+          *)
+            curl -fsSL --retry 60 --retry-delay 15 --retry-all-errors \
+              -o /tmp/orderly.tar.gz "${base}/orderly-${target}.tar.gz"
+            tar -xzf /tmp/orderly.tar.gz -C "binaries/${target}" orderly
+            ;;
+        esac
+      done
+      find binaries -type f | sort
+    - node scripts/npm-platforms.mjs --binaries binaries --out npm-platforms --version "${CI_COMMIT_TAG#v}" --verify-host
+    - |
+      set -euo pipefail
+      test -n "${PUBLIC_NPM_TOKEN:-}" || { echo "PUBLIC_NPM_TOKEN is not set"; exit 1; }
+      registry="${PUBLIC_NPM_REGISTRY:-https://registry.npmjs.org/}"
+      for dir in npm-platforms/@orderly.network/*; do
+        name=$(node -p "require('./${dir}/package.json').name")
+        version=$(node -p "require('./${dir}/package.json').version")
+        if npm view "${name}@${version}" version --registry "${registry}" >/dev/null 2>&1; then
+          echo "${name}@${version} already published, skipping"
+          continue
+        fi
+        ( cd "${dir}" && NODE_AUTH_TOKEN="${PUBLIC_NPM_TOKEN}" npm publish --access public --registry "${registry}" )
+        echo "published ${name}@${version}"
+      done
+  tags:
+    - dev
+    - build

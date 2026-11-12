@@ -59,7 +59,12 @@ cargo fmt --check
 
 Releasing: push a tag matching `Cargo.toml` (e.g. `v2.0.0`). The release
 workflow builds six targets, signs with cosign, attests build provenance and
-publishes the release. See `INSTALL.md`.
+publishes the release. It then packs the same binaries as
+`@orderly.network/cli-<os>-<cpu>` npm packages (`scripts/npm-platforms.mjs`) and
+publishes them, so npm consumers such as the trading MCP can depend on them via
+`optionalDependencies` + `os`/`cpu`. That job needs an `NPM_TOKEN` secret with
+publish rights for `@orderly.network`; it fails loudly when the secret is
+missing. See `INSTALL.md`.
 
 ## Troubleshooting
 

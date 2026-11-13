@@ -82,7 +82,10 @@ is published by the shared npm release template.
 
 npm publishing runs in GitLab because `PUBLIC_NPM_TOKEN` lives there; GitHub has
 no npm credential. Run `npm_platforms` on the tag pipeline once the GitHub
-release exists. See `INSTALL.md`.
+release exists. Both npm jobs write `//<registry>/:_authToken` into `~/.npmrc`
+first and abort if `npm whoami` fails: `NODE_AUTH_TOKEN` on its own is ignored
+outside `actions/setup-node`, which is how an unauthenticated publish/unpublish
+can look successful while doing nothing. See `INSTALL.md`.
 
 `npm_unpublish_orderly` is a one-off manual job for deleting the retired
 `@orderly.network/orderly` name (renamed to `cli-wasm`). It refuses to run

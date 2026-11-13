@@ -143,6 +143,16 @@ npm_platforms:
       set -euo pipefail
       test -n "${PUBLIC_NPM_TOKEN:-}" || { echo "PUBLIC_NPM_TOKEN is not set"; exit 1; }
       registry="${PUBLIC_NPM_REGISTRY:-https://registry.npmjs.org/}"
+      host="${registry#*://}"; host="${host%/}"
+      # `NODE_AUTH_TOKEN` alone does nothing: npm only reads it through this
+      # .npmrc entry. Without it every publish is an anonymous request.
+      npm config set "//${host}/:_authToken" "$PUBLIC_NPM_TOKEN"
+      echo -n "authenticated as: "
+      npm whoami --registry "$registry" || {
+        echo
+        echo "PUBLIC_NPM_TOKEN did not authenticate against ${registry}."
+        exit 1
+      }
       publish() {
         dir="$1"
         name=$(node -p "require('./${dir}/package.json').name")
@@ -151,7 +161,7 @@ npm_platforms:
           echo "${name}@${version} already published, skipping"
           return 0
         fi
-        ( cd "${dir}" && NODE_AUTH_TOKEN="${PUBLIC_NPM_TOKEN}" npm publish --access public --registry "${registry}" )
+        ( cd "${dir}" && npm publish --access public --registry "${registry}" )
         echo "published ${name}@${version}"
       }
       # Platform packages first: the launcher's optionalDependencies must exist
@@ -200,11 +210,20 @@ npm_unpublish_orderly:
       # Publishing may go through a mirror; a delete must reach npmjs itself.
       registry="${UNPUBLISH_REGISTRY:-https://registry.npmjs.org/}"
       base="${registry%/}"
+      host="${registry#*://}"; host="${host%/}"
       packument="${base}/@orderly.network%2Forderly"
 
+      # `NODE_AUTH_TOKEN` alone does nothing: npm only reads it through this
+      # .npmrc entry. Without it the DELETE below is anonymous (404) and npm
+      # still exits 0.
+      npm config set "//${host}/:_authToken" "$PUBLIC_NPM_TOKEN"
       echo "registry: $registry"
       echo -n "authenticated as: "
-      NODE_AUTH_TOKEN="${PUBLIC_NPM_TOKEN}" npm whoami --registry "$registry" || echo "(whoami failed)"
+      npm whoami --registry "$registry" || {
+        echo
+        echo "PUBLIC_NPM_TOKEN did not authenticate against ${registry}; refusing to continue."
+        exit 1
+      }
       before=$(curl -s -o /dev/null -w '%{http_code}' "$packument")
       echo "packument before: HTTP $before"
       if [ "$before" = "404" ]; then
@@ -216,7 +235,7 @@ npm_unpublish_orderly:
       if [ "${UNPUBLISH_DRY_RUN:-}" = "1" ]; then
         extra+=(--dry-run)
       fi
-      NODE_AUTH_TOKEN="${PUBLIC_NPM_TOKEN}" npm unpublish "$target" --force \
+      npm unpublish "$target" --force \
         --registry "$registry" --loglevel=http "${extra[@]}"
 
       if [ "${UNPUBLISH_DRY_RUN:-}" = "1" ]; then

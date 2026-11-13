@@ -146,7 +146,8 @@ Run `orderly --help` for the complete command reference.
 
 The CLI's signing and request layer is also published as a WebAssembly package.
 It uses the same Rust code as the binary, but takes a signer instead of reading
-the OS keychain.
+the OS keychain. It is not a command-line tool — for that, install
+`@orderly.network/cli`.
 
 ```ts
 import { MemorySigner, OrderlyClient } from "@orderly.network/cli-wasm";

@@ -4,6 +4,10 @@ Orderly CLI core as WebAssembly: request construction, signing and auth headers
 for JavaScript and browsers. Same Rust code as the binary; you provide the signer
 instead of the OS keychain.
 
+This is not a command-line tool: there is no `orderly` command and no keychain
+access. Install [`@orderly.network/cli`](https://www.npmjs.com/package/@orderly.network/cli)
+for the native binary.
+
 ```ts
 import { MemorySigner, OrderlyClient } from "@orderly.network/cli-wasm";
 

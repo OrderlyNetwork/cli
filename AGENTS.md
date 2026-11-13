@@ -81,8 +81,8 @@ layer compiled to WebAssembly (no keychain; the caller supplies a signer). It
 is published by the shared npm release template.
 
 npm publishing runs in GitLab because `PUBLIC_NPM_TOKEN` lives there; GitHub has
-no npm credential. Run `npm_platforms` on the tag pipeline once the GitHub
-release exists. The job writes `//<registry>/:_authToken` into `~/.npmrc` first
+no npm credential. `npm_platforms` runs automatically on a release tag (it waits
+for the GitHub assets) and is manual on `main` for backfills. The job writes `//<registry>/:_authToken` into `~/.npmrc` first
 and aborts if `npm whoami` fails: `NODE_AUTH_TOKEN` on its own is ignored
 outside `actions/setup-node`, which is how an unauthenticated publish can look
 successful while doing nothing. See `INSTALL.md`.

@@ -99,17 +99,21 @@ mirror_github_tag:
 # CI. GitHub still builds, signs and publishes the archives; this job downloads
 # the release assets for the tag and republishes them to npm.
 #
-# Manual: start it after the GitHub release for the tag exists. The curl
-# retries cover the gap while GitHub Actions builds. Run it from the tag
-# pipeline, or from `main` with PLATFORM_TAG set to bootstrap an older release
-# whose tag predates this job.
+# Automatic on a release tag: the job downloads the six archives from the
+# matching GitHub release, packs them and publishes them. The curl retries
+# cover the gap while GitHub Actions builds (up to ~15 minutes).
+#
+# Manual on `main` with PLATFORM_TAG set, to backfill a release whose tag
+# predates this job.
 npm_platforms:
   stage: release
   image:
     name: node:22.23.4
   needs: []
   rules:
-    - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_TAG'
+      when: on_success
+    - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
   variables:
     GH_REPO: OrderlyNetwork/cli

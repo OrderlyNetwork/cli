@@ -1,6 +1,6 @@
 {
   "name": "@orderly.network/cli-wasm",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "Orderly CLI core as WebAssembly: request construction, signing and auth headers for JavaScript and browsers",
   "type": "module",
   "main": "./dist/index.js",

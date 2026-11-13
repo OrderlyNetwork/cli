@@ -185,7 +185,15 @@ npm_unpublish_orderly:
       set -euo pipefail
       target="@orderly.network/orderly"
       if [ "${CONFIRM_UNPUBLISH:-}" != "$target" ]; then
-        echo "Refusing to run: set CONFIRM_UNPUBLISH=$target on the pipeline."
+        echo "CONFIRM_UNPUBLISH is '${CONFIRM_UNPUBLISH:-<unset>}', expected '$target'."
+        echo
+        echo "A manual job cannot receive variables when you press Play."
+        echo "Create a new pipeline: CI/CD > Pipelines > Run pipeline, branch main,"
+        echo "add CONFIRM_UNPUBLISH=$target, then press Play on this job."
+        echo
+        echo "If the Run pipeline form does not keep the variable, add it temporarily"
+        echo "under Settings > CI/CD > Variables (unprotected, not masked), run the"
+        echo "job, then delete the variable."
         exit 1
       fi
       test -n "${PUBLIC_NPM_TOKEN:-}" || { echo "PUBLIC_NPM_TOKEN is not set"; exit 1; }

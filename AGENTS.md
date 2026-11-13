@@ -84,6 +84,11 @@ npm publishing runs in GitLab because `PUBLIC_NPM_TOKEN` lives there; GitHub has
 no npm credential. Run `npm_platforms` on the tag pipeline once the GitHub
 release exists. See `INSTALL.md`.
 
+`npm_unpublish_orderly` is a one-off manual job for deleting the retired
+`@orderly.network/orderly` name (renamed to `cli-wasm`). It refuses to run
+unless the pipeline sets `CONFIRM_UNPUBLISH=@orderly.network/orderly`, and
+supports `UNPUBLISH_DRY_RUN=1`. Remove the job once the package is gone.
+
 ## Troubleshooting
 
 - **Linux keychain**: requires a running Secret Service (gnome-keyring / KWallet)

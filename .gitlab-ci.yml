@@ -161,3 +161,63 @@ npm_platforms:
   tags:
     - dev
     - build
+
+# One-off: delete the retired wasm package name from npm.
+#
+# `@orderly.network/orderly` was renamed to `@orderly.network/cli-wasm`; npm
+# only allows deleting a package without support intervention within 72 hours
+# of its first publish. npm credentials live here, not on workstations.
+#
+# Run it from a pipeline created with the variable
+#   CONFIRM_UNPUBLISH=@orderly.network/orderly
+# and optionally UNPUBLISH_DRY_RUN=1 first to check permissions. Delete this
+# job once the package is gone; it is not part of the release flow.
+npm_unpublish_orderly:
+  stage: release
+  image:
+    name: node:22.23.4
+  needs: []
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+  script:
+    - |
+      set -euo pipefail
+      target="@orderly.network/orderly"
+      if [ "${CONFIRM_UNPUBLISH:-}" != "$target" ]; then
+        echo "Refusing to run: set CONFIRM_UNPUBLISH=$target on the pipeline."
+        exit 1
+      fi
+      test -n "${PUBLIC_NPM_TOKEN:-}" || { echo "PUBLIC_NPM_TOKEN is not set"; exit 1; }
+      registry="${PUBLIC_NPM_REGISTRY:-https://registry.npmjs.org/}"
+
+      if ! npm view "$target" version --registry "$registry" >/dev/null 2>&1; then
+        echo "$target is already unpublished."
+        exit 0
+      fi
+
+      extra=()
+      if [ "${UNPUBLISH_DRY_RUN:-}" = "1" ]; then
+        extra+=(--dry-run)
+      fi
+      NODE_AUTH_TOKEN="${PUBLIC_NPM_TOKEN}" npm unpublish "$target" --force \
+        --registry "$registry" "${extra[@]}"
+
+      if [ "${UNPUBLISH_DRY_RUN:-}" = "1" ]; then
+        echo "Dry run complete; nothing was deleted."
+        exit 0
+      fi
+
+      # Registry metadata propagates asynchronously.
+      for attempt in 1 2 3 4 5 6 7 8 9 10; do
+        if ! npm view "$target" version --registry "$registry" >/dev/null 2>&1; then
+          echo "Unpublished $target."
+          exit 0
+        fi
+        sleep 6
+      done
+      echo "Unpublish reported success but $target is still visible." >&2
+      exit 1
+  tags:
+    - dev
+    - build

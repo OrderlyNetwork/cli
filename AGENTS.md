@@ -48,6 +48,14 @@ src/
 `tests/parity_*.rs` diff the implementation against fixtures recorded from the
 legacy TypeScript CLI; see `parity/README.md`.
 
+npm packaging lives outside `src/`:
+
+```
+npm/cli/bin/orderly.js    # @orderly.network/cli entry point (spawns the platform binary)
+npm/cli/lib/resolve.js    # platform/arch -> @orderly.network/cli-<os>-<cpu>
+scripts/npm-platforms.mjs # packs the launcher + six binary packages for the release job
+```
+
 ## Build & Quality
 
 ```bash
@@ -60,11 +68,21 @@ cargo fmt --check
 Releasing: push a tag matching `Cargo.toml` (e.g. `v2.0.0`). The release
 workflow builds six targets, signs with cosign, attests build provenance and
 publishes the release. A separate manual GitLab job, `npm_platforms`, downloads
-those six archives and republishes them as `@orderly.network/cli-<os>-<cpu>` npm
-packages (`scripts/npm-platforms.mjs`), so consumers such as the trading MCP can
-depend on them via `optionalDependencies` + `os`/`cpu`. npm publishing runs in
-GitLab because `PUBLIC_NPM_TOKEN` lives there; GitHub has no npm credential. Run
-the job on the tag pipeline once the GitHub release exists. See `INSTALL.md`.
+those six archives and republishes them to npm (`scripts/npm-platforms.mjs`):
+
+- `@orderly.network/cli-<os>-<cpu>` — the binaries, `os`/`cpu` filtered, no `bin`
+- `@orderly.network/cli` — the package users install; `bin/orderly` launches the
+  platform binary with inherited stdio. Source lives in `npm/cli/` and is
+  stamped with the release version by the packer. Published last, after the
+  platform packages it depends on.
+
+The repository root package is `@orderly.network/cli-wasm`, the request/signing
+layer compiled to WebAssembly (no keychain; the caller supplies a signer). It
+is published by the shared npm release template.
+
+npm publishing runs in GitLab because `PUBLIC_NPM_TOKEN` lives there; GitHub has
+no npm credential. Run `npm_platforms` on the tag pipeline once the GitHub
+release exists. See `INSTALL.md`.
 
 ## Troubleshooting
 

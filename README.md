@@ -13,8 +13,19 @@ as a single static binary — no Node.js runtime required.
 
 ## Install
 
-One line — detects Linux/macOS and x86_64/arm64, verifies the release checksum,
-and installs to `~/.local/bin`:
+With Node.js 18+:
+
+```bash
+npm install -g @orderly.network/cli
+orderly --version
+```
+
+The npm package installs one platform binary through `optionalDependencies` and
+launches it with inherited stdio; no install scripts run. Use
+`npx @orderly.network/cli` for a one-off run.
+
+Without Node.js, one line — detects Linux/macOS and x86_64/arm64, verifies the
+release checksum, and installs to `~/.local/bin`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/OrderlyNetwork/cli/main/install.sh | sh

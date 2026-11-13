@@ -143,16 +143,21 @@ npm_platforms:
       set -euo pipefail
       test -n "${PUBLIC_NPM_TOKEN:-}" || { echo "PUBLIC_NPM_TOKEN is not set"; exit 1; }
       registry="${PUBLIC_NPM_REGISTRY:-https://registry.npmjs.org/}"
-      for dir in npm-platforms/@orderly.network/*; do
+      publish() {
+        dir="$1"
         name=$(node -p "require('./${dir}/package.json').name")
         version=$(node -p "require('./${dir}/package.json').version")
         if npm view "${name}@${version}" version --registry "${registry}" >/dev/null 2>&1; then
           echo "${name}@${version} already published, skipping"
-          continue
+          return 0
         fi
         ( cd "${dir}" && NODE_AUTH_TOKEN="${PUBLIC_NPM_TOKEN}" npm publish --access public --registry "${registry}" )
         echo "published ${name}@${version}"
-      done
+      }
+      # Platform packages first: the launcher's optionalDependencies must exist
+      # before anyone installs it.
+      for dir in npm-platforms/@orderly.network/cli-*; do publish "$dir"; done
+      publish npm-platforms/@orderly.network/cli
   tags:
     - dev
     - build

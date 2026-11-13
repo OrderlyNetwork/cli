@@ -38,6 +38,11 @@ export const TARGETS = [
 
 export const PACKAGE_SCOPE = '@orderly.network';
 
+const REPOSITORY = {
+  type: 'git',
+  url: 'git+https://gitlab.com/orderlynetwork/orderly-fe/cli.git',
+};
+
 /** Name of the executable inside the archive for a target. */
 export function binaryName(target) {
   return target.includes('windows') ? 'orderly.exe' : 'orderly';
@@ -72,10 +77,7 @@ export function platformPackageJson(entry, version) {
     version,
     description: `Orderly Network CLI binary for ${entry.os}-${entry.cpu}`,
     license: 'MIT',
-    repository: {
-      type: 'git',
-      url: 'git+https://gitlab.com/orderlynetwork/orderly-fe/cli.git',
-    },
+    repository: REPOSITORY,
     homepage: 'https://github.com/OrderlyNetwork/cli',
     os: [entry.os],
     cpu: [entry.cpu],
@@ -118,6 +120,56 @@ export function packPlatforms({ binariesDir, outDir, version, targets = TARGETS 
     written.push(dir);
   }
   return written;
+}
+
+/**
+ * The launcher package users install: `orderly` bin plus optionalDependencies
+ * on the six platform packages. Written from `npm/cli/` so the bin and its
+ * resolver are tested in place.
+ */
+export function launcherManifest(version) {
+  return {
+    name: `${PACKAGE_SCOPE}/cli`,
+    version,
+    description:
+      'Orderly Network CLI: the native binary is installed as an optional dependency',
+    license: 'MIT',
+    repository: REPOSITORY,
+    homepage: 'https://github.com/OrderlyNetwork/cli',
+    type: 'module',
+    bin: { orderly: 'bin/orderly.js' },
+    engines: { node: '>=18' },
+    files: ['bin', 'lib'],
+    optionalDependencies: Object.fromEntries(
+      TARGETS.map((entry) => [packageName(entry.target), version])
+    ),
+  };
+}
+
+export function packLauncher({ outDir, version }) {
+  if (!/^\d+\.\d+\.\d+/.test(version ?? '')) {
+    throw new Error(`invalid version: ${version}`);
+  }
+  const dir = path.join(outDir, `${PACKAGE_SCOPE}/cli`);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(path.join(dir, 'bin'), { recursive: true });
+  mkdirSync(path.join(dir, 'lib'), { recursive: true });
+
+  for (const file of [
+    ['bin', 'orderly.js'],
+    ['lib', 'resolve.js'],
+  ]) {
+    const source = path.join(REPO_ROOT, 'npm', 'cli', ...file);
+    const destination = path.join(dir, ...file);
+    copyFileSync(source, destination);
+    if (file[1] === 'orderly.js') chmodSync(destination, 0o755);
+  }
+
+  writeFileSync(
+    path.join(dir, 'package.json'),
+    `${JSON.stringify(launcherManifest(version), null, 2)}\n`
+  );
+  return dir;
 }
 
 /** Run the packaged host binary once so a broken archive fails the release. */
@@ -182,6 +234,7 @@ function main() {
     version,
     targets: selected,
   });
+  written.push(packLauncher({ outDir: args.outDir, version }));
   for (const dir of written) process.stdout.write(`${dir}\n`);
   if (args.verifyHost) {
     const result = verifyHostBinary(args.outDir, version);

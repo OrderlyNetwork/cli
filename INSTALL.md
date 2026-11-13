@@ -4,6 +4,20 @@
 from the [latest release](https://github.com/OrderlyNetwork/cli/releases/latest),
 extract it, and put the binary on your `PATH`. There is nothing else to install.
 
+## npm (Node.js 18+)
+
+```bash
+npm install -g @orderly.network/cli
+orderly --version
+```
+
+The package has no install scripts: npm picks one platform package
+(`@orderly.network/cli-<os>-<cpu>`) through `optionalDependencies` and the
+`orderly` shim launches it with inherited stdio, so the keychain prompts and
+exit codes are identical to a direct install. Use `npx @orderly.network/cli`
+for a one-off run, or `--include=optional` if your npm config skips optional
+dependencies.
+
 ## One-line install (Linux and macOS)
 
 ```bash

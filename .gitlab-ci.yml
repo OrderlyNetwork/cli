@@ -197,9 +197,17 @@ npm_unpublish_orderly:
         exit 1
       fi
       test -n "${PUBLIC_NPM_TOKEN:-}" || { echo "PUBLIC_NPM_TOKEN is not set"; exit 1; }
-      registry="${PUBLIC_NPM_REGISTRY:-https://registry.npmjs.org/}"
+      # Publishing may go through a mirror; a delete must reach npmjs itself.
+      registry="${UNPUBLISH_REGISTRY:-https://registry.npmjs.org/}"
+      base="${registry%/}"
+      packument="${base}/@orderly.network%2Forderly"
 
-      if ! npm view "$target" version --registry "$registry" >/dev/null 2>&1; then
+      echo "registry: $registry"
+      echo -n "authenticated as: "
+      NODE_AUTH_TOKEN="${PUBLIC_NPM_TOKEN}" npm whoami --registry "$registry" || echo "(whoami failed)"
+      before=$(curl -s -o /dev/null -w '%{http_code}' "$packument")
+      echo "packument before: HTTP $before"
+      if [ "$before" = "404" ]; then
         echo "$target is already unpublished."
         exit 0
       fi
@@ -209,22 +217,26 @@ npm_unpublish_orderly:
         extra+=(--dry-run)
       fi
       NODE_AUTH_TOKEN="${PUBLIC_NPM_TOKEN}" npm unpublish "$target" --force \
-        --registry "$registry" "${extra[@]}"
+        --registry "$registry" --loglevel=http "${extra[@]}"
 
       if [ "${UNPUBLISH_DRY_RUN:-}" = "1" ]; then
         echo "Dry run complete; nothing was deleted."
         exit 0
       fi
 
-      # Registry metadata propagates asynchronously.
-      for attempt in 1 2 3 4 5 6 7 8 9 10; do
-        if ! npm view "$target" version --registry "$registry" >/dev/null 2>&1; then
-          echo "Unpublished $target."
+      # Registry metadata and CDN caches propagate asynchronously; check the
+      # registry directly, not `npm view` (which honors caches and .npmrc).
+      for attempt in $(seq 1 20); do
+        after=$(curl -s -o /dev/null -w '%{http_code}' "$packument")
+        if [ "$after" = "404" ]; then
+          echo "Unpublished $target (HTTP 404)."
           exit 0
         fi
-        sleep 6
+        echo "attempt $attempt: HTTP $after, waiting for propagation"
+        sleep 15
       done
-      echo "Unpublish reported success but $target is still visible." >&2
+      echo "Unpublish reported success but $packument still returns HTTP $after." >&2
+      echo "If the log above shows 403/404 on DELETE, the token cannot manage this package." >&2
       exit 1
   tags:
     - dev

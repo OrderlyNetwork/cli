@@ -87,7 +87,10 @@ release exists. See `INSTALL.md`.
 `npm_unpublish_orderly` is a one-off manual job for deleting the retired
 `@orderly.network/orderly` name (renamed to `cli-wasm`). It refuses to run
 unless the pipeline sets `CONFIRM_UNPUBLISH=@orderly.network/orderly`, and
-supports `UNPUBLISH_DRY_RUN=1`. Remove the job once the package is gone.
+supports `UNPUBLISH_DRY_RUN=1`. Deletes always target
+`UNPUBLISH_REGISTRY` (default `https://registry.npmjs.org/`), never the publish
+mirror, and the result is verified with a direct request to the packument.
+Remove the job once the package is gone.
 
 ## Troubleshooting
 

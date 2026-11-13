@@ -86,7 +86,7 @@ test('packLauncher writes an installable package with an executable bin', () => 
   assert.equal(manifest.name, '@orderly.network/cli');
   assert.equal(manifest.version, '2.2.2');
   assert.equal(manifest.type, 'module');
-  assert.deepEqual(manifest.files, ['bin', 'lib']);
+  assert.deepEqual(manifest.files, ['bin', 'lib', 'README.md']);
 
   const bin = path.join(dir, 'bin', 'orderly.js');
   assert.ok(statSync(bin).size > 0);

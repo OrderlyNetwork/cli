@@ -139,7 +139,7 @@ export function launcherManifest(version) {
     type: 'module',
     bin: { orderly: 'bin/orderly.js' },
     engines: { node: '>=18' },
-    files: ['bin', 'lib'],
+    files: ['bin', 'lib', 'README.md'],
     optionalDependencies: Object.fromEntries(
       TARGETS.map((entry) => [packageName(entry.target), version])
     ),
@@ -158,6 +158,7 @@ export function packLauncher({ outDir, version }) {
   for (const file of [
     ['bin', 'orderly.js'],
     ['lib', 'resolve.js'],
+    ['README.md'],
   ]) {
     const source = path.join(REPO_ROOT, 'npm', 'cli', ...file);
     const destination = path.join(dir, ...file);

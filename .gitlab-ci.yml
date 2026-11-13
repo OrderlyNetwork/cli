@@ -1,4 +1,4 @@
-# GitLab is the canonical repository and publishes the WASM SDK to npm.
+# GitLab is the canonical repository and publishes the WASM package to npm.
 # GitHub remains the binary release target; matching vX.Y.Z tags are mirrored.
 #
 # Required CI/CD variables (group or project):

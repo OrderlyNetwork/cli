@@ -1,9 +1,11 @@
-# @orderly.network/orderly
+# @orderly.network/cli-wasm
 
-WebAssembly SDK for Orderly Network, generated from the CLI's Rust core.
+Orderly CLI core as WebAssembly: request construction, signing and auth headers
+for JavaScript and browsers. Same Rust code as the binary; you provide the signer
+instead of the OS keychain.
 
 ```ts
-import { MemorySigner, OrderlyClient } from "@orderly.network/orderly";
+import { MemorySigner, OrderlyClient } from "@orderly.network/cli-wasm";
 
 const client = new OrderlyClient({
   network: "testnet",
@@ -28,8 +30,8 @@ interface Signer {
 ```
 
 `MemorySigner` is included for testnet and local use. A custom signer can keep
-the private key in a platform keystore, HSM, or remote signing service. The SDK
-only sends the exact message and consumes the signature.
+the private key in a platform keystore, HSM, or remote signing service. This
+package only sends the exact message and consumes the signature.
 
 ## Build
 

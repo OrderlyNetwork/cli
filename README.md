@@ -131,14 +131,14 @@ orderly symbols
 
 Run `orderly --help` for the complete command reference.
 
-## JavaScript/TypeScript SDK (WASM)
+## JavaScript/TypeScript (WASM)
 
 The CLI's signing and request layer is also published as a WebAssembly package.
 It uses the same Rust code as the binary, but takes a signer instead of reading
 the OS keychain.
 
 ```ts
-import { MemorySigner, OrderlyClient } from "@orderly.network/orderly";
+import { MemorySigner, OrderlyClient } from "@orderly.network/cli-wasm";
 
 const client = new OrderlyClient({
   network: "testnet",
@@ -257,9 +257,9 @@ before it was removed (JSON/CSV rendering, Ed25519, EIP-712, Solana signing, and
 the full `--help` text). The tests diff the Rust implementation against those
 recorded bytes offline, so behavior is pinned without a Node.js toolchain.
 
-### WASM SDK release
+### WASM package release
 
-The npm package `@orderly.network/orderly` is the repository root. Its TypeScript
+The npm package `@orderly.network/cli-wasm` is the repository root. Its TypeScript
 wrapper lives in `sdk/`; the Rust binding crate lives in `bindings/wasm`.
 
 ```bash
@@ -277,7 +277,7 @@ and the GitHub binary release.
 WASM builds are path-dependent at the byte level (Rust embeds path-derived
 symbol metadata), so CI compares `wasm/source-hash.txt` and `dist/` instead of
 diffing `orderly_wasm_bg.wasm`. Commit the regenerated hash and artifacts when
-SDK inputs change.
+WASM inputs change.
 
 ## License
 

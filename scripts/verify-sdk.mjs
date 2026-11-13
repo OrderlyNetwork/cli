@@ -15,8 +15,8 @@ const required = [
 
 const missing = required.filter((file) => !existsSync(path.join(root, file)));
 if (missing.length) {
-  console.error(`Missing SDK artifacts:\n${missing.map((file) => `  ${file}`).join("\n")}`);
+  console.error(`Missing WASM artifacts:\n${missing.map((file) => `  ${file}`).join("\n")}`);
   console.error("Run `pnpm build` from the repository root.");
   process.exit(1);
 }
-console.log(`SDK artifacts present (${required.length} files).`);
+console.log(`WASM artifacts present (${required.length} files).`);

@@ -1,7 +1,7 @@
 {
-  "name": "@orderly.network/orderly",
+  "name": "@orderly.network/cli-wasm",
   "version": "2.2.2",
-  "description": "WebAssembly SDK for Orderly Network, built from the Orderly CLI core",
+  "description": "Orderly CLI core as WebAssembly: request construction, signing and auth headers for JavaScript and browsers",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -43,7 +43,6 @@
     "trading",
     "perps",
     "wasm",
-    "sdk",
     "cli"
   ],
   "author": "Orderly Network",

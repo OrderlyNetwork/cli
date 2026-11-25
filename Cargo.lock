@@ -1468,6 +1468,7 @@ dependencies = [
  "hex",
  "k256",
  "keyring",
+ "libc",
  "primitive-types",
  "rand 0.8.8",
  "regex",

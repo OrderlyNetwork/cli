@@ -54,6 +54,9 @@ tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"], 
 [target.'cfg(target_os = "linux")'.dependencies]
 secret-service = { version = "4", features = ["rt-tokio-crypto-rust"], optional = true }
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 keyring = { version = "3", features = ["apple-native", "windows-native"], optional = true }
 

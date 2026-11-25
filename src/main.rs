@@ -5,6 +5,7 @@ use orderly::error::handle_error;
 
 #[tokio::main]
 async fn main() {
+    restore_sigpipe();
     check_negative_number_args();
 
     // `orderly` with no arguments (or `orderly help`) prints nothing and exits 0.
@@ -30,6 +31,21 @@ async fn main() {
         handle_error(err);
     }
 }
+
+/// Rust ignores SIGPIPE, so a closed reader (for example `orderly schema |
+/// head`) turns into an EPIPE panic from `println!`. Restore the default
+/// disposition so pipelines terminate quietly, like every other Unix tool.
+#[cfg(unix)]
+fn restore_sigpipe() {
+    // SAFETY: resetting a signal disposition to the default handler is
+    // async-signal-safe and touches no shared memory.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
+
+#[cfg(not(unix))]
+fn restore_sigpipe() {}
 
 /// Mirror the TS CLI's pre-parse guard: `process.argv.slice(2)` scanned from
 /// index 2 for `-<number>`-looking arguments (which shells/users mistake for

@@ -1,5 +1,6 @@
 # GitLab is the canonical repository and publishes the WASM package to npm.
-# GitHub remains the binary release target; matching vX.Y.Z tags are mirrored.
+# GitHub remains the binary release target; main and matching vX.Y.Z tags are
+# mirrored.
 #
 # Required CI/CD variables (group or project):
 #   PUBLIC_NPM_REGISTRY, PUBLIC_NPM_TOKEN, GIT_USERNAME, GIT_TOKEN
@@ -75,7 +76,8 @@ npm_major_stable:
 
 # The shared npm-release template bumps package.json, runs `npm version`
 # (which syncs Cargo.toml/Cargo.lock), tags vX.Y.Z, and publishes npm.
-# Mirror only the tag; GitHub Actions builds the CLI binary from it.
+# Mirror the tag; GitHub Actions builds the CLI binary from it. The default
+# branch is mirrored separately by mirror_github_branch.
 mirror_github_tag:
   stage: release
   image:
@@ -87,6 +89,25 @@ mirror_github_tag:
     - test -n "$GITHUB_MIRROR_TOKEN"
     - git fetch --tags origin
     - git push "https://x-access-token:${GITHUB_MIRROR_TOKEN}@github.com/OrderlyNetwork/cli.git" "refs/tags/${CI_COMMIT_TAG}:refs/tags/${CI_COMMIT_TAG}"
+  tags:
+    - dev
+    - build
+
+# Keep the GitHub default branch current. Tags alone leave GitHub main stale,
+# which breaks raw.githubusercontent.com links and the default-branch view.
+# Runs on main pushes and on tag pipelines (the release commit).
+mirror_github_branch:
+  stage: release
+  image:
+    name: node:22.23.4
+  needs: []
+  resource_group: mirror-github-branch
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_TAG'
+  script:
+    - test -n "$GITHUB_MIRROR_TOKEN"
+    - git push "https://x-access-token:${GITHUB_MIRROR_TOKEN}@github.com/OrderlyNetwork/cli.git" "HEAD:refs/heads/main"
   tags:
     - dev
     - build
